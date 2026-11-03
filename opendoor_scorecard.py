@@ -750,7 +750,9 @@ td,th{{padding:.35rem .5rem;border-bottom:1px solid #eee;text-align:left}}tr.p t
 {history_html}<h2>Quarters ($M)</h2><table><tr><th>Quarter end</th><th>Revenue</th><th>Net income</th><th>Bought</th><th>Sold</th><th>Contrib. %</th><th>Cash</th></tr>{qrows}</table>
 <p style="color:#888;font-size:.8rem">Updates automatically every weekday evening (UK time). Times shown are UK time.
 Download: <a href="history.csv">score history (CSV)</a> &middot; <a href="scorecard.json">full data (JSON)</a>.<br>
-Sources: SEC EDGAR XBRL, accountable.opendoor.com, {res['price'].get('source', 'price snapshot')}, opendoor_kpis.csv. Not investment advice.</p>
+Sources: SEC EDGAR (financial statements and earnings releases), accountable.opendoor.com, {res['price'].get('source', 'price snapshot')} (price),
+{((res['extra'].get('mortgage') or {}).get('source') or 'Freddie Mac')} (mortgage rate), opendoor_kpis.csv (corrections).
+The score is a structured summary of the numbers, not a forecast or a recommendation. Not investment advice.</p>
 </body></html>"""
     with open(path, "w") as fh:
         fh.write(doc)

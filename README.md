@@ -6,14 +6,15 @@ web page you can open from anywhere. No Pi or computer needs to be on.
 **Your site:** `https://thisisfed.github.io/opendoor-scorecard/`
 
 Each run pulls:
-- reported financials from SEC EDGAR;
+- reported financials and earnings releases from the SEC;
 - Opendoor's weekly tracker from accountable.opendoor.com;
-- the share price from Yahoo Finance, with Stooq as backup.
+- the share price (Yahoo Finance, then Nasdaq, then Stooq);
+- the 30-year US mortgage rate (Freddie Mac, via the St. Louis Fed).
 
-It rescores the company, adds a line to the score history and republishes the page. The page shows the change
+It rescores the company, records the day's score in the history and republishes the page. The page shows the change
 since the last run, a chart of the score over time, and every pillar and metric.
 
-Not investment advice. The scoring thresholds are opinions; they're in `RULES` at the top of `opendoor_scorecard.py`.
+Not investment advice: a structured summary of the numbers, not a forecast or a recommendation.
 
 ## One-time setup (3 minutes, in the browser)
 
@@ -42,18 +43,39 @@ From then on it runs by itself every weekday at 22:30 UTC: 22:30 UK time in wint
   moves by 0.05 or more or the grade changes.
 - **If a run fails,** GitHub emails you, and the **Actions** tab shows the log.
 
-## Each quarter (5 minutes, in the browser)
+## Each quarter: nothing to do
 
-After Opendoor reports (next: Q3 2026 on Thursday 5 November, after the US close):
+When Opendoor files its earnings release with the SEC (next: Q3 2026 on Thursday 5 November, after the US close),
+the next run reads it automatically: revenue, profit, homes bought and sold, contribution margin, adjusted
+EBITDA and adjusted net income. It was checked against six past releases (Q1 2025 to Q2 2026) with no differences.
+The reported balance sheet arrives with the 10-Q, usually within days.
 
-1. Open the earnings letter at investor.opendoor.com.
-2. In the repo, click `opendoor_kpis.csv` → the pencil icon. Add one line for the new quarter end
-   (e.g. `2026-09-30`), with all money in $ millions. Leave unknown columns empty. Commit.
-3. Saving the file starts a run automatically, so the site updates within a minute or two.
+`opendoor_kpis.csv` is only for corrections, and for one figure the release table doesn't carry: the share of
+homes listed for more than 120 days (`aged_120_pct`, from the letter's text). Any value in the CSV overrides the
+automatic sources. Saving the file on GitHub starts a run.
 
 If Opendoor announces a financing deal, buyback or share issue **after** the last quarter end, add it to
 `CAPITAL_EVENTS` near the top of `opendoor_scorecard.py` (copy the August 2026 entry's format). Old entries
 switch off by themselves once a reported quarter includes them.
+
+## What's scored
+
+Nine pillars, each 0–10 (the average of its metrics), weighted into the overall score:
+
+| Pillar | Weight | Metrics |
+|---|---|---|
+| Growth | 15% | revenue YoY (estimated from homes sold until reported), quarter-to-date homes sold YoY, contracts vs prior quarter |
+| Unit economics | 15% | contribution margin, gross margin, share of homes listed 120+ days |
+| Profitability | 15% | GAAP net margin (last 2 quarters), adjusted EBITDA margin, adjusted net income margin (the end-2026 target) |
+| Execution | 15% | homes sold vs management's expectation, contracts vs Opendoor's projected range, sale speed vs the market |
+| Balance sheet | 15% | cash / debt, debt / equity, cash runway (all adjusted for deals after the last quarter) |
+| Dilution | 10% | share count change, stock pay / revenue, potential new shares from awards, convertibles and warrants |
+| Valuation | 5% | price / sales, price / book |
+| Momentum | 5% | 1-year return, place in 52-week range, price vs 200-day average |
+| Housing market | 5% | 30-year mortgage rate and its 13-week change |
+
+Grades: A 8+, B 6.5+, C 5+, D 3.5+, F below. The thresholds and weights are judgement calls and have not been
+back-tested against share-price returns. They live in `RULES` and `PILLARS` at the top of the script.
 
 ## Optional: use your own domain (e.g. open.thisisfed.xyz)
 
