@@ -868,7 +868,9 @@ def _history_svg(hist):
 CSS = """
 :root{--ink:#23201d;--muted:#786e64;--muted2:#5d554d;--line:#ebe7e2;--bg:#f3f2f0;--blue:#1d4ed8}
 *{box-sizing:border-box}
-html{background:#f9f8f8}
+html{background:#f9f8f8;scroll-padding-top:92px;scroll-behavior:smooth}
+@media (prefers-reduced-motion:reduce){html{scroll-behavior:auto}}
+@media (max-width:520px){html{scroll-padding-top:104px}}
 body{margin:0;color:var(--ink);font:400 15px/1.5 Inter,system-ui,-apple-system,"Segoe UI","Helvetica Neue",Arial,sans-serif;
 letter-spacing:-.011em;-webkit-font-smoothing:antialiased;font-variant-numeric:tabular-nums;
 background:radial-gradient(80% 40% at 10% 0%,rgba(200,170,255,.55) 0%,rgba(0,0,0,0) 60%),
