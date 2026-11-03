@@ -1,5 +1,5 @@
 {
-  "generated": "2026-11-03T18:39",
+  "generated": "2026-11-03T18:52",
   "ticker": "OPEN",
   "price": {
     "date": "2026-11-02",
@@ -29,7 +29,12 @@
     "q3_prior_revenue_musd": 915.0,
     "shares_year_ago": 771.53,
     "shares_year_ago_date": "2025-09-30",
-    "reported_rev_yoy": -0.43650287172941926
+    "reported_rev_yoy": -0.43650287172941926,
+    "adj_net_income_musd": -30.0,
+    "adj_net_income_quarter": "2026-06-30",
+    "potential_dilution_m": 261.514,
+    "potential_dilution_quarter": "2026-06-30",
+    "mortgage": null
   },
   "metrics": {
     "rev_nowcast_yoy": 0.12188203904666617,
@@ -37,25 +42,31 @@
     "contracts_qoq": 0.004847447961220386,
     "contrib_margin": 0.057999999999999996,
     "gross_margin": 0.09739524348810873,
+    "aged_inventory": 0.09,
     "net_margin_2q": -0.20898315658140987,
     "adj_ebitda_m": -0.004530011325028313,
+    "ani_margin": -0.03397508493771234,
     "coe_vs_guide": -0.07021131561008864,
     "contracts_vs_proj": -0.21344607135491855,
     "clearance": 1.1625,
     "cash_to_debt": 0.5124712202609363,
     "debt_to_equity": 3.7043354655294953,
+    "runway_q": 44.516666666666666,
     "share_yoy": 0.19995333946832927,
     "sbc_pct": 0.1347678369195923,
+    "dilution_overhang": 0.2692966738749871,
     "ps": 0.512120467117394,
     "pb": 2.368784648187633,
     "ret_1y": -0.7547683923705721,
     "range_pos": 0.0,
-    "vs_ma200": -0.569889903762866
+    "vs_ma200": -0.569889903762866,
+    "mortgage_rate": null,
+    "mortgage_13w": null
   },
   "score": {
-    "overall": 4.73,
-    "grade": "D",
-    "verdict": "Weak: speculative; size the position accordingly.",
+    "overall": 5.24,
+    "grade": "C",
+    "verdict": "Mixed: the turnaround is plausible but unproven.",
     "pillars": [
       {
         "name": "Growth",
@@ -95,8 +106,8 @@
       {
         "name": "Unit economics",
         "weight": 15,
-        "question": "Does each home flip make money?",
-        "score": 7.6,
+        "question": "Does each home flip make money, and is stock fresh?",
+        "score": 8.0,
         "metrics": [
           {
             "key": "contrib_margin",
@@ -115,6 +126,15 @@
             "fmt": "pct",
             "bad": 0.05,
             "good": 0.12
+          },
+          {
+            "key": "aged_inventory",
+            "label": "Homes listed 120+ days, share of inventory",
+            "value": 0.09,
+            "score": 8.9,
+            "fmt": "pct",
+            "bad": 0.4,
+            "good": 0.05
           }
         ]
       },
@@ -122,7 +142,7 @@
         "name": "Profitability",
         "weight": 15,
         "question": "Does the whole company make money?",
-        "score": 2.9,
+        "score": 3.9,
         "metrics": [
           {
             "key": "net_margin_2q",
@@ -141,6 +161,15 @@
             "fmt": "pct",
             "bad": -0.05,
             "good": 0.03
+          },
+          {
+            "key": "ani_margin",
+            "label": "Adj. net income margin (target: positive by end-2026)",
+            "value": -0.03397508493771234,
+            "score": 6.0,
+            "fmt": "pct",
+            "bad": -0.1,
+            "good": 0.01
           }
         ]
       },
@@ -183,7 +212,7 @@
         "name": "Balance sheet",
         "weight": 15,
         "question": "Can it survive a bad housing year?",
-        "score": 2.4,
+        "score": 4.9,
         "metrics": [
           {
             "key": "cash_to_debt",
@@ -202,6 +231,15 @@
             "fmt": "x",
             "bad": 4.0,
             "good": 0.5
+          },
+          {
+            "key": "runway_q",
+            "label": "Cash runway at current adj. net loss (home purchases are debt-funded, excluded)",
+            "value": 44.516666666666666,
+            "score": 10.0,
+            "fmt": "qtrs",
+            "bad": 4.0,
+            "good": 16.0
           }
         ]
       },
@@ -209,7 +247,7 @@
         "name": "Dilution",
         "weight": 10,
         "question": "Is your slice of the company shrinking?",
-        "score": 1.6,
+        "score": 2.3,
         "metrics": [
           {
             "key": "share_yoy",
@@ -228,12 +266,21 @@
             "fmt": "pct",
             "bad": 0.1,
             "good": 0.01
+          },
+          {
+            "key": "dilution_overhang",
+            "label": "Potential new shares (awards, convertibles, warrants) / shares",
+            "value": 0.2692966738749871,
+            "score": 3.7,
+            "fmt": "pct",
+            "bad": 0.4,
+            "good": 0.05
           }
         ]
       },
       {
         "name": "Valuation",
-        "weight": 10,
+        "weight": 5,
         "question": "Are you overpaying for what exists today?",
         "score": 8.2,
         "metrics": [
@@ -291,9 +338,35 @@
             "good": 0.1
           }
         ]
+      },
+      {
+        "name": "Housing market",
+        "weight": 5,
+        "question": "Is the market helping or hurting?",
+        "score": null,
+        "metrics": [
+          {
+            "key": "mortgage_rate",
+            "label": "30-year US mortgage rate",
+            "value": null,
+            "score": null,
+            "fmt": "rate",
+            "bad": 0.08,
+            "good": 0.05
+          },
+          {
+            "key": "mortgage_13w",
+            "label": "Mortgage rate change, last 13 weeks",
+            "value": null,
+            "score": null,
+            "fmt": "pp",
+            "bad": 0.0075,
+            "good": -0.0075
+          }
+        ]
       }
     ],
-    "weights_used": 100
+    "weights_used": 95
   },
   "quarters": [
     {
@@ -329,7 +402,8 @@
       "sbc_musd": 2.97,
       "fcf_musd": 430.698,
       "cash_musd": 409.257,
-      "equity_musd": 0.003369
+      "equity_musd": 0.003369,
+      "potential_dilution_m": 379.135
     },
     {
       "quarter_end": "2020-06-30",
@@ -339,7 +413,8 @@
       "sbc_musd": 3.67,
       "fcf_musd": 508.896,
       "cash_musd": 458.058,
-      "equity_musd": 5.000007
+      "equity_musd": 5.000007,
+      "potential_dilution_m": 379.929
     },
     {
       "quarter_end": "2020-09-30",
@@ -350,7 +425,8 @@
       "fcf_musd": 85.692,
       "cash_musd": 469.365,
       "equity_musd": 5.000002,
-      "shares_m": 540.714692
+      "shares_m": 540.714692,
+      "potential_dilution_m": 383.266
     },
     {
       "quarter_end": "2020-12-31",
@@ -374,7 +450,8 @@
       "cash_musd": 2040.0,
       "inventory_musd": 840.632,
       "total_debt_musd": 136.473,
-      "shares_m": 540.714692
+      "shares_m": 540.714692,
+      "potential_dilution_m": 97.877
     },
     {
       "quarter_end": "2021-06-30",
@@ -386,7 +463,8 @@
       "inventory_musd": 2723.648,
       "equity_musd": 2418.0,
       "total_debt_musd": 595.579,
-      "shares_m": 593.838919
+      "shares_m": 593.838919,
+      "potential_dilution_m": 96.263
     },
     {
       "quarter_end": "2021-09-30",
@@ -399,7 +477,8 @@
       "inventory_musd": 6268.081,
       "equity_musd": 2363.0,
       "total_debt_musd": 6370.216,
-      "shares_m": 607.215233
+      "shares_m": 607.215233,
+      "potential_dilution_m": 74.369
     },
     {
       "quarter_end": "2021-12-31",
@@ -425,7 +504,8 @@
       "inventory_musd": 4664.0,
       "equity_musd": 2347.0,
       "total_debt_musd": 5728.0,
-      "shares_m": 622.918512
+      "shares_m": 622.918512,
+      "potential_dilution_m": 36.623
     },
     {
       "quarter_end": "2022-06-30",
@@ -438,7 +518,8 @@
       "inventory_musd": 6628.0,
       "equity_musd": 2356.0,
       "total_debt_musd": 7494.0,
-      "shares_m": 627.033133
+      "shares_m": 627.033133,
+      "potential_dilution_m": 70.778
     },
     {
       "quarter_end": "2022-09-30",
@@ -451,7 +532,8 @@
       "inventory_musd": 6093.0,
       "equity_musd": 1488.0,
       "total_debt_musd": 8028.0,
-      "shares_m": 632.513135
+      "shares_m": 632.513135,
+      "potential_dilution_m": 74.726
     },
     {
       "quarter_end": "2022-12-31",
@@ -477,7 +559,8 @@
       "inventory_musd": 2118.0,
       "equity_musd": 1036.0,
       "total_debt_musd": 3953.0,
-      "shares_m": 647.60792
+      "shares_m": 647.60792,
+      "potential_dilution_m": 89.578
     },
     {
       "quarter_end": "2023-06-30",
@@ -490,7 +573,8 @@
       "inventory_musd": 1149.0,
       "equity_musd": 1086.0,
       "total_debt_musd": 3043.0,
-      "shares_m": 657.337566
+      "shares_m": 657.337566,
+      "potential_dilution_m": 30.577
     },
     {
       "quarter_end": "2023-09-30",
@@ -503,7 +587,8 @@
       "inventory_musd": 1311.0,
       "equity_musd": 1020.0,
       "total_debt_musd": 2832.0,
-      "shares_m": 668.59258
+      "shares_m": 668.59258,
+      "potential_dilution_m": 70.8
     },
     {
       "quarter_end": "2023-12-31",
@@ -529,7 +614,8 @@
       "inventory_musd": 1881.0,
       "equity_musd": 899.0,
       "total_debt_musd": 2412.0,
-      "shares_m": 688.560794
+      "shares_m": 688.560794,
+      "potential_dilution_m": 66.754
     },
     {
       "quarter_end": "2024-06-30",
@@ -542,7 +628,8 @@
       "inventory_musd": 2234.0,
       "equity_musd": 845.0,
       "total_debt_musd": 2431.0,
-      "shares_m": 698.843166
+      "shares_m": 698.843166,
+      "potential_dilution_m": 72.687
     },
     {
       "quarter_end": "2024-09-30",
@@ -555,7 +642,8 @@
       "inventory_musd": 2145.0,
       "equity_musd": 801.0,
       "total_debt_musd": 2511.0,
-      "shares_m": 711.660871
+      "shares_m": 711.660871,
+      "potential_dilution_m": 55.711
     },
     {
       "quarter_end": "2024-12-31",
@@ -581,7 +669,14 @@
       "inventory_musd": 2362.0,
       "equity_musd": 645.0,
       "total_debt_musd": 2511.0,
-      "shares_m": 726.835454
+      "shares_m": 726.835454,
+      "potential_dilution_m": 54.684,
+      "homes_sold": 2946.0,
+      "homes_purchased": 3609.0,
+      "homes_in_inventory": 7080.0,
+      "contribution_margin_pct": 4.7,
+      "adj_ebitda_musd": -30.0,
+      "adj_net_income_musd": -63.0
     },
     {
       "quarter_end": "2025-06-30",
@@ -595,11 +690,14 @@
       "equity_musd": 631.0,
       "total_debt_musd": 2176.0,
       "shares_m": 729.0,
+      "potential_dilution_m": 56.51,
       "homes_sold": 4299.0,
       "homes_purchased": 1757.0,
       "homes_in_inventory": 4538.0,
       "contribution_margin_pct": 4.4,
-      "adj_ebitda_musd": 23.0
+      "adj_ebitda_musd": 23.0,
+      "adj_net_income_musd": -9.0,
+      "aged_120_pct": 36.0
     },
     {
       "quarter_end": "2025-09-30",
@@ -613,11 +711,14 @@
       "equity_musd": 811.0,
       "total_debt_musd": 1779.0,
       "shares_m": 771.53,
+      "potential_dilution_m": 250.905,
       "homes_sold": 2568.0,
       "homes_purchased": 1169.0,
       "homes_in_inventory": 3139.0,
       "contribution_margin_pct": 2.2,
       "adj_ebitda_musd": -33.0,
+      "adj_net_income_musd": -61.0,
+      "aged_120_pct": 51.0,
       "note": "shares = basic shares outstanding at 30 Sep 2025 (424B5 prospectus)"
     },
     {
@@ -637,6 +738,8 @@
       "homes_in_inventory": 2867.0,
       "contribution_margin_pct": 1.0,
       "adj_ebitda_musd": -43.0,
+      "adj_net_income_musd": -62.0,
+      "aged_120_pct": 33.0,
       "note": "net loss includes $933M one-off loss on debt extinguishment"
     },
     {
@@ -651,11 +754,14 @@
       "equity_musd": 954.0,
       "total_debt_musd": 1331.0,
       "shares_m": 959.0,
+      "potential_dilution_m": 267.402,
       "homes_sold": 1921.0,
       "homes_purchased": 2474.0,
       "homes_in_inventory": 3420.0,
       "contribution_margin_pct": 4.4,
-      "adj_ebitda_musd": -31.0
+      "adj_ebitda_musd": -31.0,
+      "adj_net_income_musd": -49.0,
+      "aged_120_pct": 10.0
     },
     {
       "quarter_end": "2026-06-30",
@@ -669,11 +775,14 @@
       "equity_musd": 914.0,
       "total_debt_musd": 1956.0,
       "shares_m": 971.1,
+      "potential_dilution_m": 261.514,
       "homes_sold": 2339.0,
       "homes_purchased": 4378.0,
       "homes_in_inventory": 5459.0,
       "contribution_margin_pct": 5.8,
       "adj_ebitda_musd": -4.0,
+      "adj_net_income_musd": -30.0,
+      "aged_120_pct": 9.0,
       "note": "shares = 971.1M at 28 Jul 2026 (10-Q cover / Aug 13 8-K)"
     }
   ],
@@ -1104,22 +1213,38 @@
     "  equity_musd        <- us-gaap:StockholdersEquity",
     "  total_debt_musd    <- us-gaap:LinesOfCreditCurrent + us-gaap:LongTermLineOfCredit + us-gaap:ConvertibleDebtCurrent + us-gaap:ConvertibleDebtNoncurrent",
     "  shares_m           <- us-gaap:CommonStockSharesOutstanding",
+    "  potential_dilution_m <- us-gaap:AntidilutiveSecuritiesExcludedFromComputationOfEarningsPerShareAmount",
+    "Earnings releases (sec.gov 8-K exhibit 99.1):",
+    "  release 2025-05-06 (q12025formxex991earningsre.htm): 10 figures",
+    "  release 2025-08-05 (q22025formxex991earningsre.htm): 10 figures",
+    "  release 2025-11-06 (q32025formxex991earningsre.htm): 10 figures",
+    "  release 2026-02-19 (q42025formxex991earningsre.htm): 10 figures",
+    "  release 2026-05-07 (q12026formxex991earningsre.htm): 10 figures",
+    "  release 2026-08-04 (q22026formxex991earningsre.htm): 10 figures",
+    "mortgage rates unavailable (The read operation timed out); using cached copy",
     "accountable.opendoor.com: data as of 2026-10-24",
-    "price sources that failed: Yahoo Finance: HTTP Error 429: Too Many Requests; Yahoo Finance: HTTP Error 429: Too Many Requests"
+    "price sources that failed: Yahoo Finance: HTTP Error 429: Too Many Requests; Yahoo Finance: HTTP Error 429: Too Many Requests",
+    "  [release diag] 2025-03-31: {'revenue_musd': 1153.0, 'gross_profit_musd': 99.0, 'net_income_musd': -85.0, 'homes_sold': 2946.0, 'homes_purchased': 3609.0, 'homes_in_inventory': 7080.0, 'inventory_musd': 2362.0, 'contribution_margin_pct': 4.7, 'adj_ebitda_musd': -30.0, 'adj_net_income_musd': -63.0}  MISMATCH vs csv: none",
+    "  [release diag] 2025-06-30: {'revenue_musd': 1567.0, 'gross_profit_musd': 128.0, 'net_income_musd': -29.0, 'homes_sold': 4299.0, 'homes_purchased': 1757.0, 'homes_in_inventory': 4538.0, 'inventory_musd': 1530.0, 'contribution_margin_pct': 4.4, 'adj_ebitda_musd': 23.0, 'adj_net_income_musd': -9.0}  MISMATCH vs csv: none",
+    "  [release diag] 2025-09-30: {'revenue_musd': 915.0, 'gross_profit_musd': 66.0, 'net_income_musd': -90.0, 'homes_sold': 2568.0, 'homes_purchased': 1169.0, 'homes_in_inventory': 3139.0, 'inventory_musd': 1053.0, 'contribution_margin_pct': 2.2, 'adj_ebitda_musd': -33.0, 'adj_net_income_musd': -61.0}  MISMATCH vs csv: none",
+    "  [release diag] 2025-12-31: {'revenue_musd': 736.0, 'gross_profit_musd': 57.0, 'net_income_musd': -1096.0, 'homes_sold': 1978.0, 'homes_purchased': 1706.0, 'homes_in_inventory': 2867.0, 'inventory_musd': 925.0, 'contribution_margin_pct': 1.0, 'adj_ebitda_musd': -43.0, 'adj_net_income_musd': -62.0}  MISMATCH vs csv: none",
+    "  [release diag] 2026-03-31: {'revenue_musd': 720.0, 'gross_profit_musd': 72.0, 'net_income_musd': -173.0, 'homes_sold': 1921.0, 'homes_purchased': 2474.0, 'homes_in_inventory': 3420.0, 'inventory_musd': 1139.0, 'contribution_margin_pct': 4.4, 'adj_ebitda_musd': -31.0, 'adj_net_income_musd': -49.0}  MISMATCH vs csv: none",
+    "  [release diag] 2026-06-30: {'revenue_musd': 883.0, 'gross_profit_musd': 86.0, 'net_income_musd': -162.0, 'homes_sold': 2339.0, 'homes_purchased': 4378.0, 'homes_in_inventory': 5459.0, 'inventory_musd': 1845.0, 'contribution_margin_pct': 5.8, 'adj_ebitda_musd': -4.0, 'adj_net_income_musd': -30.0}  MISMATCH vs csv: none"
   ],
   "change": {
-    "overall": 0.0,
+    "overall": 0.5099999999999998,
     "grade_from": "D",
-    "since": "2026-11-03T18:37",
+    "since": "2026-11-02T18:52",
     "pillars": {
       "Growth": 0.0,
-      "Unit economics": 0.0,
-      "Profitability": 0.0,
+      "Unit economics": 0.40000000000000036,
+      "Profitability": 1.0,
       "Execution": 0.0,
-      "Balance sheet": 0.0,
-      "Dilution": 0.0,
+      "Balance sheet": 2.5000000000000004,
+      "Dilution": 0.6999999999999997,
       "Valuation": 0.0,
-      "Momentum": 0.0
+      "Momentum": 0.0,
+      "Housing market": null
     }
   },
   "history": [
@@ -1141,89 +1266,22 @@
       "Momentum": "0.0"
     },
     {
-      "run_at": "2026-11-03T18:29",
-      "price_date": "2026-10-30",
-      "price": "1.8",
-      "tracker_as_of": "2026-10-24",
-      "latest_quarter": "2026-06-30",
-      "overall": "4.73",
-      "grade": "D",
-      "Growth": "7.3",
-      "Unit economics": "7.6",
-      "Profitability": "2.9",
-      "Execution": "4.8",
-      "Balance sheet": "2.4",
-      "Dilution": "1.6",
-      "Valuation": "8.2",
-      "Momentum": "0.0"
-    },
-    {
-      "run_at": "2026-11-03T18:32",
+      "run_at": "2026-11-03T18:52",
       "price_date": "2026-11-02",
       "price": "1.8",
       "tracker_as_of": "2026-10-24",
       "latest_quarter": "2026-06-30",
-      "overall": "4.73",
-      "grade": "D",
+      "overall": "5.24",
+      "grade": "C",
       "Growth": "7.3",
-      "Unit economics": "7.6",
-      "Profitability": "2.9",
+      "Unit economics": "8.0",
+      "Profitability": "3.9",
       "Execution": "4.8",
-      "Balance sheet": "2.4",
-      "Dilution": "1.6",
+      "Balance sheet": "4.9",
+      "Dilution": "2.3",
       "Valuation": "8.2",
-      "Momentum": "0.0"
-    },
-    {
-      "run_at": "2026-11-03T18:35",
-      "price_date": "2026-11-02",
-      "price": "1.8",
-      "tracker_as_of": "2026-10-24",
-      "latest_quarter": "2026-06-30",
-      "overall": "4.73",
-      "grade": "D",
-      "Growth": "7.3",
-      "Unit economics": "7.6",
-      "Profitability": "2.9",
-      "Execution": "4.8",
-      "Balance sheet": "2.4",
-      "Dilution": "1.6",
-      "Valuation": "8.2",
-      "Momentum": "0.0"
-    },
-    {
-      "run_at": "2026-11-03T18:37",
-      "price_date": "2026-11-02",
-      "price": "1.8",
-      "tracker_as_of": "2026-10-24",
-      "latest_quarter": "2026-06-30",
-      "overall": "4.73",
-      "grade": "D",
-      "Growth": "7.3",
-      "Unit economics": "7.6",
-      "Profitability": "2.9",
-      "Execution": "4.8",
-      "Balance sheet": "2.4",
-      "Dilution": "1.6",
-      "Valuation": "8.2",
-      "Momentum": "0.0"
-    },
-    {
-      "run_at": "2026-11-03T18:39",
-      "price_date": "2026-11-02",
-      "price": "1.8",
-      "tracker_as_of": "2026-10-24",
-      "latest_quarter": "2026-06-30",
-      "overall": "4.73",
-      "grade": "D",
-      "Growth": "7.3",
-      "Unit economics": "7.6",
-      "Profitability": "2.9",
-      "Execution": "4.8",
-      "Balance sheet": "2.4",
-      "Dilution": "1.6",
-      "Valuation": "8.2",
-      "Momentum": "0.0"
+      "Momentum": "0.0",
+      "Housing market": "None"
     }
   ]
 }

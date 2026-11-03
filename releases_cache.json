@@ -1,0 +1,104 @@
+{
+ "0001801169-25-000037": {
+  "file": "q12025formxex991earningsre.htm",
+  "filed": "2025-05-06",
+  "quarter_end": "2025-03-31",
+  "values": {
+   "adj_ebitda_musd": -30.0,
+   "adj_net_income_musd": -63.0,
+   "contribution_margin_pct": 4.7,
+   "gross_profit_musd": 99.0,
+   "homes_in_inventory": 7080.0,
+   "homes_purchased": 3609.0,
+   "homes_sold": 2946.0,
+   "inventory_musd": 2362.0,
+   "net_income_musd": -85.0,
+   "revenue_musd": 1153.0
+  }
+ },
+ "0001801169-25-000073": {
+  "file": "q22025formxex991earningsre.htm",
+  "filed": "2025-08-05",
+  "quarter_end": "2025-06-30",
+  "values": {
+   "adj_ebitda_musd": 23.0,
+   "adj_net_income_musd": -9.0,
+   "contribution_margin_pct": 4.4,
+   "gross_profit_musd": 128.0,
+   "homes_in_inventory": 4538.0,
+   "homes_purchased": 1757.0,
+   "homes_sold": 4299.0,
+   "inventory_musd": 1530.0,
+   "net_income_musd": -29.0,
+   "revenue_musd": 1567.0
+  }
+ },
+ "0001801169-25-000090": {
+  "file": "q32025formxex991earningsre.htm",
+  "filed": "2025-11-06",
+  "quarter_end": "2025-09-30",
+  "values": {
+   "adj_ebitda_musd": -33.0,
+   "adj_net_income_musd": -61.0,
+   "contribution_margin_pct": 2.2,
+   "gross_profit_musd": 66.0,
+   "homes_in_inventory": 3139.0,
+   "homes_purchased": 1169.0,
+   "homes_sold": 2568.0,
+   "inventory_musd": 1053.0,
+   "net_income_musd": -90.0,
+   "revenue_musd": 915.0
+  }
+ },
+ "0001801169-26-000009": {
+  "file": "q42025formxex991earningsre.htm",
+  "filed": "2026-02-19",
+  "quarter_end": "2025-12-31",
+  "values": {
+   "adj_ebitda_musd": -43.0,
+   "adj_net_income_musd": -62.0,
+   "contribution_margin_pct": 1.0,
+   "gross_profit_musd": 57.0,
+   "homes_in_inventory": 2867.0,
+   "homes_purchased": 1706.0,
+   "homes_sold": 1978.0,
+   "inventory_musd": 925.0,
+   "net_income_musd": -1096.0,
+   "revenue_musd": 736.0
+  }
+ },
+ "0001801169-26-000013": {
+  "file": "q12026formxex991earningsre.htm",
+  "filed": "2026-05-07",
+  "quarter_end": "2026-03-31",
+  "values": {
+   "adj_ebitda_musd": -31.0,
+   "adj_net_income_musd": -49.0,
+   "contribution_margin_pct": 4.4,
+   "gross_profit_musd": 72.0,
+   "homes_in_inventory": 3420.0,
+   "homes_purchased": 2474.0,
+   "homes_sold": 1921.0,
+   "inventory_musd": 1139.0,
+   "net_income_musd": -173.0,
+   "revenue_musd": 720.0
+  }
+ },
+ "0001801169-26-000019": {
+  "file": "q22026formxex991earningsre.htm",
+  "filed": "2026-08-04",
+  "quarter_end": "2026-06-30",
+  "values": {
+   "adj_ebitda_musd": -4.0,
+   "adj_net_income_musd": -30.0,
+   "contribution_margin_pct": 5.8,
+   "gross_profit_musd": 86.0,
+   "homes_in_inventory": 5459.0,
+   "homes_purchased": 4378.0,
+   "homes_sold": 2339.0,
+   "inventory_musd": 1845.0,
+   "net_income_musd": -162.0,
+   "revenue_musd": 883.0
+  }
+ }
+}
