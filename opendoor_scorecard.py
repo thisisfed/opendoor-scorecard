@@ -1,6 +1,6 @@
 #!/usr/bin/env python3
 """
-Opendoor (OPEN) investor scorecard  -  v3
+Opendoor (OPEN) investor scorecard
 
 Data sources (all free, pulled live unless --offline):
   1. SEC EDGAR XBRL      - reported GAAP financials (revenue, net income, cash, equity, debt, shares,
@@ -32,7 +32,7 @@ Not investment advice: the thresholds in RULES are opinions, tune them.
 import argparse, csv, datetime as dt, html, json, os, re, sys, urllib.request
 
 TICKER, CIK = "OPEN", "0001801169"
-METHOD = "3"  # bump when metrics, thresholds or weights change, so the history marks the break
+METHOD = "1"  # bump when metrics, thresholds or weights change, so the history marks the break
 HERE = os.path.dirname(os.path.abspath(__file__))
 
 # Used by --offline or when the price feed fails. Source: daily closes (S&P Global via stockanalysis.com).
@@ -1040,7 +1040,7 @@ def write_html(res, path):
                     for r in reversed(res["quarters"][-8:]))
     hist = res.get("history") or []
     heads = "".join(f"<th>{e(p[0])}</th>" for p in PILLARS)
-    hrows = "".join(f"<tr><td>{_d(h['run_at'])}{' (v' + (h.get('method') or '2') + ')' if (h.get('method') or '2') != METHOD else ''}</td>"
+    hrows = "".join(f"<tr><td>{_d(h['run_at'])}{' (v' + (h.get('method') or METHOD) + ')' if (h.get('method') or METHOD) != METHOD else ''}</td>"
                     f"<td>${float(h['price']):.2f}</td><td><b>{float(h['overall']):.2f}</b> {e(h['grade'])}</td>"
                     + "".join(f"<td>{h.get(p[0]) or '–'}</td>" for p in PILLARS) + "</tr>" for h in reversed(hist[-60:]))
     pf_note = ("Balance sheet, book value and share count include: " + "; ".join(ex["capital_events"]) + ". ") if ex.get("capital_events") else ""
@@ -1061,7 +1061,7 @@ def write_html(res, path):
 <a class="by" href="https://thisisfed.xyz" target="_blank" rel="noopener">by Federico Ferrari</a></div></div>
 <div class="wrap">
 <section class="hero">
-<div class="asof"><span class="dot"></span>Data as of {e(_d(asof))}<i>Updated every weekday · last run {e(_d(res['generated']))}, {e(res['generated'][11:16])} UK</i></div>
+<div class="asof"><span class="dot"></span>Updated {e(_d(res['generated']))}, {e(res['generated'][11:16])} UK<i>Prices to {e(_d(px['date']))} · Opendoor tracker as of {e(_d(asof))} (refreshed weekly)</i></div>
 <h1>Opendoor,<br>scored.<br>Every weekday.</h1>
 <p class="lede">An independent scorecard that grades Opendoor 0–10 on nine pillars, rebuilt every weekday from SEC filings, the share price, mortgage rates and Opendoor's own public tracker.</p>
 </section>
@@ -1231,7 +1231,7 @@ def change_summary(res, prev):
         return None
     f = lambda v: None if v in (None, "", "None") else float(v)
     d = {"overall": s["overall"] - f(prev["overall"]), "grade_from": prev["grade"], "since": prev["run_at"],
-         "method_changed": (prev.get("method") or "2") != METHOD,
+         "method_changed": (prev.get("method") or METHOD) != METHOD,
          "pillars": {p["name"]: (p["score"] - f(prev.get(p["name"])) if p["score"] is not None and f(prev.get(p["name"])) is not None else None)
                      for p in s["pillars"]}}
     return d
