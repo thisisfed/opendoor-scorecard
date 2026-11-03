@@ -1,5 +1,5 @@
 {
-  "generated": "2026-11-03T18:59",
+  "generated": "2026-11-03T19:03",
   "ticker": "OPEN",
   "price": {
     "date": "2026-11-02",
@@ -1229,6 +1229,7 @@
     "overall": 0.33999999999999986,
     "grade_from": "D",
     "since": "2026-11-02T18:52",
+    "method_changed": true,
     "pillars": {
       "Growth": 0.0,
       "Unit economics": 0.40000000000000036,
@@ -1258,10 +1259,11 @@
       "Dilution": "1.6",
       "Valuation": "8.2",
       "Momentum": "0.0",
-      "Housing market": ""
+      "Housing market": "",
+      "method": "2"
     },
     {
-      "run_at": "2026-11-03T18:59",
+      "run_at": "2026-11-03T19:03",
       "price_date": "2026-11-02",
       "price": "1.8",
       "tracker_as_of": "2026-10-24",
@@ -1276,7 +1278,8 @@
       "Dilution": "2.3",
       "Valuation": "8.2",
       "Momentum": "0.0",
-      "Housing market": "1.8"
+      "Housing market": "1.8",
+      "method": "3"
     }
   ]
 }
