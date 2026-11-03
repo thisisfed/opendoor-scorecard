@@ -164,25 +164,17 @@ def from_edgar(ua, log):
     s, t = instant(f, ["CashAndCashEquivalentsAtCarryingValue"]); put("cash_musd", s, t)
     s, t = instant(f, ["InventoryRealEstate", "RealEstateInventory", "InventoryNet"]); put("inventory_musd", s, t)
     s, t = instant(f, ["StockholdersEquity"]); put("equity_musd", s, t)
+    # Opendoor files its asset-backed (non-recourse) debt as lines of credit. Sum every tag that is present;
+    # 30 Jun 2026 check: 691 + 1,071 + 194 = 1,956 ($M), matching the 10-Q.
     total, used = {}, []
-    for tags in (["AssetBackedSecuritiesDebtCurrent", "NonRecourseDebtCurrent", "SecuredDebtCurrent", "AssetBackedDebtCurrent"],
-                 ["AssetBackedSecuritiesDebtNoncurrent", "NonRecourseDebtNoncurrent", "SecuredDebtNoncurrent", "AssetBackedDebtNoncurrent"],
-                 ["ConvertibleNotesPayable", "ConvertibleDebtNoncurrent", "ConvertibleNotesPayableNoncurrent"]):
-        vals, tag = instant(f, tags)
-        if tag:
-            used.append(tag)
+    for tag in ("LinesOfCreditCurrent", "LongTermLineOfCredit", "ConvertibleDebtCurrent", "ConvertibleDebtNoncurrent"):
+        vals, t = instant(f, [tag])
+        if t:
+            used.append(t)
             for k, v in vals.items():
                 total[k] = total.get(k, 0) + v
     if total:
         put("total_debt_musd", total, " + ".join(used))
-    if os.environ.get("DEBT_DIAG"):  # list every debt-like balance-sheet field with its latest value
-        for ns, tags in f.get("facts", {}).items():
-            for tag, node in tags.items():
-                if True:
-                    vals = [i for i in node.get("units", {}).get("USD", []) if not i.get("start") and i.get("form", "")[:4] in ("10-Q", "10-K")]
-                    last = max(vals, key=lambda i: (i["end"], i["filed"])) if vals else None
-                    if last and last["end"] >= "2026-06-30" and 150e6 <= abs(last["val"]) <= 3000e6:
-                        log.append(f"  [debt diag] {ns}:{tag} = {last['val']/1e6:,.0f}M at {last['end']}")
     s, t = instant(f, ["EntityCommonStockSharesOutstanding", "CommonStockSharesOutstanding"], unit="shares")
     put("shares_m", {_quarter_end_before(k): v for k, v in sorted(s.items())}, t)
     return fields
