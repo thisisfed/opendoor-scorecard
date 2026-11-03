@@ -729,71 +729,326 @@ def print_report(res):
     print("\nNot investment advice. Thresholds live in RULES at the top of the script.\n")
 
 
+INK, MUTED, MUTED2, LINE, BLUE = "#23201d", "#786e64", "#5d554d", "#ebe7e2", "#1d4ed8"
+
+
+def _smooth(pts):
+    """Smooth SVG path through points (Catmull-Rom as cubic Beziers)."""
+    if not pts:
+        return ""
+    d = f"M{pts[0][0]:.1f},{pts[0][1]:.1f}"
+    for i in range(len(pts) - 1):
+        p0 = pts[i - 1] if i > 0 else pts[i]
+        p1, p2 = pts[i], pts[i + 1]
+        p3 = pts[i + 2] if i + 2 < len(pts) else p2
+        c1 = (p1[0] + (p2[0] - p0[0]) / 6, p1[1] + (p2[1] - p0[1]) / 6)
+        c2 = (p2[0] - (p3[0] - p1[0]) / 6, p2[1] - (p3[1] - p1[1]) / 6)
+        d += f" C{c1[0]:.1f},{c1[1]:.1f} {c2[0]:.1f},{c2[1]:.1f} {p2[0]:.1f},{p2[1]:.1f}"
+    return d
+
+
+def _d(iso):
+    """'2026-10-24' -> 'Oct 24, 2026'; leaves anything else alone."""
+    try:
+        d = dt.date.fromisoformat(str(iso)[:10])
+        return f"{d.strftime('%b')} {d.day}, {d.year}"
+    except ValueError:
+        return str(iso)
+
+
+def _qlabel(iso):
+    d = dt.date.fromisoformat(iso)
+    return f"Q{(d.month - 1) // 3 + 1} {d.year}"
+
+
+def _num(v, suffix="", none="n/a"):
+    return none if v is None else f"{v:.1f}{suffix}"
+
+
+def _tone(score):
+    if score is None:
+        return "grey"
+    return "green" if score >= 6.5 else "amber" if score >= 4 else "red"
+
+
+def _badge(text, tone, arrow=""):
+    return f'<span class="badge {tone}">{arrow}{html.escape(text)}</span>'
+
+
+def _contracts_svg(rows):
+    """Weekly contracts (blue line + soft fill) against Opendoor's projected range (blurred green band)."""
+    year = next((r[0][:4] for r in reversed(rows) if r[1] is not None), None)
+    rows = [r for r in rows if year and r[0] >= f"{year}-01-01"]
+    if len(rows) < 4:
+        return ""
+    W, H, L, R, T, B = 1000, 340, 46, 16, 20, 34
+    n = len(rows)
+    ymax = max(max((r[1] or 0) for r in rows), max((r[3] or 0) for r in rows))
+    step = 250 if ymax > 600 else 100
+    top = (int(ymax / step) + 1) * step
+    x = lambda i: L + i * (W - L - R) / (n - 1)
+    y = lambda v: T + (1 - v / top) * (H - T - B)
+    actual = [(x(i), y(r[1])) for i, r in enumerate(rows) if r[1] is not None]
+    last_i = max(i for i, r in enumerate(rows) if r[1] is not None)
+    band = [(i, r) for i, r in enumerate(rows) if r[2] is not None and r[3] is not None and r[2] != r[3]]
+    out = [f'<svg viewBox="0 0 {W} {H}" width="100%" role="img" aria-label="Weekly acquisition contracts vs projected range">',
+           '<defs><linearGradient id="fill" x1="0" x2="0" y1="0" y2="1"><stop offset="0" stop-color="#1d4ed8" stop-opacity=".16"/>'
+           '<stop offset="1" stop-color="#1d4ed8" stop-opacity="0"/></linearGradient>'
+           '<filter id="blur" x="-5%" y="-20%" width="110%" height="140%"><feGaussianBlur stdDeviation="7"/></filter>'
+           '<pattern id="dots" width="8" height="8" patternUnits="userSpaceOnUse"><circle cx="1" cy="1" r=".9" fill="#d9d4ce"/></pattern></defs>']
+    if last_i < n - 1:  # the future: dotted background, like a forecast area
+        out.append(f'<rect x="{x(last_i):.1f}" y="{T}" width="{x(n - 1) - x(last_i):.1f}" height="{H - T - B}" fill="url(#dots)"/>')
+    for t in range(0, top + 1, step):
+        out.append(f'<line x1="{L}" x2="{W - R}" y1="{y(t):.1f}" y2="{y(t):.1f}" stroke="{LINE}" stroke-dasharray="{"0" if t == 0 else "2 4"}"/>'
+                   f'<text x="{L - 10}" y="{y(t) + 4:.1f}" text-anchor="end" class="tick">{t:,}</text>')
+    seen = set()
+    for i, r in enumerate(rows):
+        mth = r[0][:7]
+        if mth not in seen:
+            seen.add(mth)
+            label = dt.date.fromisoformat(r[0]).strftime("%b")
+            out.append(f'<text x="{x(i):.1f}" y="{H - 10}" text-anchor="middle" class="tick">{label}</text>')
+    if band:
+        hi = [(x(i), y(r[3])) for i, r in band]
+        lo = [(x(i), y(r[2])) for i, r in reversed(band)]
+        poly = " ".join(f"{a:.1f},{b:.1f}" for a, b in hi + lo)
+        out.append(f'<polygon points="{poly}" fill="#34d399" opacity=".28" filter="url(#blur)"/>')
+        out.append(f'<path d="{_smooth(hi)}" fill="none" stroke="#34d399" stroke-width="1.5" opacity=".55"/>')
+        out.append(f'<path d="{_smooth(list(reversed(lo)))}" fill="none" stroke="#34d399" stroke-width="1.5" opacity=".55"/>')
+    line = _smooth(actual)
+    out.append(f'<path d="{line} L{actual[-1][0]:.1f},{y(0):.1f} L{actual[0][0]:.1f},{y(0):.1f} Z" fill="url(#fill)"/>')
+    out.append(f'<path d="{line}" fill="none" stroke="{BLUE}" stroke-width="2.6" stroke-linecap="round" stroke-linejoin="round"/>')
+    lx, ly = actual[-1]
+    out.append(f'<circle cx="{lx:.1f}" cy="{ly:.1f}" r="11" fill="{BLUE}" opacity=".14"/><circle cx="{lx:.1f}" cy="{ly:.1f}" r="4.5" fill="{BLUE}" stroke="#fff" stroke-width="2"/>')
+    out.append(f'<text x="{lx + 14:.1f}" y="{ly - 10:.1f}" class="endlabel">{int(rows[last_i][1]):,}</text>')
+    out.append("</svg>")
+    return "".join(out)
+
+
+def _history_svg(hist):
+    pts = [(h["run_at"][:10], float(h["overall"])) for h in hist if h.get("overall") not in (None, "", "None")]
+    if len(pts) < 2:
+        return '<p class="note">The chart appears after the second day of scores.</p>'
+    W, H, L, R, T, B = 1000, 220, 34, 16, 16, 30
+    x = lambda i: L + i * (W - L - R) / (len(pts) - 1)
+    y = lambda v: T + (1 - v / 10) * (H - T - B)
+    out = [f'<svg viewBox="0 0 {W} {H}" width="100%" role="img" aria-label="Overall score over time">',
+           '<defs><linearGradient id="fill2" x1="0" x2="0" y1="0" y2="1"><stop offset="0" stop-color="#1d4ed8" stop-opacity=".14"/>'
+           '<stop offset="1" stop-color="#1d4ed8" stop-opacity="0"/></linearGradient></defs>']
+    for t in (0, 5, 10):
+        out.append(f'<line x1="{L}" x2="{W - R}" y1="{y(t):.1f}" y2="{y(t):.1f}" stroke="{LINE}" stroke-dasharray="{"0" if t == 0 else "2 4"}"/>'
+                   f'<text x="{L - 10}" y="{y(t) + 4:.1f}" text-anchor="end" class="tick">{t}</text>')
+    xy = [(x(i), y(v)) for i, (_, v) in enumerate(pts)]
+    line = _smooth(xy) if len(xy) > 2 else "M" + " L".join(f"{a:.1f},{b:.1f}" for a, b in xy)
+    out.append(f'<path d="{line} L{xy[-1][0]:.1f},{y(0):.1f} L{xy[0][0]:.1f},{y(0):.1f} Z" fill="url(#fill2)"/>')
+    out.append(f'<path d="{line}" fill="none" stroke="{BLUE}" stroke-width="2.6" stroke-linecap="round" stroke-linejoin="round"/>')
+    for i, (d, v) in enumerate(pts):
+        out.append(f'<circle cx="{x(i):.1f}" cy="{y(v):.1f}" r="3.5" fill="{BLUE}"><title>{d}: {v:.2f}</title></circle>')
+    first, last = _d(pts[0][0]), _d(pts[-1][0])
+    out.append(f'<text x="{L}" y="{H - 8}" class="tick">{first}</text><text x="{W - R}" y="{H - 8}" text-anchor="end" class="tick">{last}</text>')
+    out.append("</svg>")
+    return "".join(out)
+
+
+CSS = """
+:root{--ink:#23201d;--muted:#786e64;--muted2:#5d554d;--line:#ebe7e2;--bg:#f3f2f0;--blue:#1d4ed8}
+*{box-sizing:border-box}
+html{background:#f9f8f8}
+body{margin:0;color:var(--ink);font:400 15px/1.5 Inter,system-ui,-apple-system,"Segoe UI","Helvetica Neue",Arial,sans-serif;
+letter-spacing:-.011em;-webkit-font-smoothing:antialiased;font-variant-numeric:tabular-nums;
+background:radial-gradient(80% 40% at 10% 0%,rgba(200,170,255,.55) 0%,rgba(0,0,0,0) 60%),
+radial-gradient(65% 35% at 50% 0%,rgba(160,195,255,.55) 0%,rgba(0,0,0,0) 58%),
+radial-gradient(50% 30% at 88% 0%,rgba(235,160,250,.45) 0%,rgba(0,0,0,0) 50%),var(--bg);background-repeat:no-repeat}
+a{color:inherit}
+.bar{background:rgba(255,255,255,.92);backdrop-filter:saturate(1.4) blur(8px);position:sticky;top:0;z-index:5;border-bottom:1px solid rgba(0,0,0,.04)}
+.bar .in{max-width:1280px;margin:0 auto;padding:16px 24px;display:flex;align-items:center;gap:20px}
+.brand{font-weight:600;font-size:17px;letter-spacing:-.02em;text-decoration:none}
+.brand small{font-weight:400;color:var(--muted);font-size:13px;margin-left:8px;letter-spacing:0}
+.bar nav{margin-left:auto;display:flex;gap:22px;font-size:15px;font-weight:500}
+.bar nav a{text-decoration:none}
+.wrap{max-width:1280px;margin:0 auto;padding:0 24px 120px}
+.hero{display:grid;grid-template-columns:1.3fr 1fr;gap:40px;align-items:end;padding:64px 0 56px;position:relative}
+.asof{position:absolute;top:28px;right:0;text-align:right;font-size:14px;font-weight:500}
+.asof i{display:block;font-size:12px;font-weight:400;color:var(--muted)}
+.asof .dot{display:inline-block;width:9px;height:9px;border-radius:50%;background:#4cc38a;margin-right:8px;vertical-align:1px}
+h1{font-size:clamp(46px,8.4vw,92px);line-height:1;font-weight:500;letter-spacing:-.034em;margin:40px 0 0}
+.lede{font-size:18px;color:var(--muted2);max-width:430px;margin:0 0 6px}
+.card{background:#fff;border-radius:20px;margin-top:24px;overflow:hidden}
+.card .hd{display:flex;justify-content:space-between;align-items:flex-start;gap:16px;padding:16px 24px;border-bottom:1px solid var(--line)}
+.card h2{font-size:22px;font-weight:500;line-height:1.2;margin:0;letter-spacing:-.02em}
+.sub{color:var(--muted);font-size:16px;margin:2px 0 0}
+.right{text-align:right}
+.right .sub{font-size:14px;color:var(--muted2);margin-top:6px}
+.bd{padding:20px 24px}
+.ft{padding:14px 24px 18px;border-top:1px solid var(--line);font-size:13px;color:#5d5d6a}
+.badge{display:inline-block;border-radius:8px;padding:4px 8px;font-size:16px;font-weight:500;white-space:nowrap}
+.badge.green{background:#e6f4ea;color:#10b981}.badge.red{background:#fdeceb;color:#e5484d}
+.badge.amber{background:#fdf3e1;color:#c27c0e}.badge.grey{background:#f1efec;color:var(--muted2)}
+.score{display:flex;align-items:baseline;gap:14px;flex-wrap:wrap}
+.score .num{font-size:clamp(64px,10vw,112px);font-weight:500;letter-spacing:-.045em;line-height:1}
+.score .of{font-size:28px;color:var(--muted);font-weight:400;letter-spacing:-.02em}
+.score .grade{font-size:28px;font-weight:500;padding:6px 14px;border-radius:12px}
+.verdict{font-size:20px;font-weight:500;margin:18px 0 4px;letter-spacing:-.015em}
+.why{font-size:17px;color:var(--muted2);max-width:820px;margin:0}
+.kpis{display:grid;grid-template-columns:repeat(4,1fr);border-top:1px solid var(--line)}
+.kpi{padding:16px 24px;border-right:1px solid var(--line)}.kpi:last-child{border-right:0}
+.kpi .l{font-size:13px;color:var(--muted)}.kpi .v{font-size:26px;font-weight:500;letter-spacing:-.03em;margin-top:2px}
+.kpi .s{font-size:13px;color:var(--muted2)}
+.pbar{display:grid;grid-template-columns:150px 1fr 44px;align-items:center;gap:14px;padding:7px 0;font-size:15px}
+.pbar .track{height:10px;border-radius:6px;background:#f1efec;overflow:hidden}
+.pbar .fill{height:100%;border-radius:6px}
+.fill.green{background:#34d399}.fill.amber{background:#f5b53f}.fill.red{background:#f07470}.fill.grey{background:#d6d1cb}
+.pbar .w{color:var(--muted);font-size:13px;margin-left:6px}
+.pbar b{font-weight:500;text-align:right}
+.grid{display:grid;grid-template-columns:repeat(3,1fr);gap:24px}
+.grid .card{margin-top:0}
+.section{font-size:13px;font-weight:500;color:var(--muted);text-transform:uppercase;letter-spacing:.06em;margin:56px 0 0}
+.m{display:flex;justify-content:space-between;gap:12px;padding:10px 0;border-bottom:1px solid var(--line);font-size:14px}
+.m:last-child{border-bottom:0}.m .lab{color:var(--muted2)}.m .val{font-weight:500;white-space:nowrap}
+.m .pts{color:var(--muted);font-size:12px;display:block;text-align:right}
+.legend{display:flex;gap:22px;font-size:13px;color:var(--muted2);padding:0 0 6px}
+.legend i{display:inline-block;width:18px;height:3px;border-radius:2px;vertical-align:3px;margin-right:8px}
+.tick{font-size:12px;fill:#9a9088}.endlabel{font-size:13px;font-weight:500;fill:var(--blue)}
+table{width:100%;border-collapse:collapse;font-size:14px}
+th{text-align:right;font-weight:500;color:var(--muted);font-size:12px;padding:10px 12px;border-bottom:1px solid var(--line);white-space:nowrap}
+td{text-align:right;padding:10px 12px;border-bottom:1px solid var(--line);white-space:nowrap}
+th:first-child,td:first-child{text-align:left}
+tr:last-child td{border-bottom:0}
+.scroll{overflow-x:auto}
+details summary{cursor:pointer;list-style:none}details summary::-webkit-details-marker{display:none}
+details[open] .chev{transform:rotate(180deg)}.chev{display:inline-block;transition:transform .2s;color:var(--muted)}
+.note{color:var(--muted);font-size:13px}
+footer{margin-top:56px;font-size:13px;color:#5d5d6a;line-height:1.6;max-width:900px}
+footer b{color:var(--ink);font-weight:500}
+@media (max-width:900px){.hero{grid-template-columns:1fr;gap:20px;padding-top:48px}.asof{position:static;text-align:left;order:-1}
+.grid{grid-template-columns:1fr}.kpis{grid-template-columns:1fr 1fr}.kpi:nth-child(2){border-right:0}
+.kpi:nth-child(-n+2){border-bottom:1px solid var(--line)}h1{margin-top:8px}.bar nav{display:none}}
+@media (max-width:520px){.pbar{grid-template-columns:110px 1fr 34px;gap:10px;font-size:14px}.pbar .w{display:none}
+.card .hd{flex-wrap:wrap}.card .hd.stack{flex-direction:column;gap:10px}.hd.stack .right{text-align:left}.brand small{display:block;margin:2px 0 0}.bd,.card .hd,.kpi,.ft{padding-left:18px;padding-right:18px}.wrap{padding:0 14px 80px}}
+"""
+
+
 def write_html(res, path):
-    s = res["score"]
-    color = lambda x: "#9aa0a6" if x is None else ("#2e7d32" if x >= 6.5 else "#f9a825" if x >= 4 else "#c62828")
-    rows = ""
-    for p in s["pillars"]:
-        rows += (f"<tr class='p'><td>{p['name']}<div class='q'>{p['question']}</div></td><td>{p['weight']}%</td>"
-                 f"<td><div class='bar'><span style='width:{(p['score'] or 0)*10}%;background:{color(p['score'])}'></span></div></td>"
-                 f"<td><b>{p['score'] if p['score'] is not None else 'n/a'}</b></td></tr>")
-        for i in p["metrics"]:
-            rows += (f"<tr><td class='m'>{html.escape(i['label'])}</td><td>{fmt(i['value'], i['fmt'])}</td>"
-                     f"<td class='t'>0 at {fmt(i['bad'], i['fmt'])} &middot; 10 at {fmt(i['good'], i['fmt'])}</td>"
-                     f"<td>{i['score'] if i['score'] is not None else '&ndash;'}</td></tr>")
-    n = lambda r, k, d=0: "&ndash;" if r.get(k) is None else f"{r[k]:,.{d}f}"
-    qrows = "".join(f"<tr><td>{r['quarter_end']}</td><td>{n(r,'revenue_musd')}</td><td>{n(r,'net_income_musd')}</td>"
-                    f"<td>{n(r,'homes_purchased')}</td><td>{n(r,'homes_sold')}</td><td>{n(r,'contribution_margin_pct',1)}</td>"
-                    f"<td>{n(r,'cash_musd')}</td></tr>" for r in res["quarters"][-8:])
+    s, px, ex = res["score"], res["price"], res["extra"]
+    acc = res.get("accountable") or {}
+    e = html.escape
+    tone = _tone(s["overall"])
     ch = res.get("change")
-    if ch:
-        arrow = lambda v: "" if v is None else (f"<span style='color:#2e7d32'>&#9650; {v:+.2f}</span>" if v > 0.004 else
-                                                 f"<span style='color:#c62828'>&#9660; {v:+.2f}</span>" if v < -0.004 else "<span style='color:#888'>no change</span>")
-        if ch.get("method_changed"):
-            change_html = (f"<p><b>Since last run ({html.escape(ch['since'][:16].replace('T', ' '))}):</b> "
-                           f"<span style='color:#888'>scoring method updated (v{METHOD}: new metrics added), so this score isn't "
-                           f"comparable with earlier rows ({ch['overall']:+.2f}, grade was {ch['grade_from']}).</span></p>")
-        else:
-            change_html = (f"<p><b>Since last run ({html.escape(ch['since'][:16].replace('T', ' '))}):</b> {arrow(ch['overall'])}"
-                           + (f" &middot; grade was {ch['grade_from']}" if ch["grade_from"] != s["grade"] else " &middot; grade unchanged") + "</p>")
+    if not ch:
+        change = _badge("First score", "grey")
+        change_sub = "Changes show from the next run"
+    elif ch.get("method_changed"):
+        change = _badge("Method updated", "grey")
+        change_sub = f"Not comparable with {_d(ch['since'])} (v{METHOD})"
     else:
-        change_html = "<p style='color:#888'>First run: changes will show from the next run.</p>"
+        d = ch["overall"]
+        change = _badge(f"{d:+.2f}", "green" if d > 0.004 else "red" if d < -0.004 else "grey",
+                        "↗ " if d > 0.004 else "↘ " if d < -0.004 else "")
+        change_sub = f"vs {_d(ch['since'])}" + (f" · grade was {ch['grade_from']}" if ch["grade_from"] != s["grade"] else "")
+    asof = acc.get("as_of") or px["date"]
+    mort = ex.get("mortgage") or {}
+    q3s, q3e = acc.get("q3_homes_sold"), acc.get("q3_homes_sold_expected")
+    kpis = [("Share price", f"${px['price']:.2f}", f"close {_d(px['date'])}"),
+            ("Market cap", f"${(ex['market_cap_musd'] or 0) / 1000:.2f}bn", "pro forma shares"),
+            (f"{acc.get('prev_quarter', 'Last qtr')} homes sold", f"{q3s:,.0f}" if q3s else "n/a",
+             f"vs {q3e:,.0f} expected" if q3e else "Opendoor tracker"),
+            ("30-yr mortgage rate", f"{mort['rate'] * 100:.2f}%" if mort.get("rate") else "n/a",
+             f"week of {_d(mort.get('date'))}" if mort.get("date") else "Freddie Mac")]
+    kpi_html = "".join(f'<div class="kpi"><div class="l">{e(l)}</div><div class="v">{e(v)}</div><div class="s">{e(sb)}</div></div>'
+                       for l, v, sb in kpis)
+    bars = "".join(f'<div class="pbar"><span>{e(p["name"])}<span class="w">{p["weight"]}%</span></span>'
+                   f'<div class="track"><div class="fill {_tone(p["score"])}" style="width:{(p["score"] or 0) * 10:.0f}%"></div></div>'
+                   f'<b>{_num(p["score"])}</b></div>' for p in s["pillars"])
+    cards = ""
+    for p in s["pillars"]:
+        rows = "".join(f'<div class="m" title="0 points at {e(fmt(i["bad"], i["fmt"]))}, 10 points at {e(fmt(i["good"], i["fmt"]))}">'
+                       f'<span class="lab">{e(i["label"])}</span><span class="val">{e(fmt(i["value"], i["fmt"]))}'
+                       f'<span class="pts">{_num(i["score"], " pts", "–")}</span></span></div>'
+                       for i in p["metrics"])
+        sc = "n/a" if p["score"] is None else f"{p['score']:.1f}"
+        cards += (f'<div class="card"><div class="hd"><div><h2>{e(p["name"])}</h2><p class="sub">{e(p["question"])}</p></div>'
+                  f'<div class="right">{_badge(sc, _tone(p["score"]))}<p class="sub">{p["weight"]}% weight</p></div></div>'
+                  f'<div class="bd" style="padding-top:6px;padding-bottom:6px">{rows}</div></div>')
+    contracts = _contracts_svg(res.get("contracts_all") or [])
+    lo4, hi4, a4 = acc.get("contracts_last4_proj_low"), acc.get("contracts_last4_proj_high"), acc.get("contracts_last4")
+    vs_mid = acc.get("contracts_vs_proj")
+    contracts_card = ""
+    if contracts:
+        contracts_card = (
+            f'<div class="card"><div class="hd stack"><div><h2>Acquisition contracts vs projection</h2>'
+            f'<p class="sub">Weekly contracts signed, against the range Opendoor projects for itself</p></div>'
+            f'<div class="right">{_badge(f"{vs_mid * 100:+.0f}%", "green" if vs_mid >= 0 else "red", "↗ " if vs_mid >= 0 else "↘ ") if vs_mid is not None else ""}'
+            f'<p class="sub">last 4 weeks vs projection midpoint</p></div></div>'
+            f'<div class="bd"><div class="legend"><span><i style="background:{BLUE}"></i>Contracts signed</span>'
+            f'<span><i style="background:#34d399"></i>Opendoor&#39;s projected range</span></div>{contracts}</div>'
+            f'<div class="ft">Last 4 weeks: {a4:,} contracts vs a projected {lo4:,}–{hi4:,}; '
+            f'{acc.get("weeks_below_proj_13", 0)} of the last 13 weeks were below the range. Source: accountable.opendoor.com, data as of {e(_d(asof))}.</div></div>'
+            if a4 else "")
+    n = lambda r, k, d=0: "–" if r.get(k) is None else f"{r[k]:,.{d}f}"
+    qrows = "".join(f"<tr><td>{_qlabel(r['quarter_end'])}</td><td>{n(r, 'revenue_musd')}</td><td>{n(r, 'net_income_musd')}</td>"
+                    f"<td>{n(r, 'adj_net_income_musd')}</td><td>{n(r, 'homes_purchased')}</td><td>{n(r, 'homes_sold')}</td>"
+                    f"<td>{n(r, 'contribution_margin_pct', 1)}</td><td>{n(r, 'aged_120_pct', 0)}</td><td>{n(r, 'cash_musd')}</td></tr>"
+                    for r in reversed(res["quarters"][-8:]))
     hist = res.get("history") or []
-    history_html = ""
-    if hist:
-        pts = [(h["run_at"][:10], float(h["overall"])) for h in hist if h.get("overall") not in (None, "", "None")]
-        if len(pts) >= 2:
-            W, H, pad = 640, 160, 30
-            xs = lambda i: pad + i * (W - 2 * pad) / (len(pts) - 1)
-            ys = lambda v: H - pad - v / 10 * (H - 2 * pad)
-            line_d = " ".join(f"{'M' if i == 0 else 'L'}{xs(i):.1f},{ys(v):.1f}" for i, (_, v) in enumerate(pts))
-            grid = "".join(f"<line x1='{pad}' x2='{W-pad}' y1='{ys(t):.1f}' y2='{ys(t):.1f}' stroke='#eee'/><text x='4' y='{ys(t)+4:.1f}' font-size='10' fill='#999'>{t}</text>" for t in (0, 5, 10))
-            dots = "".join(f"<circle cx='{xs(i):.1f}' cy='{ys(v):.1f}' r='3' fill='#1a73e8'><title>{d}: {v:.2f}</title></circle>" for i, (d, v) in enumerate(pts))
-            history_html += (f"<h2>Overall score over time</h2><svg viewBox='0 0 {W} {H}' width='100%'>{grid}"
-                             f"<path d='{line_d}' fill='none' stroke='#1a73e8' stroke-width='2'/>{dots}</svg>")
-        heads = "".join(f"<th>{p[0]}</th>" for p in PILLARS)
-        body = "".join(f"<tr><td>{h['run_at'][:16].replace('T', ' ')}{' <small>(v' + (h.get('method') or '2') + ')</small>' if (h.get('method') or '2') != METHOD else ''}</td><td>${float(h['price']):.2f}</td><td>{h['tracker_as_of']}</td>"
-                       f"<td><b>{float(h['overall']):.2f}</b> {h['grade']}</td>" + "".join(f"<td>{h.get(p[0], '')}</td>" for p in PILLARS) + "</tr>"
-                       for h in reversed(hist[-26:]))
-        history_html += (f"<h2>Run history (newest first)</h2><div style='overflow-x:auto'><table><tr><th>Run</th><th>Price</th>"
-                         f"<th>Tracker data</th><th>Overall</th>{heads}</tr>{body}</table></div>")
-    doc = f"""<!DOCTYPE html><html><head><meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1"><title>OPEN scorecard {res['price']['date']}</title>
-<style>body{{font:15px system-ui,sans-serif;max-width:900px;margin:2rem auto;padding:0 1rem;color:#222}}
-.big{{font-size:3rem;font-weight:700;color:{color(s['overall'])}}}table{{border-collapse:collapse;width:100%;margin:1rem 0}}
-td,th{{padding:.35rem .5rem;border-bottom:1px solid #eee;text-align:left}}tr.p td{{background:#fafafa;font-weight:600}}
-.q{{font-weight:400;color:#777;font-size:.8rem}}.m{{padding-left:1.5rem}}.t{{color:#999;font-size:.8rem}}
-.bar{{background:#eee;height:10px;border-radius:5px;width:min(160px,22vw)}}@media (max-width:600px){{.t{{display:none}}td,th{{padding:.3rem .3rem}}body{{margin:1rem auto}}}}.bar span{{display:block;height:10px;border-radius:5px}}</style></head><body>
-<h1>Opendoor ({TICKER}) investor scorecard</h1>
-<p>Close ${res['price']['price']:.2f} on {res['price']['date']} &middot; market cap ${(res['extra']['market_cap_musd'] or 0)/1000:.2f}bn &middot; updated {res['generated'].replace('T', ' ')}</p>
-<div class="big">{s['overall']:.2f}/10 &nbsp;{s['grade']}</div><p><b>{s['verdict']}</b><br>{html.escape(s['why'])}</p>{change_html}
-<table><tr><th>Pillar / metric</th><th>Weight / value</th><th></th><th>Score</th></tr>{rows}</table>
-{history_html}<h2>Quarters ($M)</h2><table><tr><th>Quarter end</th><th>Revenue</th><th>Net income</th><th>Bought</th><th>Sold</th><th>Contrib. %</th><th>Cash</th></tr>{qrows}</table>
-<p style="color:#888;font-size:.8rem">Updates automatically every weekday evening (UK time). Times shown are UK time.
-Download: <a href="history.csv">score history (CSV)</a> &middot; <a href="scorecard.json">full data (JSON)</a>.<br>
-Sources: SEC EDGAR (financial statements and earnings releases), accountable.opendoor.com, {res['price'].get('source', 'price snapshot')} (price),
-{((res['extra'].get('mortgage') or {}).get('source') or 'Freddie Mac')} (mortgage rate), opendoor_kpis.csv (corrections).
-The score is a structured summary of the numbers, not a forecast or a recommendation. Not investment advice.</p>
-</body></html>"""
+    heads = "".join(f"<th>{e(p[0])}</th>" for p in PILLARS)
+    hrows = "".join(f"<tr><td>{_d(h['run_at'])}{' (v' + (h.get('method') or '2') + ')' if (h.get('method') or '2') != METHOD else ''}</td>"
+                    f"<td>${float(h['price']):.2f}</td><td><b>{float(h['overall']):.2f}</b> {e(h['grade'])}</td>"
+                    + "".join(f"<td>{h.get(p[0]) or '–'}</td>" for p in PILLARS) + "</tr>" for h in reversed(hist[-60:]))
+    pf_note = ("Balance sheet, book value and share count include: " + "; ".join(ex["capital_events"]) + ". ") if ex.get("capital_events") else ""
+    est_note = (f"{acc.get('prev_quarter')} revenue is estimated at ${ex['q3_revenue_estimate_musd']:,.0f}M "
+                f"({ex['q3_revenue_estimate_musd'] / ex['q3_prior_revenue_musd'] * 100 - 100:+.1f}% YoY): homes sold × "
+                f"${ex['revenue_per_home_k']:.1f}K average revenue per home, until Opendoor reports. ") if ex.get("q3_revenue_estimate_musd") and ex.get("q3_prior_revenue_musd") else ""
+    doc = f"""<!DOCTYPE html><html lang="en"><head><meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>OPEN Scorecard: {s['overall']:.2f}/10 ({s['grade']})</title>
+<meta name="description" content="Independent, automatically updated scorecard for Opendoor ($OPEN). {e(s['verdict'])}">
+<link rel="preconnect" href="https://fonts.googleapis.com"><link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600&display=swap" rel="stylesheet">
+<style>{CSS}</style></head><body>
+<div class="bar"><div class="in"><a class="brand" href="./">OPEN Scorecard<small>Independent · not affiliated with Opendoor</small></a>
+<nav><a href="#pillars">Pillars</a><a href="#contracts">Contracts</a><a href="#history">History</a><a href="#method">Method</a></nav></div></div>
+<div class="wrap">
+<section class="hero">
+<div class="asof"><span class="dot"></span>Data as of {e(_d(asof))}<i>Updated every weekday · last run {e(_d(res['generated']))}, {e(res['generated'][11:16])} UK</i></div>
+<h1>Opendoor,<br>scored.<br>Every weekday.</h1>
+<p class="lede">An independent scorecard that grades Opendoor 0–10 on nine pillars, rebuilt every weekday from SEC filings, the share price, mortgage rates and Opendoor's own public tracker.</p>
+</section>
+
+<div class="card"><div class="hd stack"><div><h2>Overall score</h2><p class="sub">Weighted across nine pillars</p></div>
+<div class="right">{change}<p class="sub">{e(change_sub)}</p></div></div>
+<div class="bd"><div class="score"><span class="num">{s['overall']:.2f}</span><span class="of">/ 10</span>
+<span class="grade badge {tone}">{e(s['grade'])}</span></div>
+<p class="verdict">{e(s['verdict'])}</p><p class="why">{e(s['why'])}</p></div>
+<div class="kpis">{kpi_html}</div></div>
+
+<div class="card"><div class="hd"><div><h2>Score by pillar</h2><p class="sub">Each pillar is the average of its metrics, 0–10</p></div></div>
+<div class="bd">{bars}</div></div>
+
+<p class="section" id="pillars">What drives each score</p>
+<div class="grid" style="margin-top:16px">{cards}</div>
+
+<p class="section" id="contracts">Opendoor's own targets</p>
+{contracts_card}
+
+<p class="section" id="history">Over time</p>
+<div class="card"><div class="hd"><div><h2>Overall score over time</h2><p class="sub">One point per weekday</p></div></div>
+<div class="bd">{_history_svg(hist)}</div></div>
+
+<div class="card"><div class="hd"><div><h2>Quarterly results</h2><p class="sub">$ millions, from Opendoor's earnings releases and SEC filings</p></div></div>
+<div class="bd scroll" style="padding-top:4px"><table><tr><th>Quarter</th><th>Revenue</th><th>Net income</th><th>Adj. net income</th><th>Bought</th><th>Sold</th>
+<th>Contrib. %</th><th>120+ days %</th><th>Cash</th></tr>{qrows}</table></div></div>
+
+<div class="card"><details><summary class="hd" style="border-bottom:0"><div><h2>Run history</h2><p class="sub">Every pillar's score on every day</p></div>
+<span class="chev">▾</span></summary><div class="bd scroll" style="border-top:1px solid var(--line);padding-top:4px"><table><tr><th>Run</th><th>Price</th><th>Overall</th>{heads}</tr>{hrows}</table></div></details></div>
+
+<footer id="method"><p><b>Method.</b> Each metric scores 0–10 on a straight line between a "0 points" and a "10 points" value (hover a metric to see them).
+Pillars average their metrics, and the overall score weights the pillars as shown. Grades: A 8+, B 6.5+, C 5+, D 3.5+, F below.
+The thresholds and weights are judgement calls and have not been back-tested against share-price returns. {e(est_note)}{e(pf_note)}</p>
+<p><b>Sources.</b> SEC EDGAR (financial statements and earnings releases), accountable.opendoor.com, {e(str(px.get('source', 'price data')))} (price),
+{e(mort.get('source') or 'Freddie Mac')} (mortgage rate). Download the <a href="history.csv">score history</a> or <a href="scorecard.json">all the data</a>.</p>
+<p><b>Independent project</b>, not affiliated with or endorsed by Opendoor Technologies Inc. A structured summary of public numbers, not a forecast,
+a recommendation or investment advice.</p></footer>
+</div></body></html>"""
     with open(path, "w") as fh:
         fh.write(doc)
 
@@ -976,7 +1231,8 @@ def main():
     except Exception:
         now = dt.datetime.now()
     res = {"generated": now.isoformat(timespec="minutes"), "ticker": TICKER, "price": px,
-           "extra": extra, "metrics": m, "score": score(m), "quarters": q, "accountable": acc, "log": log}
+           "extra": extra, "metrics": m, "score": score(m), "quarters": q, "accountable": acc, "log": log,
+           "contracts_all": (acc_raw or {}).get("contracts")}
     if a.shares and a.avg_cost:
         val, cost = a.shares * px["price"], a.shares * a.avg_cost
         res["position"] = {"shares": a.shares, "avg_cost": a.avg_cost, "value": val, "pnl": val - cost,
