@@ -1,5 +1,5 @@
 {
-  "generated": "2026-11-03T18:37",
+  "generated": "2026-11-03T18:39",
   "ticker": "OPEN",
   "price": {
     "date": "2026-11-02",
@@ -318,7 +318,7 @@
       "cash_musd": 405.0,
       "inventory_musd": 1312.369,
       "equity_musd": -733.0,
-      "total_debt_musd": 140.096,
+      "total_debt_musd": 362.025,
       "shares_m": 83.748443
     },
     {
@@ -362,7 +362,7 @@
       "cash_musd": 1413.0,
       "inventory_musd": 466.0,
       "equity_musd": 1553.0,
-      "total_debt_musd": 7.0,
+      "total_debt_musd": 475.0,
       "shares_m": 540.714692
     },
     {
@@ -373,6 +373,7 @@
       "fcf_musd": -409.0,
       "cash_musd": 2040.0,
       "inventory_musd": 840.632,
+      "total_debt_musd": 136.473,
       "shares_m": 540.714692
     },
     {
@@ -384,6 +385,7 @@
       "cash_musd": 1558.0,
       "inventory_musd": 2723.648,
       "equity_musd": 2418.0,
+      "total_debt_musd": 595.579,
       "shares_m": 593.838919
     },
     {
@@ -396,7 +398,7 @@
       "cash_musd": 1359.0,
       "inventory_musd": 6268.081,
       "equity_musd": 2363.0,
-      "total_debt_musd": 972.143,
+      "total_debt_musd": 6370.216,
       "shares_m": 607.215233
     },
     {
@@ -409,7 +411,7 @@
       "cash_musd": 1731.0,
       "inventory_musd": 6096.0,
       "equity_musd": 2248.0,
-      "total_debt_musd": 961.0,
+      "total_debt_musd": 7056.0,
       "shares_m": 616.026565
     },
     {
@@ -422,7 +424,7 @@
       "cash_musd": 2312.0,
       "inventory_musd": 4664.0,
       "equity_musd": 2347.0,
-      "total_debt_musd": 965.0,
+      "total_debt_musd": 5728.0,
       "shares_m": 622.918512
     },
     {
@@ -435,7 +437,7 @@
       "cash_musd": 2239.0,
       "inventory_musd": 6628.0,
       "equity_musd": 2356.0,
-      "total_debt_musd": 968.0,
+      "total_debt_musd": 7494.0,
       "shares_m": 627.033133
     },
     {
@@ -448,7 +450,7 @@
       "cash_musd": 1327.0,
       "inventory_musd": 6093.0,
       "equity_musd": 1488.0,
-      "total_debt_musd": 957.0,
+      "total_debt_musd": 8028.0,
       "shares_m": 632.513135
     },
     {
@@ -461,7 +463,7 @@
       "cash_musd": 1137.0,
       "inventory_musd": 4460.0,
       "equity_musd": 1086.0,
-      "total_debt_musd": 959.0,
+      "total_debt_musd": 5355.0,
       "shares_m": 637.387025
     },
     {
@@ -474,7 +476,7 @@
       "cash_musd": 1143.0,
       "inventory_musd": 2118.0,
       "equity_musd": 1036.0,
-      "total_debt_musd": 774.0,
+      "total_debt_musd": 3953.0,
       "shares_m": 647.60792
     },
     {
@@ -487,7 +489,7 @@
       "cash_musd": 1120.0,
       "inventory_musd": 1149.0,
       "equity_musd": 1086.0,
-      "total_debt_musd": 501.0,
+      "total_debt_musd": 3043.0,
       "shares_m": 657.337566
     },
     {
@@ -500,7 +502,7 @@
       "cash_musd": 1154.0,
       "inventory_musd": 1311.0,
       "equity_musd": 1020.0,
-      "total_debt_musd": 502.0,
+      "total_debt_musd": 2832.0,
       "shares_m": 668.59258
     },
     {
@@ -513,7 +515,7 @@
       "cash_musd": 999.0,
       "inventory_musd": 1775.0,
       "equity_musd": 967.0,
-      "total_debt_musd": 376.0,
+      "total_debt_musd": 2510.0,
       "shares_m": 677.636163
     },
     {
@@ -526,7 +528,7 @@
       "cash_musd": 953.0,
       "inventory_musd": 1881.0,
       "equity_musd": 899.0,
-      "total_debt_musd": 376.0,
+      "total_debt_musd": 2412.0,
       "shares_m": 688.560794
     },
     {
@@ -539,7 +541,7 @@
       "cash_musd": 790.0,
       "inventory_musd": 2234.0,
       "equity_musd": 845.0,
-      "total_debt_musd": 377.0,
+      "total_debt_musd": 2431.0,
       "shares_m": 698.843166
     },
     {
@@ -552,7 +554,7 @@
       "cash_musd": 829.0,
       "inventory_musd": 2145.0,
       "equity_musd": 801.0,
-      "total_debt_musd": 377.0,
+      "total_debt_musd": 2511.0,
       "shares_m": 711.660871
     },
     {
@@ -565,7 +567,7 @@
       "cash_musd": 671.0,
       "inventory_musd": 2159.0,
       "equity_musd": 713.0,
-      "total_debt_musd": 378.0,
+      "total_debt_musd": 2302.0,
       "shares_m": 719.990121
     },
     {
@@ -578,7 +580,7 @@
       "cash_musd": 559.0,
       "inventory_musd": 2362.0,
       "equity_musd": 645.0,
-      "total_debt_musd": 378.0,
+      "total_debt_musd": 2511.0,
       "shares_m": 726.835454
     },
     {
@@ -591,7 +593,7 @@
       "cash_musd": 789.0,
       "inventory_musd": 1530.0,
       "equity_musd": 631.0,
-      "total_debt_musd": 437.0,
+      "total_debt_musd": 2176.0,
       "shares_m": 729.0,
       "homes_sold": 4299.0,
       "homes_purchased": 1757.0,
@@ -609,7 +611,7 @@
       "cash_musd": 962.0,
       "inventory_musd": 1053.0,
       "equity_musd": 811.0,
-      "total_debt_musd": 0.0,
+      "total_debt_musd": 1779.0,
       "shares_m": 771.53,
       "homes_sold": 2568.0,
       "homes_purchased": 1169.0,
@@ -628,7 +630,7 @@
       "cash_musd": 962.0,
       "inventory_musd": 925.0,
       "equity_musd": 1005.0,
-      "total_debt_musd": 0.0,
+      "total_debt_musd": 1313.0,
       "shares_m": 957.245487,
       "homes_sold": 1978.0,
       "homes_purchased": 1706.0,
@@ -647,6 +649,7 @@
       "cash_musd": 999.0,
       "inventory_musd": 1139.0,
       "equity_musd": 954.0,
+      "total_debt_musd": 1331.0,
       "shares_m": 959.0,
       "homes_sold": 1921.0,
       "homes_purchased": 2474.0,
@@ -664,13 +667,13 @@
       "cash_musd": 896.0,
       "inventory_musd": 1845.0,
       "equity_musd": 914.0,
+      "total_debt_musd": 1956.0,
       "shares_m": 971.1,
       "homes_sold": 2339.0,
       "homes_purchased": 4378.0,
       "homes_in_inventory": 5459.0,
       "contribution_margin_pct": 5.8,
       "adj_ebitda_musd": -4.0,
-      "total_debt_musd": 1956.0,
       "note": "shares = 971.1M at 28 Jul 2026 (10-Q cover / Aug 13 8-K)"
     }
   ],
@@ -1099,23 +1102,7 @@
     "  cash_musd          <- us-gaap:CashAndCashEquivalentsAtCarryingValue",
     "  inventory_musd     <- us-gaap:InventoryRealEstate",
     "  equity_musd        <- us-gaap:StockholdersEquity",
-    "  total_debt_musd    <- us-gaap:SecuredDebtCurrent + us-gaap:ConvertibleDebtNoncurrent",
-    "  [debt diag] us-gaap:Assets = 2,961M at 2026-06-30",
-    "  [debt diag] us-gaap:AssetsCurrent = 2,850M at 2026-06-30",
-    "  [debt diag] us-gaap:CashAndCashEquivalentsAtCarryingValue = 896M at 2026-06-30",
-    "  [debt diag] us-gaap:CashCashEquivalentsRestrictedCashAndRestrictedCashEquivalents = 962M at 2026-06-30",
-    "  [debt diag] us-gaap:InventoryRealEstate = 1,845M at 2026-06-30",
-    "  [debt diag] us-gaap:InventoryRealEstateConstructionInProcess = 496M at 2026-06-30",
-    "  [debt diag] us-gaap:Liabilities = 2,047M at 2026-06-30",
-    "  [debt diag] us-gaap:LiabilitiesAndStockholdersEquity = 2,961M at 2026-06-30",
-    "  [debt diag] us-gaap:LiabilitiesCurrent = 968M at 2026-06-30",
-    "  [debt diag] us-gaap:LinesOfCreditCurrent = 691M at 2026-06-30",
-    "  [debt diag] us-gaap:LongTermLineOfCredit = 1,071M at 2026-06-30",
-    "  [debt diag] us-gaap:RecordedUnconditionalPurchaseObligation = 736M at 2026-06-30",
-    "  [debt diag] us-gaap:StockholdersEquity = 914M at 2026-06-30",
-    "  [debt diag] us-gaap:InventoryRealEstateHeldForSale = 1,040M at 2026-06-30",
-    "  [debt diag] us-gaap:OtherRestrictedAssets = 230M at 2026-06-30",
-    "  [debt diag] us-gaap:ConvertibleDebtCurrent = 194M at 2026-06-30",
+    "  total_debt_musd    <- us-gaap:LinesOfCreditCurrent + us-gaap:LongTermLineOfCredit + us-gaap:ConvertibleDebtCurrent + us-gaap:ConvertibleDebtNoncurrent",
     "  shares_m           <- us-gaap:CommonStockSharesOutstanding",
     "accountable.opendoor.com: data as of 2026-10-24",
     "price sources that failed: Yahoo Finance: HTTP Error 429: Too Many Requests; Yahoo Finance: HTTP Error 429: Too Many Requests"
@@ -1123,7 +1110,7 @@
   "change": {
     "overall": 0.0,
     "grade_from": "D",
-    "since": "2026-11-03T18:35",
+    "since": "2026-11-03T18:37",
     "pillars": {
       "Growth": 0.0,
       "Unit economics": 0.0,
@@ -1206,6 +1193,23 @@
     },
     {
       "run_at": "2026-11-03T18:37",
+      "price_date": "2026-11-02",
+      "price": "1.8",
+      "tracker_as_of": "2026-10-24",
+      "latest_quarter": "2026-06-30",
+      "overall": "4.73",
+      "grade": "D",
+      "Growth": "7.3",
+      "Unit economics": "7.6",
+      "Profitability": "2.9",
+      "Execution": "4.8",
+      "Balance sheet": "2.4",
+      "Dilution": "1.6",
+      "Valuation": "8.2",
+      "Momentum": "0.0"
+    },
+    {
+      "run_at": "2026-11-03T18:39",
       "price_date": "2026-11-02",
       "price": "1.8",
       "tracker_as_of": "2026-10-24",
