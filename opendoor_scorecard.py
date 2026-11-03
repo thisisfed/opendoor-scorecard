@@ -865,6 +865,17 @@ def _history_svg(hist):
     return "".join(out)
 
 
+FAVICON_SVG = """<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 64 64">
+<defs><linearGradient id="g" x1="0" y1="0" x2="1" y2="1"><stop offset="0" stop-color="#c8aaff"/>
+<stop offset=".55" stop-color="#a0c3ff"/><stop offset="1" stop-color="#eba0fa"/></linearGradient></defs>
+<rect width="64" height="64" rx="15" fill="url(#g)"/>
+<path d="M11 45 C17 45 20 29 27 31 S36 44 42 36 S45 25 48 22" fill="none" stroke="#1d4ed8" stroke-width="6"
+stroke-linecap="round" stroke-linejoin="round"/>
+<circle cx="48" cy="22" r="10" fill="#1d4ed8" opacity=".18"/>
+<circle cx="48" cy="22" r="6.5" fill="#1d4ed8" stroke="#fff" stroke-width="3"/>
+</svg>
+"""
+
 CSS = """
 :root{--ink:#23201d;--muted:#786e64;--muted2:#5d554d;--line:#ebe7e2;--bg:#f3f2f0;--blue:#1d4ed8}
 *{box-sizing:border-box}
@@ -1040,6 +1051,8 @@ def write_html(res, path):
 <meta name="viewport" content="width=device-width, initial-scale=1">
 <title>OPEN Scorecard: {s['overall']:.2f}/10 ({s['grade']})</title>
 <meta name="description" content="Independent, automatically updated scorecard for Opendoor ($OPEN). {e(s['verdict'])}">
+<link rel="icon" href="favicon.svg" type="image/svg+xml"><link rel="icon" href="favicon-32.png" sizes="32x32" type="image/png">
+<link rel="apple-touch-icon" href="apple-touch-icon.png"><meta name="theme-color" content="#f3f2f0">
 <link rel="preconnect" href="https://fonts.googleapis.com"><link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600&display=swap" rel="stylesheet">
 <style>{CSS}</style></head><body>
@@ -1132,6 +1145,8 @@ a recommendation or investment advice.</p></footer>
 </body></html>"""
     with open(path, "w") as fh:
         fh.write(doc)
+    with open(os.path.join(os.path.dirname(path) or ".", "favicon.svg"), "w") as fh:
+        fh.write(FAVICON_SVG)
 
 
 def export_rows(res, d):

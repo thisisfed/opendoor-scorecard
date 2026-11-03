@@ -77,12 +77,6 @@ Nine pillars, each 0–10 (the average of its metrics), weighted into the overal
 Grades: A 8+, B 6.5+, C 5+, D 3.5+, F below. The thresholds and weights are judgement calls and have not been
 back-tested against share-price returns. They live in `RULES` and `PILLARS` at the top of the script.
 
-## Optional: use your own domain (e.g. open.thisisfed.xyz)
-
-1. In **Settings → Pages → Custom domain**, enter `open.thisisfed.xyz` and save.
-2. Where you manage thisisfed.xyz's DNS, add a **CNAME** record: name `open`, value `thisisfed.github.io`.
-3. Once GitHub shows the domain as verified, tick **Enforce HTTPS**.
-
 ## Good to know
 
 - **The page is public.** Anyone with the link can see it. It contains only public market data, not your position.
