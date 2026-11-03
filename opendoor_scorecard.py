@@ -32,6 +32,7 @@ Not investment advice: the thresholds in RULES are opinions, tune them.
 import argparse, csv, datetime as dt, html, json, os, re, sys, urllib.request
 
 TICKER, CIK = "OPEN", "0001801169"
+METHOD = "3"  # bump when metrics, thresholds or weights change, so the history marks the break
 HERE = os.path.dirname(os.path.abspath(__file__))
 
 # Used by --offline or when the price feed fails. Source: daily closes (S&P Global via stockanalysis.com).
@@ -714,8 +715,13 @@ def write_html(res, path):
     if ch:
         arrow = lambda v: "" if v is None else (f"<span style='color:#2e7d32'>&#9650; {v:+.2f}</span>" if v > 0.004 else
                                                  f"<span style='color:#c62828'>&#9660; {v:+.2f}</span>" if v < -0.004 else "<span style='color:#888'>no change</span>")
-        change_html = (f"<p><b>Since last run ({html.escape(ch['since'][:16].replace('T', ' '))}):</b> {arrow(ch['overall'])}"
-                       + (f" &middot; grade was {ch['grade_from']}" if ch["grade_from"] != s["grade"] else " &middot; grade unchanged") + "</p>")
+        if ch.get("method_changed"):
+            change_html = (f"<p><b>Since last run ({html.escape(ch['since'][:16].replace('T', ' '))}):</b> "
+                           f"<span style='color:#888'>scoring method updated (v{METHOD}: new metrics added), so this score isn't "
+                           f"comparable with earlier rows ({ch['overall']:+.2f}, grade was {ch['grade_from']}).</span></p>")
+        else:
+            change_html = (f"<p><b>Since last run ({html.escape(ch['since'][:16].replace('T', ' '))}):</b> {arrow(ch['overall'])}"
+                           + (f" &middot; grade was {ch['grade_from']}" if ch["grade_from"] != s["grade"] else " &middot; grade unchanged") + "</p>")
     else:
         change_html = "<p style='color:#888'>First run: changes will show from the next run.</p>"
     hist = res.get("history") or []
@@ -732,7 +738,7 @@ def write_html(res, path):
             history_html += (f"<h2>Overall score over time</h2><svg viewBox='0 0 {W} {H}' width='100%'>{grid}"
                              f"<path d='{line_d}' fill='none' stroke='#1a73e8' stroke-width='2'/>{dots}</svg>")
         heads = "".join(f"<th>{p[0]}</th>" for p in PILLARS)
-        body = "".join(f"<tr><td>{h['run_at'][:16].replace('T', ' ')}</td><td>${float(h['price']):.2f}</td><td>{h['tracker_as_of']}</td>"
+        body = "".join(f"<tr><td>{h['run_at'][:16].replace('T', ' ')}{' <small>(v' + (h.get('method') or '2') + ')</small>' if (h.get('method') or '2') != METHOD else ''}</td><td>${float(h['price']):.2f}</td><td>{h['tracker_as_of']}</td>"
                        f"<td><b>{float(h['overall']):.2f}</b> {h['grade']}</td>" + "".join(f"<td>{h.get(p[0], '')}</td>" for p in PILLARS) + "</tr>"
                        for h in reversed(hist[-26:]))
         history_html += (f"<h2>Run history (newest first)</h2><div style='overflow-x:auto'><table><tr><th>Run</th><th>Price</th>"
@@ -808,7 +814,7 @@ def save_snapshot(acc, path):
         json.dump(snap, fh, indent=1)
 
 
-HIST_FIELDS = ["run_at", "price_date", "price", "tracker_as_of", "latest_quarter", "overall", "grade"] + [p[0] for p in PILLARS]
+HIST_FIELDS = ["run_at", "price_date", "price", "tracker_as_of", "latest_quarter", "overall", "grade"] + [p[0] for p in PILLARS] + ["method"]
 
 
 def update_history(res, path):
@@ -821,7 +827,7 @@ def update_history(res, path):
     s = res["score"]
     row = {"run_at": res["generated"], "price_date": res["price"]["date"], "price": res["price"]["price"],
            "tracker_as_of": (res.get("accountable") or {}).get("as_of", ""), "latest_quarter": res["quarters"][-1]["quarter_end"],
-           "overall": s["overall"], "grade": s["grade"], **{p["name"]: p["score"] for p in s["pillars"]}}
+           "overall": s["overall"], "grade": s["grade"], **{p["name"]: p["score"] for p in s["pillars"]}, "method": METHOD}
     if rows and rows[-1]["run_at"][:10] == row["run_at"][:10]:
         rows = rows[:-1]
     prev = rows[-1] if rows else None
@@ -840,6 +846,7 @@ def change_summary(res, prev):
         return None
     f = lambda v: None if v in (None, "", "None") else float(v)
     d = {"overall": s["overall"] - f(prev["overall"]), "grade_from": prev["grade"], "since": prev["run_at"],
+         "method_changed": (prev.get("method") or "2") != METHOD,
          "pillars": {p["name"]: (p["score"] - f(prev.get(p["name"])) if p["score"] is not None and f(prev.get(p["name"])) is not None else None)
                      for p in s["pillars"]}}
     return d
@@ -954,8 +961,12 @@ def main():
         line = (f"OPEN score {res['score']['overall']:.2f} ({ch['overall']:+.2f} since {ch['since'][:10]}), grade {res['score']['grade']}"
                 + (f" (was {ch['grade_from']})" if ch["grade_from"] != res["score"]["grade"] else "")
                 + ("; biggest moves: " + ", ".join(f"{k} {v:+.1f}" for k, v in movers) if movers else ""))
+        if ch.get("method_changed"):
+            line += f" [scoring method updated to v{METHOD}; not comparable with earlier runs]"
         print(line)
-        if abs(ch["overall"]) >= 0.05 or ch["grade_from"] != res["score"]["grade"] or os.environ.get("NTFY_ALWAYS"):
+        if ch.get("method_changed"):
+            pass
+        elif abs(ch["overall"]) >= 0.05 or ch["grade_from"] != res["score"]["grade"] or os.environ.get("NTFY_ALWAYS"):
             notify(line, "Opendoor scorecard")
     with open(os.path.join(a.outdir, "scorecard.json"), "w") as fh:
         json.dump(res, fh, indent=2, default=str)
