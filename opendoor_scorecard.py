@@ -1,17 +1,20 @@
 #!/usr/bin/env python3
 """
-Opendoor (OPEN) investor scorecard  -  v2
+Opendoor (OPEN) investor scorecard  -  v3
 
 Data sources (all free, pulled live unless --offline):
-  1. SEC EDGAR XBRL      - reported GAAP financials (revenue, net income, cash, equity, debt, shares)
-  2. accountable.opendoor.com - Opendoor's own weekly tracker: acquisition contracts vs its projected
+  1. SEC EDGAR XBRL      - reported GAAP financials (revenue, net income, cash, equity, debt, shares,
+                           potential dilution from stock awards / convertibles / warrants)
+  2. SEC earnings releases (8-K exhibit 99.1) - homes bought/sold, contribution margin, adjusted EBITDA,
+                           adjusted net income, read automatically each quarter
+  3. accountable.opendoor.com - Opendoor's own weekly tracker: acquisition contracts vs its projected
                            range, resale closings (COEs) vs management's expectation, relative clearance vs MLS
-  3. Yahoo Finance       - daily prices (falls back to Stooq)
-  4. opendoor_kpis.csv   - figures only published in earnings letters (homes bought/sold, contribution
-                           margin, adjusted EBITDA). Values here override EDGAR.
-  5. CAPITAL_EVENTS      - financing deals announced after the last reported quarter, applied pro forma.
+  4. Prices              - Yahoo Finance, then Nasdaq, then Stooq
+  5. Freddie Mac 30-year mortgage rate via FRED (St. Louis Fed)
+  6. opendoor_kpis.csv   - hand-entered figures; any value here overrides the automatic sources
+  7. CAPITAL_EVENTS      - financing deals announced after the last reported quarter, applied pro forma.
 
-Rates the company 0-10 on eight pillars and gives an overall grade.
+Rates the company 0-10 on nine pillars and gives an overall grade.
 
 Usage
   python3 opendoor_scorecard.py                        # live
@@ -21,8 +24,8 @@ Usage
 Output goes to www/ : index.html (the report), scorecard.json, history.csv (one line per run).
 Optional phone alerts: set NTFY_TOPIC=<private topic> (ntfy.sh app) - sent when the score moves.
 
-Each quarter: add a row to opendoor_kpis.csv from the earnings letter (investor.opendoor.com) and
-remove CAPITAL_EVENTS that the new quarter's balance sheet already includes.
+Quarterly figures are read automatically from Opendoor's earnings release on sec.gov. The csv is only
+for corrections and for figures the release doesn't give (e.g. share of homes listed 120+ days).
 Standard library only. SEC asks for a contact User-Agent: set SEC_UA="Your Name you@email.com".
 Not investment advice: the thresholds in RULES are opinions, tune them.
 """
@@ -50,30 +53,37 @@ RULES = {
     "contracts_qoq":   ("Acquisition contracts, last qtr vs prior",    -0.20, 0.20, "pct"),
     "contrib_margin":  ("Contribution margin",                 0.00, 0.07, "pct"),
     "gross_margin":    ("Gross margin",                        0.05, 0.12, "pct"),
+    "aged_inventory":  ("Homes listed 120+ days, share of inventory", 0.40, 0.05, "pct"),
     "net_margin_2q":   ("GAAP net margin, last 2 qtrs",       -0.20, 0.02, "pct"),
     "adj_ebitda_m":    ("Adj. EBITDA margin",                 -0.05, 0.03, "pct"),
+    "ani_margin":      ("Adj. net income margin (target: positive by end-2026)", -0.10, 0.01, "pct"),
     "coe_vs_guide":    ("Last qtr homes sold vs mgmt expectation",  -0.15, 0.05, "pct"),
     "contracts_vs_proj": ("Contracts, last 4 wks vs projection midpoint", -0.40, 0.10, "pct"),
     "clearance":       ("Relative clearance vs MLS, 4-wk avg", 0.90, 1.30, "x"),
     "cash_to_debt":    ("Cash / total debt (pro forma)",       0.20, 1.00, "x"),
     "debt_to_equity":  ("Debt / equity (pro forma)",           4.00, 0.50, "x"),
+    "runway_q":        ("Cash runway at current adj. net loss (home purchases are debt-funded, excluded)", 4.0, 16.0, "qtrs"),
     "share_yoy":       ("Share count change YoY",              0.30, 0.00, "pct"),
     "sbc_pct":         ("Stock comp / revenue",                0.10, 0.01, "pct"),
+    "dilution_overhang": ("Potential new shares (awards, convertibles, warrants) / shares", 0.40, 0.05, "pct"),
     "ps":              ("Price / sales (TTM)",                 3.00, 0.30, "x"),
     "pb":              ("Price / book (pro forma)",            6.00, 1.00, "x"),
     "ret_1y":          ("Share price, 1 year",                -0.70, 0.30, "pct"),
     "range_pos":       ("Position in 52-week range",           0.00, 1.00, "pct"),
     "vs_ma200":        ("Price vs 200-day average",           -0.40, 0.10, "pct"),
+    "mortgage_rate":   ("30-year US mortgage rate",            0.08, 0.05, "rate"),
+    "mortgage_13w":    ("Mortgage rate change, last 13 weeks", 0.0075, -0.0075, "pp"),
 }
 PILLARS = [  # (name, weight %, metrics, the question it answers)
     ("Growth",         15, ["rev_nowcast_yoy", "coe_q4_yoy", "contracts_qoq"], "Is the business getting bigger right now?"),
-    ("Unit economics", 15, ["contrib_margin", "gross_margin"],               "Does each home flip make money?"),
-    ("Profitability",  15, ["net_margin_2q", "adj_ebitda_m"],                "Does the whole company make money?"),
+    ("Unit economics", 15, ["contrib_margin", "gross_margin", "aged_inventory"], "Does each home flip make money, and is stock fresh?"),
+    ("Profitability",  15, ["net_margin_2q", "adj_ebitda_m", "ani_margin"],  "Does the whole company make money?"),
     ("Execution",      15, ["coe_vs_guide", "contracts_vs_proj", "clearance"], "Is management hitting its own targets?"),
-    ("Balance sheet",  15, ["cash_to_debt", "debt_to_equity"],               "Can it survive a bad housing year?"),
-    ("Dilution",       10, ["share_yoy", "sbc_pct"],                         "Is your slice of the company shrinking?"),
-    ("Valuation",      10, ["ps", "pb"],                                     "Are you overpaying for what exists today?"),
+    ("Balance sheet",  15, ["cash_to_debt", "debt_to_equity", "runway_q"],   "Can it survive a bad housing year?"),
+    ("Dilution",       10, ["share_yoy", "sbc_pct", "dilution_overhang"],    "Is your slice of the company shrinking?"),
+    ("Valuation",       5, ["ps", "pb"],                                     "Are you overpaying for what exists today?"),
     ("Momentum",        5, ["ret_1y", "range_pos", "vs_ma200"],              "What is the market saying?"),
+    ("Housing market",  5, ["mortgage_rate", "mortgage_13w"],                "Is the market helping or hurting?"),
 ]
 GRADES = [(8.0, "A", "Strong: the numbers back the story."),
           (6.5, "B", "Good: improving, with manageable risks."),
@@ -177,6 +187,14 @@ def from_edgar(ua, log):
         put("total_debt_musd", total, " + ".join(used))
     s, t = instant(f, ["EntityCommonStockSharesOutstanding", "CommonStockSharesOutstanding"], unit="shares")
     put("shares_m", {_quarter_end_before(k): v for k, v in sorted(s.items())}, t)
+    # shares that could be issued (stock awards, convertibles, warrants), excluded from diluted EPS while loss-making
+    items, t = _items(f, ["AntidilutiveSecuritiesExcludedFromComputationOfEarningsPerShareAmount"], unit="shares")
+    by_end = {}
+    for i in items:  # several award classes are reported per period; sum them per period end (longest span wins ties)
+        if i.get("start") and 80 <= _days(i["start"], i["end"]) <= 100:
+            by_end.setdefault(i["end"], 0)
+            by_end[i["end"]] += i["val"]
+    put("potential_dilution_m", by_end, t)
     return fields
 
 
@@ -344,6 +362,129 @@ def prices(ua=None, log=None):
             "ma200": sum(closes[-200:]) / 200 if len(closes) >= 200 else None, "source": src}
 
 
+# ---------------------------------------------------------------- 3b. earnings releases (8-K exhibit 99.1)
+from html.parser import HTMLParser
+
+
+class _Rows(HTMLParser):
+    """Collects table rows as lists of cell texts."""
+    def __init__(self):
+        super().__init__()
+        self.rows, self._row, self._cell, self._in = [], None, [], False
+
+    def handle_starttag(self, tag, attrs):
+        if tag == "tr":
+            self._row = []
+        elif tag in ("td", "th") and self._row is not None:
+            self._in, self._cell = True, []
+
+    def handle_endtag(self, tag):
+        if tag in ("td", "th") and self._row is not None and self._in:
+            self._row.append(re.sub(r"\s+", " ", "".join(self._cell)).strip())
+            self._in = False
+        elif tag == "tr" and self._row is not None:
+            cells = [c for c in self._row if c]
+            if cells:
+                self.rows.append(cells)
+            self._row = None
+
+    def handle_data(self, d):
+        if self._in:
+            self._cell.append(d)
+
+
+# csv column -> label of the row in the release (matched against the whole first cell, case-insensitive)
+RELEASE_ROWS = [
+    ("revenue_musd", r"revenue( \(gaap\))?"),
+    ("gross_profit_musd", r"gross profit"),
+    ("net_income_musd", r"net (loss|income)|net income \(loss\)"),
+    ("homes_sold", r"homes sold"),
+    ("homes_purchased", r"homes purchased"),
+    ("homes_in_inventory", r"homes in inventory( \(at period end\))?"),
+    ("inventory_musd", r"inventory( \(at period end\))?"),
+    ("contribution_margin_pct", r"contribution margin"),
+    ("adj_ebitda_musd", r"adjusted ebitda"),
+    ("adj_net_income_musd", r"adjusted net (loss|income)|adjusted net income \(loss\)"),
+]
+_NUM = re.compile(r"\(\s*\$?\s*[\d,]+(?:\.\d+)?\s*\)|-?\$?\s*[\d,]*\d(?:\.\d+)?")
+
+
+def _first_number(cells):
+    text = " | ".join(cells[1:])
+    text = re.sub(r"\(\s*\|\s*", "(", re.sub(r"\s*\|\s*\)", ")", text)).replace("$", "")
+    for m in _NUM.finditer(text):
+        tok = m.group(0).replace(" ", "").replace(",", "")
+        neg = tok.startswith("(")
+        tok = tok.strip("()")
+        try:
+            v = float(tok)
+        except ValueError:
+            continue
+        return -v if neg else v
+    return None
+
+
+def parse_release(page):
+    """Current-quarter figures from an earnings release: the first matching row, first number in it."""
+    p = _Rows()
+    p.feed(page)
+    out = {}
+    for cells in p.rows:
+        label = re.sub(r"\s*\(\d+\)$|\s*\d$", "", cells[0].strip().rstrip(":")).strip().lower()
+        label = label.replace("\u2019", "'")
+        for col, pat in RELEASE_ROWS:
+            if col not in out and re.fullmatch(pat, label):
+                v = _first_number(cells)
+                if v is not None:
+                    out[col] = v
+    return out
+
+
+def releases_from_sec(ua, cache_path, log, keep=6):
+    """Find Opendoor's earnings 8-Ks (item 2.02), parse exhibit 99.1, cache results by accession number."""
+    cache = json.load(open(cache_path)) if os.path.exists(cache_path) else {}
+    sub = json.loads(get(f"https://data.sec.gov/submissions/CIK{CIK}.json", ua))
+    r = sub["filings"]["recent"]
+    found = [(r["filingDate"][i], r["accessionNumber"][i]) for i in range(len(r["form"]))
+             if r["form"][i] == "8-K" and "2.02" in (r.get("items", [""] * len(r["form"]))[i] or "")]
+    for fdate, acc in sorted(found)[-keep:]:
+        if acc in cache:
+            continue
+        folder = f"https://www.sec.gov/Archives/edgar/data/{int(CIK)}/{acc.replace('-', '')}"
+        files = [x["name"] for x in json.loads(get(folder + "/index.json", ua))["directory"]["item"]]
+        ex = [n for n in files if n.lower().endswith((".htm", ".html")) and re.search(r"ex-?99[-_.]?0?1|ex991|991", n.lower())]
+        if not ex:
+            log.append(f"  release {acc}: no exhibit 99.1 found")
+            continue
+        vals = parse_release(get(f"{folder}/{ex[0]}", ua))
+        cache[acc] = {"filed": fdate, "quarter_end": _quarter_end_before(fdate), "file": ex[0], "values": vals}
+        log.append(f"  release {fdate} ({ex[0]}): {len(vals)} figures")
+    with open(cache_path, "w") as fh:
+        json.dump(cache, fh, indent=1, sort_keys=True)
+    return cache
+
+
+def releases_to_rows(cache):
+    rows = {}
+    for item in sorted(cache.values(), key=lambda x: x["filed"]):
+        rows.setdefault(item["quarter_end"], {}).update(item["values"])
+    return rows
+
+
+# ---------------------------------------------------------------- 3c. mortgage rates (FRED, no key needed)
+def mortgage_rates():
+    txt = get("https://fred.stlouisfed.org/graph/fredgraph.csv?id=MORTGAGE30US")
+    pts = []
+    for line in txt.strip().splitlines()[1:]:
+        d, v = line.split(",")[:2]
+        if v not in ("", "."):
+            pts.append((d, float(v) / 100))
+    if len(pts) < 20:
+        raise ValueError("FRED returned too few rows")
+    return {"date": pts[-1][0], "rate": pts[-1][1], "rate_13w_ago": pts[-14][1], "rate_52w_ago": pts[-53][1],
+            "source": "Freddie Mac PMMS via FRED"}
+
+
 # ---------------------------------------------------------------- 4. csv + merge
 def load_kpis(path):
     out = {}
@@ -358,10 +499,14 @@ def load_kpis(path):
     return out
 
 
-def merge(edgar, kpis):
+def merge(edgar, kpis, releases=None):
+    """Priority, lowest to highest: EDGAR, earnings releases, hand-entered csv."""
     rows = {}
     for end, vals in edgar.items():
         rows.setdefault(end, {}).update(vals)
+    for end, vals in (releases or {}).items():
+        match = next((e for e in rows if abs(_days(e, end)) <= 5), end)
+        rows.setdefault(match, {}).update(vals)
     for end, vals in kpis.items():
         match = next((e for e in rows if abs(_days(e, end)) <= 5), end)
         rows.setdefault(match, {}).update(vals)
@@ -395,7 +540,7 @@ def pro_forma(q):
 
 
 # ---------------------------------------------------------------- metrics + score
-def metrics(q, px, acc):
+def metrics(q, px, acc, macro=None):
     last = q[-1]
     g = lambda i, k: q[i].get(k) if -len(q) <= i < len(q) else None
     div = lambda a, b: a / b if a is not None and b not in (None, 0) else None
@@ -417,33 +562,49 @@ def metrics(q, px, acc):
         pe = acc["prev_quarter_end"]
         q3_prior = next((r["revenue_musd"] for r in q if r["quarter_end"] == str(int(pe[:4]) - 1) + pe[4:]), None)
     two = q[-2:]
+    ani_row = latest_with(q, "adj_net_income_musd")
+    ani = ani_row.get("adj_net_income_musd")
+    runway = None
+    if ani is not None and pf["cash_musd"] is not None:
+        runway = 99.0 if ani >= 0 else pf["cash_musd"] / -ani
+    dil_row = latest_with(q, "potential_dilution_m")
+    dil_shares = dil_row.get("shares_m") or shares
     m = {
         "rev_nowcast_yoy": ch(q3_rev_est, q3_prior) if unreported else ch(g(-1, "revenue_musd"), g(-5, "revenue_musd")),
         "coe_q4_yoy": acc.get("coe_q4_yoy") if acc else None,
         "contracts_qoq": acc.get("contracts_qoq") if acc else None,
         "contrib_margin": div(latest_with(q, "contribution_margin_pct").get("contribution_margin_pct"), 100),
         "gross_margin": div(latest_with(q, "gross_profit_musd").get("gross_profit_musd"), latest_with(q, "gross_profit_musd").get("revenue_musd")),
+        "aged_inventory": div(latest_with(q, "aged_120_pct").get("aged_120_pct"), 100),
         "net_margin_2q": div(sum(r["net_income_musd"] for r in two), sum(r["revenue_musd"] for r in two))
                          if all("net_income_musd" in r for r in two) else None,
         "adj_ebitda_m": div(latest_with(q, "adj_ebitda_musd").get("adj_ebitda_musd"), latest_with(q, "adj_ebitda_musd").get("revenue_musd")),
+        "ani_margin": div(ani, ani_row.get("revenue_musd")),
         "coe_vs_guide": acc.get("coe_vs_guide") if acc else None,
         "contracts_vs_proj": acc.get("contracts_vs_proj") if acc else None,
         "clearance": acc.get("clearance") if acc else None,
         "cash_to_debt": div(pf["cash_musd"], pf["total_debt_musd"]),
         "debt_to_equity": div(pf["total_debt_musd"], pf["equity_musd"]),
+        "runway_q": runway,
         "share_yoy": ch(shares, year_ago["shares_m"]) if year_ago else None,
         "sbc_pct": div(latest_with(q, "sbc_musd").get("sbc_musd"), latest_with(q, "sbc_musd").get("revenue_musd")),
+        "dilution_overhang": div(dil_row.get("potential_dilution_m"), dil_shares),
         "ps": div(mcap, ttm_rev),
         "pb": div(mcap, pf["equity_musd"]),
         "ret_1y": px.get("return_1y"),
         "range_pos": div(px["price"] - px["low_52w"], px["high_52w"] - px["low_52w"]),
         "vs_ma200": ch(px["price"], px.get("ma200")),
+        "mortgage_rate": (macro or {}).get("rate"),
+        "mortgage_13w": ((macro or {}).get("rate") - macro["rate_13w_ago"]) if macro and macro.get("rate_13w_ago") is not None else None,
     }
     extra = {"market_cap_musd": mcap, "ttm_revenue_musd": ttm_rev, "shares_m": shares, "pro_forma": pf,
              "capital_events": [e["what"] for e in applied], "q3_revenue_estimate_musd": q3_rev_est,
              "revenue_per_home_k": rph * 1000 if rph else None, "q3_prior_revenue_musd": q3_prior,
              "shares_year_ago": (year_ago or {}).get("shares_m"), "shares_year_ago_date": (year_ago or {}).get("quarter_end"),
-             "reported_rev_yoy": ch(g(-1, "revenue_musd"), g(-5, "revenue_musd"))}
+             "reported_rev_yoy": ch(g(-1, "revenue_musd"), g(-5, "revenue_musd")),
+             "adj_net_income_musd": ani, "adj_net_income_quarter": ani_row.get("quarter_end"),
+             "potential_dilution_m": dil_row.get("potential_dilution_m"), "potential_dilution_quarter": dil_row.get("quarter_end"),
+             "mortgage": macro}
     return m, extra
 
 
@@ -470,7 +631,15 @@ def score(m):
 def fmt(v, kind):
     if v is None:
         return "n/a"
-    return f"{v*100:+.1f}%" if kind == "pct" else f"{v:.2f}x"
+    if kind == "pct":
+        return f"{v*100:+.1f}%"
+    if kind == "rate":
+        return f"{v*100:.2f}%"
+    if kind == "pp":
+        return f"{v*100:+.2f}pp"
+    if kind == "qtrs":
+        return "self-funding" if v >= 99 else f"{v:.1f} qtrs"
+    return f"{v:.2f}x"
 
 
 def print_report(res):
@@ -616,23 +785,25 @@ HIST_FIELDS = ["run_at", "price_date", "price", "tracker_as_of", "latest_quarter
 
 def update_history(res, path):
     """Append this run to history.csv and return the previous run (or None)."""
-    prev = None
+    """Keeps one row per day: a second run on the same day replaces that day's row."""
     rows = []
     if os.path.exists(path):
         with open(path, newline="") as fh:
             rows = list(csv.DictReader(fh))
-        prev = rows[-1] if rows else None
     s = res["score"]
     row = {"run_at": res["generated"], "price_date": res["price"]["date"], "price": res["price"]["price"],
            "tracker_as_of": (res.get("accountable") or {}).get("as_of", ""), "latest_quarter": res["quarters"][-1]["quarter_end"],
            "overall": s["overall"], "grade": s["grade"], **{p["name"]: p["score"] for p in s["pillars"]}}
-    new = not os.path.exists(path)
-    with open(path, "a", newline="") as fh:
-        w = csv.DictWriter(fh, fieldnames=HIST_FIELDS)
-        if new:
-            w.writeheader()
-        w.writerow(row)
-    return prev, rows + [{k: str(v) for k, v in row.items()}]
+    if rows and rows[-1]["run_at"][:10] == row["run_at"][:10]:
+        rows = rows[:-1]
+    prev = rows[-1] if rows else None
+    rows.append({k: str(v) for k, v in row.items()})
+    with open(path, "w", newline="") as fh:
+        w = csv.DictWriter(fh, fieldnames=HIST_FIELDS, extrasaction="ignore")
+        w.writeheader()
+        for r in rows:
+            w.writerow(r)
+    return prev, rows
 
 
 def change_summary(res, prev):
@@ -664,6 +835,8 @@ def main():
     ap.add_argument("--kpis", default=os.path.join(HERE, "opendoor_kpis.csv"))
     ap.add_argument("--snapshot", default=os.path.join(HERE, "accountable_snapshot.json"))
     ap.add_argument("--price-cache", default=os.path.join(HERE, "price_cache.json"))
+    ap.add_argument("--releases-cache", default=os.path.join(HERE, "releases_cache.json"))
+    ap.add_argument("--macro-cache", default=os.path.join(HERE, "macro_cache.json"))
     ap.add_argument("--ua", default=os.environ.get("SEC_UA", "OPEN scorecard research contact@example.com"))
     ap.add_argument("--shares", type=float, help="shares you hold")
     ap.add_argument("--avg-cost", type=float, help="your average cost per share, USD")
@@ -672,14 +845,29 @@ def main():
     ap.add_argument("--export-rows", metavar="DIR", help="also write flat JSON row files for the dashboard")
     a = ap.parse_args()
 
-    log, edgar, acc_raw = [], {}, None
+    log, edgar, acc_raw, releases, macro = [], {}, None, {}, None
     px = dict(PRICE_SNAPSHOT, source="price snapshot")
+    cached_px = json.load(open(a.price_cache)) if os.path.exists(a.price_cache) else None
+    if a.offline and cached_px and cached_px.get("date", "") > PRICE_SNAPSHOT["date"]:
+        px = dict(cached_px, source=f"last good price ({cached_px.get('source')})")
     if not a.offline:
         try:
             log.append("EDGAR tags used:")
             edgar = from_edgar(a.ua, log)
         except Exception as e:
             log.append(f"EDGAR unavailable ({e}); using csv only")
+        try:
+            log.append("Earnings releases (sec.gov 8-K exhibit 99.1):")
+            releases = releases_to_rows(releases_from_sec(a.ua, a.releases_cache, log))
+        except Exception as e:
+            log.append(f"earnings releases unavailable ({e}); using cached copies")
+        try:
+            macro = mortgage_rates()
+            with open(a.macro_cache, "w") as fh:
+                json.dump(macro, fh)
+            log.append(f"mortgage rate {macro['rate']*100:.2f}% (week of {macro['date']})")
+        except Exception as e:
+            log.append(f"mortgage rates unavailable ({e}); using cached copy")
         try:
             acc_raw = parse_accountable(get("https://accountable.opendoor.com/"))
             log.append(f"accountable.opendoor.com: data as of {acc_raw['as_of']}")
@@ -699,10 +887,20 @@ def main():
     if acc_raw is None and os.path.exists(a.snapshot):
         acc_raw = accountable_from_snapshot(a.snapshot)
     acc = accountable_metrics(acc_raw) if acc_raw else None
-    q = merge(edgar, load_kpis(a.kpis))
+    if not releases and os.path.exists(a.releases_cache):
+        releases = releases_to_rows(json.load(open(a.releases_cache)))
+    if macro is None and os.path.exists(a.macro_cache):
+        macro = json.load(open(a.macro_cache))
+    if os.environ.get("RELEASE_DIAG"):
+        kp = load_kpis(a.kpis)
+        for end in sorted(releases):
+            row = releases[end]
+            diffs = {k: (v, kp.get(end, {}).get(k)) for k, v in row.items() if k in kp.get(end, {}) and abs(v - kp[end][k]) > 0.051}
+            log.append(f"  [release diag] {end}: {row}  MISMATCH vs csv: {diffs or 'none'}")
+    q = merge(edgar, load_kpis(a.kpis), releases)
     if len(q) < 2:
         sys.exit("Not enough quarterly data. Check network access or opendoor_kpis.csv.")
-    m, extra = metrics(q, px, acc)
+    m, extra = metrics(q, px, acc, macro)
     try:
         from zoneinfo import ZoneInfo
         now = dt.datetime.now(ZoneInfo("Europe/London")).replace(tzinfo=None)

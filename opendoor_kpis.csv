@@ -1,6 +1,6 @@
-quarter_end,revenue_musd,gross_profit_musd,net_income_musd,homes_sold,homes_purchased,homes_in_inventory,inventory_musd,contribution_margin_pct,adj_ebitda_musd,cash_musd,total_debt_musd,equity_musd,shares_m,sbc_musd,fcf_musd,note
-2025-06-30,1567,128,-29,4299,1757,4538,1530,4.4,23,789,,,729,13,821,
-2025-09-30,915,66,-90,2568,1169,3139,,2.2,-33,962,,,771.53,13,432,shares = basic shares outstanding at 30 Sep 2025 (424B5 prospectus)
-2025-12-31,736,,-1096,1978,1706,2867,925,1.0,-43,962,,,,119,67,net loss includes $933M one-off loss on debt extinguishment
-2026-03-31,720,72,-173,1921,2474,3420,1139,4.4,-31,999,,,959,120,-250,
-2026-06-30,883,86,-162,2339,4378,5459,1845,5.8,-4,896,1956,914,971.1,119,-723,shares = 971.1M at 28 Jul 2026 (10-Q cover / Aug 13 8-K)
+quarter_end,revenue_musd,gross_profit_musd,net_income_musd,homes_sold,homes_purchased,homes_in_inventory,inventory_musd,contribution_margin_pct,adj_ebitda_musd,cash_musd,total_debt_musd,equity_musd,shares_m,sbc_musd,fcf_musd,adj_net_income_musd,aged_120_pct,note
+2025-06-30,1567,128,-29,4299,1757,4538,1530,4.4,23,789,,,729,13,821,-9,36,
+2025-09-30,915,66,-90,2568,1169,3139,,2.2,-33,962,,,771.53,13,432,,51,shares = basic shares outstanding at 30 Sep 2025 (424B5 prospectus)
+2025-12-31,736,,-1096,1978,1706,2867,925,1.0,-43,962,,,,119,67,,33,net loss includes $933M one-off loss on debt extinguishment
+2026-03-31,720,72,-173,1921,2474,3420,1139,4.4,-31,999,,,959,120,-250,,10,
+2026-06-30,883,86,-162,2339,4378,5459,1845,5.8,-4,896,1956,914,971.1,119,-723,-30,9,shares = 971.1M at 28 Jul 2026 (10-Q cover / Aug 13 8-K)

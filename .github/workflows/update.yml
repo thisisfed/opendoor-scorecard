@@ -34,13 +34,14 @@ jobs:
         env:
           SEC_UA: ${{ secrets.SEC_UA }}
           NTFY_TOPIC: ${{ secrets.NTFY_TOPIC }}
+          RELEASE_DIAG: "1"
         run: python3 opendoor_scorecard.py --outdir site
 
       - name: Save score history to the repo
         run: |
           git config user.name "scorecard-bot"
           git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
-          git add site accountable_snapshot.json price_cache.json 2>/dev/null || git add site accountable_snapshot.json
+          git add site accountable_snapshot.json price_cache.json releases_cache.json macro_cache.json 2>/dev/null || git add -A site *.json
           if ! git diff --cached --quiet; then
             git commit -m "Scorecard update $(date -u +%F)"
             git pull --rebase
