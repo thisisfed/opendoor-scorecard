@@ -791,7 +791,14 @@ def _contracts_svg(rows):
     actual = [(x(i), y(r[1])) for i, r in enumerate(rows) if r[1] is not None]
     last_i = max(i for i, r in enumerate(rows) if r[1] is not None)
     band = [(i, r) for i, r in enumerate(rows) if r[2] is not None and r[3] is not None and r[2] != r[3]]
-    out = [f'<svg viewBox="0 0 {W} {H}" width="100%" role="img" aria-label="Weekly acquisition contracts vs projected range">',
+    pts = []
+    for i, r in enumerate(rows):
+        has_band = r[2] is not None and r[3] is not None and r[2] != r[3]
+        pts.append({"d": _d(r[0]), "x": round(x(i), 1), "y": round(y(r[1]), 1) if r[1] is not None else None, "a": r[1],
+                    "lo": r[2] if has_band else None, "hi": r[3] if has_band else None,
+                    "yt": round(y(r[1] if r[1] is not None else (r[3] if has_band else 0)), 1)})
+    out = [f'<svg viewBox="0 0 {W} {H}" width="100%" role="img" aria-label="Weekly acquisition contracts vs projected range" '
+           f'class="ichart" data-w="{W}" data-l="{L}" data-r="{R}" data-points=\'{json.dumps(pts, separators=(",", ":"))}\'>',
            '<defs><linearGradient id="fill" x1="0" x2="0" y1="0" y2="1"><stop offset="0" stop-color="#1d4ed8" stop-opacity=".16"/>'
            '<stop offset="1" stop-color="#1d4ed8" stop-opacity="0"/></linearGradient>'
            '<filter id="blur" x="-5%" y="-20%" width="110%" height="140%"><feGaussianBlur stdDeviation="7"/></filter>'
@@ -819,7 +826,15 @@ def _contracts_svg(rows):
     out.append(f'<path d="{line} L{actual[-1][0]:.1f},{y(0):.1f} L{actual[0][0]:.1f},{y(0):.1f} Z" fill="url(#fill)"/>')
     out.append(f'<path d="{line}" fill="none" stroke="{BLUE}" stroke-width="2.6" stroke-linecap="round" stroke-linejoin="round"/>')
     lx, ly = actual[-1]
-    out.append(f'<circle cx="{lx:.1f}" cy="{ly:.1f}" r="11" fill="{BLUE}" opacity=".14"/><circle cx="{lx:.1f}" cy="{ly:.1f}" r="4.5" fill="{BLUE}" stroke="#fff" stroke-width="2"/>')
+    # latest point: soft halo, a ring, and a slow pulse (the "glow")
+    out.append(f'<circle class="pulse" cx="{lx:.1f}" cy="{ly:.1f}" r="7" fill="{BLUE}"/>'
+               f'<circle cx="{lx:.1f}" cy="{ly:.1f}" r="12" fill="{BLUE}" opacity=".12"/>'
+               f'<circle cx="{lx:.1f}" cy="{ly:.1f}" r="8.5" fill="none" stroke="{BLUE}" stroke-opacity=".35" stroke-width="1.5"/>'
+               f'<circle cx="{lx:.1f}" cy="{ly:.1f}" r="4.5" fill="{BLUE}" stroke="#fff" stroke-width="2"/>')
+    # hover layer: vertical guide and a dot that snaps onto the curve
+    out.append(f'<line class="vline" x1="0" x2="0" y1="{T}" y2="{H - B}" stroke="#cfd3dc" stroke-width="1.2" style="display:none"/>'
+               f'<circle class="hdot" r="5" fill="{BLUE}" stroke="#fff" stroke-width="2" style="display:none"/>'
+               f'<rect x="{L}" y="{T}" width="{W - L - R}" height="{H - T - B}" fill="transparent"/>')
     out.append(f'<text x="{lx + 14:.1f}" y="{ly - 10:.1f}" class="endlabel">{int(rows[last_i][1]):,}</text>')
     out.append("</svg>")
     return "".join(out)
@@ -870,7 +885,22 @@ a{color:inherit}
 .hero{display:grid;grid-template-columns:1.3fr 1fr;gap:40px;align-items:end;padding:64px 0 56px;position:relative}
 .asof{position:absolute;top:28px;right:0;text-align:right;font-size:14px;font-weight:500}
 .asof i{display:block;font-size:12px;font-weight:400;color:var(--muted)}
-.asof .dot{display:inline-block;width:9px;height:9px;border-radius:50%;background:#4cc38a;margin-right:8px;vertical-align:1px}
+.asof .dot{display:inline-block;width:9px;height:9px;border-radius:50%;background:#4cc38a;margin-right:8px;vertical-align:1px;
+box-shadow:0 0 0 0 rgba(76,195,138,.55),0 0 8px 1px rgba(76,195,138,.6);animation:glow 2.4s ease-out infinite}
+@keyframes glow{0%{box-shadow:0 0 0 0 rgba(76,195,138,.55),0 0 8px 1px rgba(76,195,138,.6)}
+70%{box-shadow:0 0 0 9px rgba(76,195,138,0),0 0 8px 1px rgba(76,195,138,.6)}100%{box-shadow:0 0 0 0 rgba(76,195,138,0),0 0 8px 1px rgba(76,195,138,.6)}}
+.chartbox{position:relative}
+@media (max-width:640px){.chartbox{overflow-x:auto;-webkit-overflow-scrolling:touch}.chartbox .ichart{min-width:760px;touch-action:auto}
+.swipe{display:block!important}}
+.swipe{display:none;font-size:12px;color:var(--muted);margin:2px 0 6px}
+.ichart{touch-action:pan-y;cursor:crosshair}
+.ichart .pulse{transform-box:fill-box;transform-origin:center;opacity:.45;animation:pulse 2.4s ease-out infinite}
+@keyframes pulse{0%{transform:scale(1);opacity:.45}80%,100%{transform:scale(3.2);opacity:0}}
+.tip{position:absolute;pointer-events:none;background:#fff;border:1px solid #e6e3df;border-radius:10px;
+box-shadow:0 6px 20px rgba(35,32,29,.08);padding:9px 13px;font-size:14px;line-height:1.55;white-space:nowrap;z-index:3}
+.tip b{display:block;font-weight:600;color:var(--ink)}.tip .c{display:block;color:var(--blue)}.tip .g{display:block;color:#0f9f6e}
+.tip .n{display:block;color:var(--muted)}
+@media (prefers-reduced-motion:reduce){.asof .dot,.ichart .pulse{animation:none}}
 h1{font-size:clamp(46px,8.4vw,92px);line-height:1;font-weight:500;letter-spacing:-.034em;margin:40px 0 0}
 .lede{font-size:18px;color:var(--muted2);max-width:430px;margin:0 0 6px}
 .card{background:#fff;border-radius:20px;margin-top:24px;overflow:hidden}
@@ -980,7 +1010,9 @@ def write_html(res, path):
             f'<div class="right">{_badge(f"{vs_mid * 100:+.0f}%", "green" if vs_mid >= 0 else "red", "↗ " if vs_mid >= 0 else "↘ ") if vs_mid is not None else ""}'
             f'<p class="sub">last 4 weeks vs projection midpoint</p></div></div>'
             f'<div class="bd"><div class="legend"><span><i style="background:{BLUE}"></i>Contracts signed</span>'
-            f'<span><i style="background:#34d399"></i>Opendoor&#39;s projected range</span></div>{contracts}</div>'
+            f'<span><i style="background:#34d399"></i>Opendoor&#39;s projected range</span></div>'
+            f'<p class="swipe">Swipe for earlier weeks · tap the chart for figures</p>'
+            f'<div class="chartbox">{contracts}<div class="tip" hidden></div></div></div>'
             f'<div class="ft">Last 4 weeks: {a4:,} contracts vs a projected {lo4:,}–{hi4:,}; '
             f'{acc.get("weeks_below_proj_13", 0)} of the last 13 weeks were below the range. Source: accountable.opendoor.com, data as of {e(_d(asof))}.</div></div>'
             if a4 else "")
@@ -1048,7 +1080,46 @@ The thresholds and weights are judgement calls and have not been back-tested aga
 {e(mort.get('source') or 'Freddie Mac')} (mortgage rate). Download the <a href="history.csv">score history</a> or <a href="scorecard.json">all the data</a>.</p>
 <p><b>Independent project</b>, not affiliated with or endorsed by Opendoor Technologies Inc. A structured summary of public numbers, not a forecast,
 a recommendation or investment advice.</p></footer>
-</div></body></html>"""
+</div>
+<script>
+(function () {{
+  document.querySelectorAll(".chartbox").forEach(function (box) {{
+    var svg = box.querySelector("svg.ichart"), tip = box.querySelector(".tip");
+    if (!svg || !tip) return;
+    var pts = JSON.parse(svg.getAttribute("data-points"));
+    var W = +svg.getAttribute("data-w"), L = +svg.getAttribute("data-l"), R = +svg.getAttribute("data-r");
+    var vline = svg.querySelector(".vline"), hdot = svg.querySelector(".hdot");
+    var fmt = function (v) {{ return Number(v).toLocaleString("en-US"); }};
+    function line(cls, text) {{ var s = document.createElement("span"); s.className = cls; s.textContent = text; return s; }}
+    function show(ev) {{
+      var r = svg.getBoundingClientRect(), k = r.width / W, vx = (ev.clientX - r.left) / k;
+      var i = Math.round((vx - L) / ((W - L - R) / (pts.length - 1)));
+      i = Math.max(0, Math.min(pts.length - 1, i));
+      var p = pts[i];
+      vline.setAttribute("x1", p.x); vline.setAttribute("x2", p.x); vline.style.display = "";
+      if (p.a !== null) {{ hdot.setAttribute("cx", p.x); hdot.setAttribute("cy", p.y); hdot.style.display = ""; }}
+      else {{ hdot.style.display = "none"; }}
+      var b = document.createElement("b"); b.textContent = p.d;
+      tip.replaceChildren(b,
+        p.a !== null ? line("c", "Contracts signed: " + fmt(p.a)) : line("n", "Not reported yet"));
+      if (p.lo !== null) tip.appendChild(line("g", "Projected range: " + fmt(p.lo) + "\u2013" + fmt(p.hi)));
+      tip.hidden = false;
+      var vl = box.scrollLeft, vr = box.scrollLeft + box.clientWidth, tw = tip.offsetWidth, th = tip.offsetHeight;
+      var left = p.x * k + 14; if (left + tw > vr - 4) left = p.x * k - tw - 14;
+      left = Math.max(vl + 4, Math.min(left, vr - tw - 4));
+      tip.style.left = left + "px";
+      tip.style.top = Math.max(0, p.yt * k - th - 12) + "px";
+    }}
+    function hide() {{ tip.hidden = true; vline.style.display = "none"; hdot.style.display = "none"; }}
+    svg.addEventListener("pointermove", show);
+    svg.addEventListener("pointerdown", show);
+    svg.addEventListener("pointerleave", function (ev) {{ if (ev.pointerType === "mouse") hide(); }});
+    box.addEventListener("scroll", hide);
+    if (box.scrollWidth > box.clientWidth) box.scrollLeft = box.scrollWidth;  // phones: start at the latest weeks
+  }});
+}})();
+</script>
+</body></html>"""
     with open(path, "w") as fh:
         fh.write(doc)
 
