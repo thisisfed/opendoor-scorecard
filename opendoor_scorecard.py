@@ -287,17 +287,55 @@ def accountable_metrics(acc):
 
 
 # ---------------------------------------------------------------- 3. prices
-def prices(ua):
-    try:
-        j = json.loads(get(f"https://query1.finance.yahoo.com/v8/finance/chart/{TICKER}?range=2y&interval=1d"))
-        r = j["chart"]["result"][0]
-        rows = [(dt.datetime.utcfromtimestamp(t).date().isoformat(), c) for t, c in
-                zip(r["timestamp"], r["indicators"]["quote"][0]["close"]) if c is not None]
-        src = "Yahoo Finance"
-    except Exception:
-        txt = get(f"https://stooq.com/q/d/l/?s={TICKER.lower()}.us&i=d")
-        rows = [(l.split(",")[0], float(l.split(",")[4])) for l in txt.strip().splitlines()[1:]]
-        src = "Stooq"
+def _yahoo(host):
+    j = json.loads(get(f"https://{host}/v8/finance/chart/{TICKER}?range=2y&interval=1d"))
+    r = j["chart"]["result"][0]
+    return [(dt.datetime.fromtimestamp(t, dt.timezone.utc).date().isoformat(), float(c)) for t, c in
+            zip(r["timestamp"], r["indicators"]["quote"][0]["close"]) if c is not None]
+
+
+def _nasdaq():
+    start = (dt.date.today() - dt.timedelta(days=730)).isoformat()
+    req = urllib.request.Request(
+        f"https://api.nasdaq.com/api/quote/{TICKER}/historical?assetclass=stocks&fromdate={start}&limit=9999",
+        headers={"User-Agent": BROWSER_UA, "Accept": "application/json, text/plain, */*",
+                 "Accept-Language": "en-US,en;q=0.9", "Origin": "https://www.nasdaq.com",
+                 "Referer": "https://www.nasdaq.com/", "Accept-Encoding": "identity"})
+    with urllib.request.urlopen(req, timeout=30) as resp:
+        j = json.loads(resp.read().decode("utf-8"))
+    rows = []
+    for r in j["data"]["tradesTable"]["rows"]:
+        m, d, y = r["date"].split("/")
+        rows.append((f"{y}-{m}-{d}", float(r["close"].replace("$", "").replace(",", ""))))
+    return sorted(rows)
+
+
+def _stooq():
+    txt = get(f"https://stooq.com/q/d/l/?s={TICKER.lower()}.us&i=d")
+    if not txt.startswith("Date,"):
+        raise ValueError("Stooq returned a non-CSV page")
+    return [(l.split(",")[0], float(l.split(",")[4])) for l in txt.strip().splitlines()[1:]]
+
+
+def prices(ua=None, log=None):
+    """Daily closes from the first source that answers: Yahoo (two hosts), Nasdaq, Stooq."""
+    sources = [("Yahoo Finance", lambda: _yahoo("query1.finance.yahoo.com")),
+               ("Yahoo Finance", lambda: _yahoo("query2.finance.yahoo.com")),
+               ("Nasdaq", _nasdaq), ("Stooq", _stooq)]
+    rows, src, errors = None, None, []
+    for name, fetch in sources:
+        try:
+            rows = fetch()
+            if len(rows) < 30:
+                raise ValueError(f"only {len(rows)} rows")
+            src = name
+            break
+        except Exception as e:
+            errors.append(f"{name}: {str(e)[:80]}")
+    if log is not None and errors:
+        log.append("price sources that failed: " + "; ".join(errors))
+    if rows is None:
+        raise RuntimeError("all price sources failed")
     closes = [c for _, c in rows]
     last_date, price = rows[-1]
     yr = closes[-253:]
@@ -625,6 +663,7 @@ def main():
     ap.add_argument("--offline", action="store_true", help="no network: csv + accountable snapshot + price snapshot")
     ap.add_argument("--kpis", default=os.path.join(HERE, "opendoor_kpis.csv"))
     ap.add_argument("--snapshot", default=os.path.join(HERE, "accountable_snapshot.json"))
+    ap.add_argument("--price-cache", default=os.path.join(HERE, "price_cache.json"))
     ap.add_argument("--ua", default=os.environ.get("SEC_UA", "OPEN scorecard research contact@example.com"))
     ap.add_argument("--shares", type=float, help="shares you hold")
     ap.add_argument("--avg-cost", type=float, help="your average cost per share, USD")
@@ -647,9 +686,16 @@ def main():
         except Exception as e:
             log.append(f"accountable.opendoor.com unavailable ({e}); using snapshot")
         try:
-            px = prices(a.ua)
+            px = prices(log=log)
+            with open(a.price_cache, "w") as fh:
+                json.dump(px, fh)
         except Exception as e:
-            log.append(f"price feed unavailable ({e}); using snapshot")
+            cached = json.load(open(a.price_cache)) if os.path.exists(a.price_cache) else None
+            if cached and cached.get("date", "") > PRICE_SNAPSHOT["date"]:
+                px = dict(cached, source=f"last good price ({cached.get('source')})")
+                log.append(f"price feed unavailable ({e}); using last good price from {cached['date']}")
+            else:
+                log.append(f"price feed unavailable ({e}); using snapshot")
     if acc_raw is None and os.path.exists(a.snapshot):
         acc_raw = accountable_from_snapshot(a.snapshot)
     acc = accountable_metrics(acc_raw) if acc_raw else None
