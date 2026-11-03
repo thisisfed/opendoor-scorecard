@@ -105,9 +105,9 @@ def _days(a, b):
 BROWSER_UA = "Mozilla/5.0 (X11; Linux aarch64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/130.0 Safari/537.36"
 
 
-def get(url, ua=BROWSER_UA):
+def get(url, ua=BROWSER_UA, timeout=30):
     req = urllib.request.Request(url, headers={"User-Agent": ua, "Accept-Encoding": "identity"})
-    with urllib.request.urlopen(req, timeout=30) as r:
+    with urllib.request.urlopen(req, timeout=timeout) as r:
         return r.read().decode("utf-8")
 
 
@@ -472,17 +472,43 @@ def releases_to_rows(cache):
 
 
 # ---------------------------------------------------------------- 3c. mortgage rates (FRED, no key needed)
-def mortgage_rates():
-    txt = get("https://fred.stlouisfed.org/graph/fredgraph.csv?id=MORTGAGE30US")
+def _fred():
+    txt = get("https://fred.stlouisfed.org/graph/fredgraph.csv?id=MORTGAGE30US", timeout=60)
     pts = []
     for line in txt.strip().splitlines()[1:]:
         d, v = line.split(",")[:2]
         if v not in ("", "."):
             pts.append((d, float(v) / 100))
-    if len(pts) < 20:
-        raise ValueError("FRED returned too few rows")
-    return {"date": pts[-1][0], "rate": pts[-1][1], "rate_13w_ago": pts[-14][1], "rate_52w_ago": pts[-53][1],
-            "source": "Freddie Mac PMMS via FRED"}
+    return pts, "Freddie Mac PMMS via FRED"
+
+
+def _freddie():
+    txt = get("https://www.freddiemac.com/pmms/docs/PMMS_history.csv", timeout=60)
+    lines = txt.strip().splitlines()
+    head = [h.strip().lower() for h in lines[0].split(",")]
+    di, vi = head.index("date"), head.index("pmms30")
+    pts = []
+    for line in lines[1:]:
+        c = line.split(",")
+        if len(c) > vi and c[vi].strip() not in ("", "."):
+            m, d, y = c[di].strip().split("/")
+            pts.append((f"{y}-{int(m):02d}-{int(d):02d}", float(c[vi]) / 100))
+    return sorted(pts), "Freddie Mac PMMS"
+
+
+def mortgage_rates(log=None):
+    """Weekly 30-year fixed mortgage rate: FRED first, Freddie Mac's own file as backup."""
+    errors = []
+    for fetch in (_fred, _freddie):
+        try:
+            pts, src = fetch()
+            if len(pts) < 60:
+                raise ValueError(f"only {len(pts)} rows")
+            return {"date": pts[-1][0], "rate": pts[-1][1], "rate_13w_ago": pts[-14][1], "rate_52w_ago": pts[-53][1],
+                    "source": src}
+        except Exception as e:
+            errors.append(f"{fetch.__name__.strip('_')}: {str(e)[:60]}")
+    raise RuntimeError("; ".join(errors))
 
 
 # ---------------------------------------------------------------- 4. csv + merge
@@ -862,7 +888,7 @@ def main():
         except Exception as e:
             log.append(f"earnings releases unavailable ({e}); using cached copies")
         try:
-            macro = mortgage_rates()
+            macro = mortgage_rates(log)
             with open(a.macro_cache, "w") as fh:
                 json.dump(macro, fh)
             log.append(f"mortgage rate {macro['rate']*100:.2f}% (week of {macro['date']})")
