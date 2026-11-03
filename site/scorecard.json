@@ -1,5 +1,5 @@
 {
-  "generated": "2026-11-02T18:52",
+  "generated": "2026-11-03T18:29",
   "ticker": "OPEN",
   "price": {
     "date": "2026-10-30",
@@ -384,10 +384,10 @@
     "prev_quarter": "Q3",
     "curr_quarter": "Q4",
     "prev_quarter_end": "2026-09-30",
-    "q3_homes_sold": 2728.0,
-    "q3_homes_sold_expected": 2934.0,
+    "q3_homes_sold": 2728,
+    "q3_homes_sold_expected": 2934,
     "coe_vs_guide": -0.07021131561008864,
-    "q4_homes_sold_qtd": 628.0,
+    "q4_homes_sold_qtd": 628,
     "q4_qtd_date": "2026-10-21",
     "coe_q4_yoy": 0.45707656612529,
     "contracts_q2": 7014,
@@ -794,11 +794,47 @@
       ]
     ]
   },
-  "log": [],
-  "change": null,
+  "log": [
+    "EDGAR tags used:",
+    "EDGAR unavailable (HTTP Error 403: Forbidden); using csv only",
+    "accountable.opendoor.com: data as of 2026-10-24",
+    "price feed unavailable (could not convert string to float: 'e.encode(c+n))'); using snapshot"
+  ],
+  "change": {
+    "overall": 0.0,
+    "grade_from": "D",
+    "since": "2026-11-02T18:52",
+    "pillars": {
+      "Growth": 0.0,
+      "Unit economics": 0.0,
+      "Profitability": 0.0,
+      "Execution": 0.0,
+      "Balance sheet": 0.0,
+      "Dilution": 0.0,
+      "Valuation": 0.0,
+      "Momentum": 0.0
+    }
+  },
   "history": [
     {
       "run_at": "2026-11-02T18:52",
+      "price_date": "2026-10-30",
+      "price": "1.8",
+      "tracker_as_of": "2026-10-24",
+      "latest_quarter": "2026-06-30",
+      "overall": "4.73",
+      "grade": "D",
+      "Growth": "7.3",
+      "Unit economics": "7.6",
+      "Profitability": "2.9",
+      "Execution": "4.8",
+      "Balance sheet": "2.4",
+      "Dilution": "1.6",
+      "Valuation": "8.2",
+      "Momentum": "0.0"
+    },
+    {
+      "run_at": "2026-11-03T18:29",
       "price_date": "2026-10-30",
       "price": "1.8",
       "tracker_as_of": "2026-10-24",
