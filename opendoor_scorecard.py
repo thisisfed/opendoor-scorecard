@@ -175,6 +175,14 @@ def from_edgar(ua, log):
                 total[k] = total.get(k, 0) + v
     if total:
         put("total_debt_musd", total, " + ".join(used))
+    if os.environ.get("DEBT_DIAG"):  # list every debt-like balance-sheet field with its latest value
+        for ns, tags in f.get("facts", {}).items():
+            for tag, node in tags.items():
+                if "Debt" in tag or "Notes" in tag or "Borrow" in tag:
+                    vals = [i for i in node.get("units", {}).get("USD", []) if not i.get("start") and i.get("form", "")[:4] in ("10-Q", "10-K")]
+                    if vals:
+                        last = max(vals, key=lambda i: (i["end"], i["filed"]))
+                        log.append(f"  [debt diag] {ns}:{tag} = {last['val']/1e6:,.0f}M at {last['end']}")
     s, t = instant(f, ["EntityCommonStockSharesOutstanding", "CommonStockSharesOutstanding"], unit="shares")
     put("shares_m", {_quarter_end_before(k): v for k, v in sorted(s.items())}, t)
     return fields

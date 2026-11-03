@@ -34,6 +34,7 @@ jobs:
         env:
           SEC_UA: ${{ secrets.SEC_UA }}
           NTFY_TOPIC: ${{ secrets.NTFY_TOPIC }}
+          DEBT_DIAG: "1"
         run: python3 opendoor_scorecard.py --outdir site
 
       - name: Save score history to the repo
