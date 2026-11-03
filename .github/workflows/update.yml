@@ -1,0 +1,55 @@
+name: Update Opendoor scorecard
+
+on:
+  schedule:
+    - cron: "30 22 * * 1-5"   # weekdays 22:30 UTC (22:30 UK in winter, 23:30 in summer), after the US close
+  workflow_dispatch:           # "Run workflow" button in the Actions tab
+  push:
+    branches: [main]
+    paths: ["opendoor_kpis.csv", "opendoor_scorecard.py"]   # rerun when you edit the data or the script
+
+permissions:
+  contents: write   # to save history.csv back to the repo
+  pages: write
+  id-token: write
+
+concurrency:
+  group: scorecard
+  cancel-in-progress: false
+
+jobs:
+  update:
+    runs-on: ubuntu-latest
+    environment:
+      name: github-pages
+      url: ${{ steps.deployment.outputs.page_url }}
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+
+      - name: Run the scorecard
+        env:
+          SEC_UA: ${{ secrets.SEC_UA }}
+          NTFY_TOPIC: ${{ secrets.NTFY_TOPIC }}
+        run: python3 opendoor_scorecard.py --outdir site
+
+      - name: Save score history to the repo
+        run: |
+          git config user.name "scorecard-bot"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add site accountable_snapshot.json
+          if ! git diff --cached --quiet; then
+            git commit -m "Scorecard update $(date -u +%F)"
+            git pull --rebase
+            git push
+          fi
+
+      - uses: actions/configure-pages@v5
+      - uses: actions/upload-pages-artifact@v3
+        with:
+          path: site
+      - id: deployment
+        uses: actions/deploy-pages@v4
