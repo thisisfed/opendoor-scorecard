@@ -86,6 +86,37 @@ PILLARS = [  # (name, weight %, metrics, the question it answers)
     ("Momentum",        5, ["ret_1y", "range_pos", "vs_ma200"],              "What is the market saying?"),
     ("Housing market",  5, ["mortgage_rate", "mortgage_13w"],                "Is the market helping or hurting?"),
 ]
+# Plain-English reason for each pillar: (when it's a strength, when it's a weakness)
+PILLAR_WORDS = {
+    "Growth": ("sales are growing again", "sales are shrinking"),
+    "Unit economics": ("each home sale earns a healthy margin", "margins on each home are thin"),
+    "Profitability": ("the company is profitable", "the company still loses money overall"),
+    "Execution": ("management is hitting its own targets", "it's missing its own targets"),
+    "Balance sheet": ("the balance sheet is solid", "debt is high against equity"),
+    "Dilution": ("the share count is stable", "the share count keeps growing"),
+    "Valuation": ("the stock is cheap against its sales", "the stock looks expensive"),
+    "Momentum": ("the share price is trending up", "the share price is in a downtrend"),
+    "Housing market": ("mortgage rates are helping", "high mortgage rates are a headwind"),
+}
+
+
+def explain(sc):
+    """'Why' sentence: the two pillars lifting the score most and the three dragging it most (score x weight)."""
+    ps = [p for p in sc["pillars"] if p["score"] is not None]
+    ups = sorted((p for p in ps if p["score"] >= 6.5), key=lambda p: -p["score"] * p["weight"])[:2]
+    downs = sorted((p for p in ps if p["score"] < 5.0), key=lambda p: -(10 - p["score"]) * p["weight"])[:3]
+    join = lambda xs: xs[0] if len(xs) == 1 else ", ".join(xs[:-1]) + " and " + xs[-1]
+    good = [PILLAR_WORDS[p["name"]][0] for p in ups]
+    bad = [PILLAR_WORDS[p["name"]][1] for p in downs]
+    if good and bad:
+        text = f"{join(good)}, but {join(bad)}."
+    elif good or bad:
+        text = join(good or bad) + "."
+    else:
+        text = "no pillar stands out either way."
+    return "Why: " + text[0].upper() + text[1:]
+
+
 GRADES = [(8.0, "A", "Strong: the numbers back the story."),
           (6.5, "B", "Good: improving, with manageable risks."),
           (5.0, "C", "Mixed: the turnaround is plausible but unproven."),
@@ -651,7 +682,9 @@ def score(m):
         pillars.append({"name": name, "weight": w, "question": ask, "score": ps, "metrics": items})
     overall = round(total / wsum, 2) if wsum else None
     grade, verdict = next((g, v) for t, g, v in GRADES if overall is not None and overall >= t)
-    return {"overall": overall, "grade": grade, "verdict": verdict, "pillars": pillars, "weights_used": wsum}
+    out = {"overall": overall, "grade": grade, "verdict": verdict, "pillars": pillars, "weights_used": wsum}
+    out["why"] = explain(out)
+    return out
 
 
 # ---------------------------------------------------------------- output
@@ -672,7 +705,8 @@ def fmt(v, kind):
 def print_report(res):
     s, px, ex, acc = res["score"], res["price"], res["extra"], res.get("accountable") or {}
     print(f"\nOpendoor ({TICKER}) scorecard  -  close ${px['price']:.2f} on {px['date']} ({px.get('source')})")
-    print(f"Overall {s['overall']:.2f}/10  grade {s['grade']}  -  {s['verdict']}\n")
+    print(f"Overall {s['overall']:.2f}/10  grade {s['grade']}  -  {s['verdict']}")
+    print(f"{s['why']}\n")
     for p in s["pillars"]:
         print(f"{p['name']:<15} {str(p['score']):>5}/10  (weight {p['weight']}%)  {p['question']}")
         for i in p["metrics"]:
@@ -751,7 +785,7 @@ td,th{{padding:.35rem .5rem;border-bottom:1px solid #eee;text-align:left}}tr.p t
 .bar{{background:#eee;height:10px;border-radius:5px;width:min(160px,22vw)}}@media (max-width:600px){{.t{{display:none}}td,th{{padding:.3rem .3rem}}body{{margin:1rem auto}}}}.bar span{{display:block;height:10px;border-radius:5px}}</style></head><body>
 <h1>Opendoor ({TICKER}) investor scorecard</h1>
 <p>Close ${res['price']['price']:.2f} on {res['price']['date']} &middot; market cap ${(res['extra']['market_cap_musd'] or 0)/1000:.2f}bn &middot; updated {res['generated'].replace('T', ' ')}</p>
-<div class="big">{s['overall']:.2f}/10 &nbsp;{s['grade']}</div><p>{s['verdict']}</p>{change_html}
+<div class="big">{s['overall']:.2f}/10 &nbsp;{s['grade']}</div><p><b>{s['verdict']}</b><br>{html.escape(s['why'])}</p>{change_html}
 <table><tr><th>Pillar / metric</th><th>Weight / value</th><th></th><th>Score</th></tr>{rows}</table>
 {history_html}<h2>Quarters ($M)</h2><table><tr><th>Quarter end</th><th>Revenue</th><th>Net income</th><th>Bought</th><th>Sold</th><th>Contrib. %</th><th>Cash</th></tr>{qrows}</table>
 <p style="color:#888;font-size:.8rem">Updates automatically every weekday evening (UK time). Times shown are UK time.
