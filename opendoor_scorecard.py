@@ -1323,9 +1323,9 @@ html{background:#f9f8f8;scroll-padding-top:92px;scroll-behavior:smooth}
 @media (max-width:520px){html{scroll-padding-top:104px}}
 body{margin:0;color:var(--ink);font:400 15px/1.5 Inter,system-ui,-apple-system,"Segoe UI","Helvetica Neue",Arial,sans-serif;
 letter-spacing:-.011em;-webkit-font-smoothing:antialiased;font-variant-numeric:tabular-nums;
-background:radial-gradient(80% 40% at 10% 0%,rgba(200,170,255,.55) 0%,rgba(0,0,0,0) 60%),
-radial-gradient(65% 35% at 50% 0%,rgba(160,195,255,.55) 0%,rgba(0,0,0,0) 58%),
-radial-gradient(50% 30% at 88% 0%,rgba(235,160,250,.45) 0%,rgba(0,0,0,0) 50%),var(--bg);background-repeat:no-repeat}
+background:radial-gradient(80% 40% at 10% 0%,var(--g1) 0%,rgba(0,0,0,0) 60%),
+radial-gradient(65% 35% at 50% 0%,var(--g2) 0%,rgba(0,0,0,0) 58%),
+radial-gradient(50% 30% at 88% 0%,var(--g3) 0%,rgba(0,0,0,0) 50%),var(--bg);background-repeat:no-repeat}
 a{color:inherit}
 .bar{background:rgba(255,255,255,.92);backdrop-filter:saturate(1.4) blur(8px);position:sticky;top:0;z-index:5;border-bottom:1px solid rgba(0,0,0,.04)}
 .bar .in{max-width:1280px;margin:0 auto;padding:12px 24px;display:grid;grid-template-columns:1fr auto 1fr;align-items:center;gap:20px}
@@ -1587,6 +1587,21 @@ def _markets_card(res, pillar):
             f'reductions per 100 active listings. Twelve of Opendoor&#39;s largest Sunbelt and Mountain markets, equally weighted; the median feeds the score. Source: {e(h.get("source", "Realtor.com"))} monthly housing data.</div></div>')
 
 
+# score -> hue of the page's background glow, through the badge colours: red, amber at a C, green from a B up
+GLOW_HUES = [(0.0, 0.0), (3.5, 12.0), (5.0, 34.0), (6.5, 72.0), (8.0, 128.0), (10.0, 148.0)]
+
+
+def _glow(score):
+    """Three pastel colours for the background, from red-ish (weak) to green-ish (strong), smooth in between."""
+    v = max(0.0, min(10.0, score if score is not None else 5.0))
+    for (a, ha), (b, hb) in zip(GLOW_HUES, GLOW_HUES[1:]):
+        if v <= b:
+            h = ha + (hb - ha) * (v - a) / (b - a)
+            break
+    return (f"--g1:hsla({(h - 8) % 360:.0f},95%,79%,.55);--g2:hsla({(h + 10) % 360:.0f},90%,80%,.5);"
+            f"--g3:hsla({(h - 12) % 360:.0f},90%,82%,.42)")
+
+
 def write_html(res, path):
     s, px, ex = res["score"], res["price"], res["extra"]
     acc = res.get("accountable") or {}
@@ -1680,7 +1695,7 @@ def write_html(res, path):
 <link rel="apple-touch-icon" href="apple-touch-icon.png"><meta name="theme-color" content="#f3f2f0">
 <link rel="preconnect" href="https://fonts.googleapis.com"><link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600&display=swap" rel="stylesheet">
-<style>{CSS}</style></head><body>
+<style>{CSS}:root{{{_glow(s["overall"])}}}</style></head><body>
 <div class="bar"><div class="in">
 <nav class="desk"><a href="#score">Score</a><a href="#pillars">Pillars</a><a href="#deep">Details</a><a href="#contracts">Contracts</a><a href="#history">History</a><a href="#method">Method</a></nav>
 <a class="brand" href="./">Opendoor Scorecard<small>Independent and not affiliated with Opendoor</small></a>
@@ -1735,7 +1750,7 @@ def write_html(res, path):
 <span class="chev">▾</span></summary><div class="bd scroll" style="border-top:1px solid var(--line);padding-top:4px"><table><tr><th>Run</th><th>Price</th><th>Overall</th>{heads}</tr>{hrows}</table></div></details></div>
 
 <footer id="method"><p><b>Method.</b> Each metric scores 0–10 on a straight line between a "0 points" and a "10 points" value (hover a metric to see them).
-Pillars average their metrics, and the overall score weights the pillars as shown. Grades: A 8+, B 6.5+, C 5+, D 3.5+, F below.
+Pillars average their metrics, and the overall score weights the pillars as shown. Grades: A 8+, B 6.5+, C 5+, D 3.5+, F below. The colour at the top of the page follows the score, from red to green.
 Debt is split by what backs it: home-backed debt, which lenders can recover only from the homes, is measured against the homes it funds,
 and the company's own convertible notes against its cash. Potential new shares count only once they are live at today's price (see Details).
 A quarterly figure one quarter old is labelled; older than that, it stops counting.
