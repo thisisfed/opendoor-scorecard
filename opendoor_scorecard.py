@@ -1824,7 +1824,15 @@ h1{font-size:clamp(46px,8.4vw,92px);line-height:1;font-weight:500;letter-spacing
 .grid .card{margin-top:0}
 .section{font-size:13px;font-weight:500;color:var(--muted);text-transform:uppercase;letter-spacing:.06em;margin:56px 0 0}
 .m{display:flex;justify-content:space-between;gap:12px;padding:10px 0;border-bottom:1px solid var(--line);font-size:14px}
-.m:last-child{border-bottom:0}.m .lab{color:var(--muted2)}.m .val{font-weight:500;white-space:nowrap}
+.m:last-child{border-bottom:0}.m .lab{color:var(--muted2)}
+.m .scale{display:none;font-size:12px;color:#1d4ed8;margin-top:3px}.show-scale .m .scale{display:block}
+.spark{display:flex;align-items:center;gap:8px;flex-wrap:wrap;margin-top:4px}.spark svg{flex:0 0 auto}
+.spark i{font-style:normal;font-size:12px;color:var(--muted)}.spark a,.how a{font-size:12px;color:#1d4ed8}
+.how{display:block;font-size:12px;color:var(--muted);margin-top:3px}
+.sec-tools{display:flex;flex-wrap:wrap;gap:10px;align-items:center;margin-top:12px}
+.scale-tog{font:inherit;font-size:14px;border:1px solid var(--line);background:#fff;border-radius:999px;padding:7px 14px;cursor:pointer}
+.scale-tog[aria-pressed=true]{background:#23201d;color:#fff;border-color:#23201d}
+.sec-tools a{font-size:14px;color:#1d4ed8;text-decoration:none;padding:7px 4px}.m .val{font-weight:500;white-space:nowrap}
 .m .pts{color:var(--muted);font-size:12px;display:block;text-align:right}
 .legend{display:flex;gap:22px;font-size:13px;color:var(--muted2);padding:0 0 6px}
 .legend i{display:inline-block;width:18px;height:3px;border-radius:2px;vertical-align:3px;margin-right:8px}
@@ -1860,8 +1868,8 @@ td.on{font-weight:500}td.off{color:var(--muted)}
 tr.tot td{font-weight:600;border-top:1px solid #d9d4ce}tr.us td{color:var(--muted)}
 td.up{color:#10b981}td.down{color:#e5484d}
 .m .lab small{display:block;font-size:12px;color:var(--muted);margin-top:1px}
-.m .lab em.asof{display:table;font-style:normal;font-size:11px;font-weight:500;color:var(--muted2);background:#f1efec;border-radius:6px;padding:1px 7px;margin-top:4px}
-.m .lab em.asof.old{color:#c27c0e;background:#fdf3e1}
+.m .lab em.age{display:table;font-style:normal;font-size:11px;font-weight:500;color:var(--muted2);background:#f1efec;border-radius:6px;padding:1px 7px;margin-top:4px}
+.m .lab em.age.old{color:#c27c0e;background:#fdf3e1}
 .decomp{font-size:13px;color:var(--muted2);margin:12px 0 0;line-height:1.6}
 table.stress{margin-top:12px}table.stress td,table.stress th{padding:8px 10px}
 @media (max-width:640px){table.stress{width:100%;table-layout:fixed}table.stress td,table.stress th{padding:7px 4px;white-space:normal;font-size:13px}
@@ -2081,6 +2089,20 @@ def _targets_card(res):
 
 
 NEWSLETTER_USER = os.environ.get("BUTTONDOWN_USERNAME", "").strip()  # set as a repository variable to switch the signup on
+
+
+def _spark(vals):
+    """A small line of the last few quarters; the latest point is marked."""
+    W, H, P = 110, 28, 4
+    lo, hi = min(vals + [0.0]), max(vals)
+    span = (hi - lo) or 1.0
+    pts = [(P + k * (W - 2 * P) / (len(vals) - 1), H - P - (v - lo) / span * (H - 2 * P)) for k, v in enumerate(vals)]
+    line = " ".join(f"{x:.1f},{y:.1f}" for x, y in pts)
+    x, y = pts[-1]
+    return (f'<svg viewBox="0 0 {W} {H}" width="{W}" height="{H}" aria-hidden="true">'
+            f'<line x1="{P}" x2="{W - P}" y1="{H - P - (0 - lo) / span * (H - 2 * P):.1f}" y2="{H - P - (0 - lo) / span * (H - 2 * P):.1f}" stroke="{LINE}"/>'
+            f'<polyline points="{line}" fill="none" stroke="{BLUE}" stroke-width="2" stroke-linejoin="round" stroke-linecap="round"/>'
+            f'<circle cx="{x:.1f}" cy="{y:.1f}" r="3" fill="{BLUE}"/></svg>')
 
 
 def _subscribe_card():
@@ -2465,6 +2487,7 @@ def write_html(res, path):
                    f'<b>{_num(p["score"])}</b></div>' for p in s["pillars"])
     decomp = " + ".join(f'{e(p["name"])} {p["contribution"]:.2f}' for p in s["pillars"] if p.get("contribution") is not None)
     cards = ""
+    ueh = (res["extra"].get("ue_history") or [])[-6:]
     for p in s["pillars"]:
         def note(i):
             return f'<small>{e(i["note"])}</small>' if i.get("note") else ""
@@ -2476,10 +2499,23 @@ def write_html(res, path):
             gone = i.get("lag", 0) >= 2
             title = ("Two quarters behind the latest report, so not scored" if gone else
                      "More than a quarter old" if f_["old"] else "Current")
-            return (f'<em class="asof{" old" if f_["old"] else ""}" title="{title}">{e(f_["text"])}'
+            return (f'<em class="age{" old" if f_["old"] else ""}" title="{title}">{e(f_["text"])}'
                     f'{", too old to score" if gone else (", over a quarter old" if f_["old"] else "")}</em>')
-        rows = "".join(f'<div class="m" title="0 points at {e(fmt(i["bad"], i["fmt"]))}, 10 points at {e(fmt(i["good"], i["fmt"]))}">'
-                       f'<span class="lab">{e(i["label"])}{note(i)}{tag(i)}</span>'
+        def extra_bits(i):
+            k = i["key"]
+            if k == "contrib_margin" and len(ueh) >= 3:
+                cms = ", ".join("%.1f%%" % r["cm"] for r in ueh)
+                return (f'<span class="spark">{_spark([r["cm"] for r in ueh])}<i>{_qlabel(ueh[0]["quarter"])} to '
+                        f'{_qlabel(ueh[-1]["quarter"])}: {cms}</i><a href="#unit-history">By quarter</a></span>')
+            if k == "fallout":
+                return ('<span class="how">Open contracts at the start, plus contracts signed, less homes bought, less '
+                        'contracts still open at the end. <a href="#fallout">How it\'s estimated</a></span>')
+            if k == "days_inventory":
+                return '<span class="how"><a href="#unit-history">By quarter</a></span>'
+            return ""
+        rows = "".join(f'<div class="m">'
+                       f'<span class="lab">{e(i["label"])}{note(i)}{extra_bits(i)}{tag(i)}'
+                       f'<span class="scale">0 pts at {e(fmt(i["bad"], i["fmt"]))}, 10 pts at {e(fmt(i["good"], i["fmt"]))}</span></span>'
                        f'<span class="val">{e(fmt(i["value"], i["fmt"]))}'
                        f'<span class="pts">{_num(i["score"], " pts", "–")}</span></span></div>'
                        for i in p["metrics"])
@@ -2577,6 +2613,8 @@ def write_html(res, path):
 {_fresh_card(res)}
 
 <p class="section" id="pillars">What drives each score</p>
+<div class="sec-tools"><button type="button" class="scale-tog" aria-pressed="false">Show each metric's 0 and 10 point values</button>
+<a href="#thresholds">All thresholds in one table</a><a href="#weights-play">Try your own weights</a></div>
 <div class="grid" style="margin-top:16px">{cards}</div>
 
 <p class="section" id="deep">Details</p>
@@ -2703,6 +2741,12 @@ a recommendation or investment advice.</p></footer>
 </script>
 <script>
 (function () {{
+  var tog = document.querySelector(".scale-tog");
+  if (tog) tog.addEventListener("click", function () {{
+    var on = document.body.classList.toggle("show-scale");
+    tog.setAttribute("aria-pressed", on ? "true" : "false");
+    tog.textContent = on ? "Hide the 0 and 10 point values" : "Show each metric's 0 and 10 point values";
+  }});
   document.querySelectorAll(".nl-form").forEach(function (f) {{
     f.addEventListener("submit", function () {{ setTimeout(function () {{ f.querySelector(".nl-ok").hidden = false; }}, 300); }});
   }});
