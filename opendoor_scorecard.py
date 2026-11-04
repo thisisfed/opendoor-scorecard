@@ -109,7 +109,7 @@ RULES = {
     "mortgage_rate":   ("30-year US mortgage rate",            0.08, 0.05, "rate"),
     "mortgage_13w":    ("Mortgage rate change, last 13 weeks", 0.0075, -0.0075, "pp"),
     "dom_yoy":         ("Days on market vs a year ago, Opendoor's markets", 0.30, -0.10, "pct"),
-    "cuts_yoy":        ("Listings with a price cut vs a year ago, Opendoor's markets", 0.06, -0.03, "pp"),
+    "cuts_yoy":        ("Price cuts per 100 listings vs a year ago, Opendoor's markets", 0.06, -0.03, "pp"),
     "list_price_yoy":  ("Asking prices vs a year ago, Opendoor's markets", -0.05, 0.04, "pct"),
 }
 PILLARS = [  # (name, weight %, metrics, the question it answers)
@@ -1564,12 +1564,12 @@ def _markets_card(res, pillar):
     def cell(v, kind, bad_up=True):
         if v is None:
             return '<td class="dim">–</td>'
-        txt = f"{v * 100:+.1f}%" if kind == "pct" else f"{v * 100:+.1f} pts"
+        txt = f"{v * 100:+.1f}%" if kind == "pct" else f"{v * 100:+.1f}"
         good = (v < 0) if bad_up else (v > 0)
         return f'<td class="{"up" if good else "down" if abs(v) > 1e-9 else ""}">{txt}</td>'
     def row(r, cls=""):
         dom = "–" if r.get("dom") is None else f"{r['dom']:.0f}"
-        cut = "–" if r.get("cut_share") is None else f"{r['cut_share'] * 100:.0f}%"
+        cut = "–" if r.get("cut_share") is None else f"{r['cut_share'] * 100:.0f}"
         return (f'<tr class="{cls}"><td>{e(r["name"])}</td><td>{dom}</td>{cell(r.get("dom_yoy"), "pct")}<td>{cut}</td>'
                 f'{cell(r.get("cuts_yoy"), "pp")}{cell(r.get("price_yoy"), "pct", bad_up=False)}{cell(r.get("listings_yoy"), "pct")}</tr>')
     b = dict(h["basket"], name=f"Median of {len(h['metros'])} markets")
@@ -1578,10 +1578,10 @@ def _markets_card(res, pillar):
             f'<p class="sub">How fast homes sell, and at what price, {e(_month(h["month"]))} vs a year earlier</p></div>'
             f'<div class="right">{_badge(_num(pillar["score"]), _tone(pillar["score"]))}<p class="sub nw">Housing market</p></div></div>'
             f'<div class="bd scroll" style="padding-top:4px"><table class="mk"><tr><th>Market</th><th>Days on market<small>median</small></th><th>Days on market<small>1-year change</small></th>'
-            f'<th>Price cuts<small>share of listings</small></th><th>Price cuts<small>1-year change</small></th>'
+            f'<th>Price cuts<small>per 100 listings</small></th><th>Price cuts<small>1-year change</small></th>'
             f'<th>Asking prices<small>1-year change</small></th><th>Homes for sale<small>1-year change</small></th></tr>{body}</table></div>'
-            f'<div class="ft">Green helps Opendoor resell its homes faster and for more; red hurts. Twelve of Opendoor&#39;s largest Sunbelt and '
-            f'Mountain markets, equally weighted; the median feeds the score. Source: {e(h.get("source", "Realtor.com"))} monthly housing data.</div></div>')
+            f'<div class="ft">Green helps Opendoor resell its homes faster and for more; red hurts. Price cuts are the month&#39;s price '
+            f'reductions per 100 active listings. Twelve of Opendoor&#39;s largest Sunbelt and Mountain markets, equally weighted; the median feeds the score. Source: {e(h.get("source", "Realtor.com"))} monthly housing data.</div></div>')
 
 
 def write_html(res, path):
