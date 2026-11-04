@@ -1731,7 +1731,7 @@ def write_html(res, path):
 <div class="bd scroll" style="padding-top:4px"><table><tr><th>Quarter</th><th>Revenue</th><th>Net income</th><th>Adj. net income</th><th>Bought</th><th>Sold</th>
 <th>Contrib. %</th><th>120+ days %</th><th>Cash</th></tr>{qrows}</table></div></div>
 
-<div class="card"><details><summary class="hd" style="border-bottom:0"><div><h2>Run history</h2><p class="sub">Every pillar's score on every day</p></div>
+<div class="card"><details open><summary class="hd" style="border-bottom:0"><div><h2>Run history</h2><p class="sub">Every pillar's score on every day</p></div>
 <span class="chev">▾</span></summary><div class="bd scroll" style="border-top:1px solid var(--line);padding-top:4px"><table><tr><th>Run</th><th>Price</th><th>Overall</th>{heads}</tr>{hrows}</table></div></details></div>
 
 <footer id="method"><p><b>Method.</b> Each metric scores 0–10 on a straight line between a "0 points" and a "10 points" value (hover a metric to see them).
@@ -1744,7 +1744,7 @@ The thresholds and weights are judgement calls and have not been back-tested aga
 {e(mort.get('source') or 'Freddie Mac')} (mortgage rate), Realtor.com (housing in Opendoor's markets). Download the <a href="history.csv">score history</a> or <a href="scorecard.json">all the data</a>.</p>
 <p><b>Independent project</b>, not affiliated with or endorsed by Opendoor Technologies Inc. A structured summary of public numbers, not a forecast,
 a recommendation or investment advice.</p></footer>
-<p class="credit"><a href="https://thisisfed.xyz" target="_blank" rel="noopener">thisisfed.xyz</a>
+<p class="credit"><span>An idea by Federico R. T. Ferrari (<a href="https://thisisfed.xyz" target="_blank" rel="noopener">thisisfed.xyz</a>)</span>
 <a href="https://github.com/thisisfed/opendoor-scorecard" target="_blank" rel="noopener">Source code</a></p>
 </div>
 <script>
