@@ -909,15 +909,6 @@ padding:8px 16px 32px;overflow-y:auto;z-index:4;animation:drop .22s ease-out}
 .menu a span{display:block;font-size:20px;font-weight:500;letter-spacing:-.02em}
 .menu a small{display:block;font-size:14px;color:var(--muted);margin-top:1px}
 .menu a.menu-by{background:none;text-align:center;font-size:14px;color:var(--muted);margin-top:18px}
-.xgrid{display:grid;grid-template-columns:1.6fr 1fr;gap:24px;align-items:start}
-.xfeed{min-height:200px}.xfeed .twitter-timeline{font-size:14px}
-.xfeed.loaded .xfallback{display:none}
-.xpeople .xh{font-size:13px;font-weight:500;color:var(--muted);text-transform:uppercase;letter-spacing:.06em;margin:0 0 6px}
-.xp{display:grid;grid-template-columns:1fr auto;column-gap:10px;padding:12px 0;border-bottom:1px solid var(--line);text-decoration:none}
-.xp:last-child{border-bottom:0}.xp b{font-weight:500}.xp span{color:var(--blue);font-size:14px;text-align:right}
-.xp small{grid-column:1/-1;color:var(--muted);font-size:13px}
-.xp:hover b{text-decoration:underline}
-.xlink{text-decoration:none;font-size:14px}
 .credit{display:flex;flex-wrap:wrap;gap:6px 22px}
 .by{grid-column:3;justify-self:end;font-size:13px;color:var(--muted);text-decoration:none;white-space:nowrap;padding:6px 12px;border:1px solid var(--line);border-radius:10px;background:#fff}
 .by:hover{color:var(--ink)}
@@ -993,7 +984,7 @@ details[open] .chev{transform:rotate(180deg)}.chev{display:inline-block;transiti
 .note{color:var(--muted);font-size:13px}
 footer{margin-top:56px;font-size:13px;color:#5d5d6a;line-height:1.6;max-width:900px}
 footer b{color:var(--ink);font-weight:500}
-@media (max-width:900px){.burger{display:block}.by{display:none}.bar nav.desk{display:none}.xgrid{grid-template-columns:1fr}.hero{grid-template-columns:1fr;gap:20px;padding-top:48px}.asof{position:static;text-align:left;order:-1}
+@media (max-width:900px){.burger{display:block}.by{display:none}.bar nav.desk{display:none}.hero{grid-template-columns:1fr;gap:20px;padding-top:48px}.asof{position:static;text-align:left;order:-1}
 .grid{grid-template-columns:1fr}.kpis{grid-template-columns:1fr 1fr}.kpi:nth-child(2){border-right:0}
 .kpi:nth-child(-n+2){border-bottom:1px solid var(--line)}h1{margin-top:8px}.bar nav.desk{display:none}}
 @media (max-width:520px){.brand small{font-size:11px}.brand{font-size:17px}.pbar{grid-template-columns:110px 1fr 34px;gap:10px;font-size:14px}.pbar .w{display:none}
@@ -1083,7 +1074,7 @@ def write_html(res, path):
 <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600&display=swap" rel="stylesheet">
 <style>{CSS}</style></head><body>
 <div class="bar"><div class="in">
-<nav class="desk"><a href="#score">Score</a><a href="#pillars">Pillars</a><a href="#contracts">Contracts</a><a href="#history">History</a><a href="#x">On X</a><a href="#method">Method</a></nav>
+<nav class="desk"><a href="#score">Score</a><a href="#pillars">Pillars</a><a href="#contracts">Contracts</a><a href="#history">History</a><a href="#method">Method</a></nav>
 <a class="brand" href="./">Opendoor Scorecard<small>Independent and not affiliated with Opendoor</small></a>
 <a class="by" href="https://thisisfed.xyz" target="_blank" rel="noopener">by Federico R. T. Ferrari</a>
 <button class="burger" type="button" aria-label="Open menu" aria-expanded="false" aria-controls="menu"><span></span><span></span><span></span></button>
@@ -1094,7 +1085,6 @@ def write_html(res, path):
 <a href="#pillars"><span>Pillars</span><small>What drives each score</small></a>
 <a href="#contracts"><span>Contracts</span><small>Opendoor against its own targets</small></a>
 <a href="#history"><span>History</span><small>Score over time and quarterly results</small></a>
-<a href="#x"><span>On X</span><small>Latest from Opendoor and its leaders</small></a>
 <a href="#method"><span>Method</span><small>How the score works, and sources</small></a>
 <a class="menu-by" href="https://thisisfed.xyz" target="_blank" rel="noopener">by Federico R. T. Ferrari</a>
 </nav>
@@ -1132,25 +1122,6 @@ def write_html(res, path):
 <div class="card"><details><summary class="hd" style="border-bottom:0"><div><h2>Run history</h2><p class="sub">Every pillar's score on every day</p></div>
 <span class="chev">▾</span></summary><div class="bd scroll" style="border-top:1px solid var(--line);padding-top:4px"><table><tr><th>Run</th><th>Price</th><th>Overall</th>{heads}</tr>{hrows}</table></div></details></div>
 
-<p class="section" id="x">On X</p>
-<div class="card"><div class="hd"><div><h2>Latest from Opendoor</h2><p class="sub">Opendoor posts its updates on X</p></div>
-<div class="right"><a class="badge grey xlink" href="https://x.com/Opendoor" target="_blank" rel="noopener">Open on X</a></div></div>
-<div class="bd xgrid">
-<div class="xfeed" data-src="https://twitter.com/Opendoor">
-<a class="twitter-timeline" data-height="620" data-dnt="true" data-chrome="noheader nofooter noborders transparent"
-href="https://twitter.com/Opendoor">Posts by @Opendoor</a>
-<p class="note xfallback">If the feed doesn't load here, X may be asking visitors to sign in. <a href="https://x.com/Opendoor" target="_blank" rel="noopener">See @Opendoor on X</a>.</p>
-</div>
-<div class="xpeople">
-<p class="xh">People to follow</p>
-<a class="xp" href="https://x.com/CanadaKaz" target="_blank" rel="noopener"><b>Kaz Nejatian</b><span>@CanadaKaz</span><small>CEO</small></a>
-<a class="xp" href="https://x.com/rabois" target="_blank" rel="noopener"><b>Keith Rabois</b><span>@rabois</span><small>Co-founder and chairman</small></a>
-<a class="xp" href="https://x.com/ericwu01" target="_blank" rel="noopener"><b>Eric Wu</b><span>@ericwu01</span><small>Co-founder, board member</small></a>
-<a class="xp" href="https://x.com/adambain" target="_blank" rel="noopener"><b>Adam Bain</b><span>@adambain</span><small>Board member</small></a>
-<a class="xp" href="https://x.com/ericjackson" target="_blank" rel="noopener"><b>Eric Jackson</b><span>@ericjackson</span><small>EMJ Capital, investor</small></a>
-<a class="xp" href="https://x.com/search?q=%24OPEN&amp;f=live" target="_blank" rel="noopener"><b>$OPEN</b><span>Live posts</span><small>Everything mentioning the ticker</small></a>
-</div></div></div>
-
 <footer id="method"><p><b>Method.</b> Each metric scores 0–10 on a straight line between a "0 points" and a "10 points" value (hover a metric to see them).
 Pillars average their metrics, and the overall score weights the pillars as shown. Grades: A 8+, B 6.5+, C 5+, D 3.5+, F below.
 The thresholds and weights are judgement calls and have not been back-tested against share-price returns. {e(est_note)}{e(pf_note)}</p>
@@ -1177,20 +1148,6 @@ a recommendation or investment advice.</p></footer>
   document.addEventListener("keydown", function (ev) {{ if (ev.key === "Escape" && !menu.hidden) {{ toggle(false); btn.focus(); }} }});
   window.addEventListener("resize", function () {{ if (window.innerWidth > 900 && !menu.hidden) toggle(false); }});
 
-  // X feed: load X's widget only when the section comes into view
-  var feed = document.querySelector(".xfeed");
-  if (feed && "IntersectionObserver" in window) {{
-    var io = new IntersectionObserver(function (es) {{
-      if (!es.some(function (e) {{ return e.isIntersecting; }})) return;
-      io.disconnect();
-      var sc = document.createElement("script"); sc.async = true; sc.src = "https://platform.twitter.com/widgets.js"; sc.charset = "utf-8";
-      sc.onload = function () {{
-        if (window.twttr && twttr.events) twttr.events.bind("rendered", function () {{ feed.classList.add("loaded"); }});
-      }};
-      document.body.appendChild(sc);
-    }}, {{ rootMargin: "400px" }});
-    io.observe(feed);
-  }}
 }})();
 (function () {{
   document.querySelectorAll(".chartbox").forEach(function (box) {{
