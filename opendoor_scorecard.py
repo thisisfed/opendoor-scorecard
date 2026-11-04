@@ -971,7 +971,7 @@ footer b{color:var(--ink);font-weight:500}
 .grid{grid-template-columns:1fr}.kpis{grid-template-columns:1fr 1fr}.kpi:nth-child(2){border-right:0}
 .kpi:nth-child(-n+2){border-bottom:1px solid var(--line)}h1{margin-top:8px}.bar nav{display:none}}
 @media (max-width:520px){.pbar{grid-template-columns:110px 1fr 34px;gap:10px;font-size:14px}.pbar .w{display:none}
-.card .hd{flex-wrap:wrap}.card .hd.stack{flex-direction:column;gap:10px}.hd.stack .right{text-align:left}.brand small{display:block;margin:2px 0 0}.bd,.card .hd,.kpi,.ft{padding-left:18px;padding-right:18px}.wrap{padding:0 14px 80px}}
+.card .hd{flex-wrap:nowrap;gap:12px}.card .hd>div:first-child{flex:1 1 auto;min-width:0}.card .hd>.right{flex:0 0 auto}.card .hd.stack{flex-direction:column;gap:10px}.hd.stack .right{text-align:left}.brand small{display:block;margin:2px 0 0}.bd,.card .hd,.kpi,.ft{padding-left:18px;padding-right:18px}.wrap{padding:0 14px 80px}}
 """
 
 
