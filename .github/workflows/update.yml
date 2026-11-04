@@ -9,6 +9,10 @@ on:
         description: "Also email subscribers anything due today (normally only the evening run does)"
         type: boolean
         default: false
+      test_newsletter:
+        description: "Email me a test of both newsletters (only you get it; subscribers don't)"
+        type: boolean
+        default: false
   push:
     branches: [main]
     paths: ["opendoor_kpis.csv", "opendoor_scorecard.py"]   # rerun when you edit the data or the script
@@ -65,7 +69,9 @@ jobs:
         env:
           BUTTONDOWN_API_KEY: ${{ secrets.BUTTONDOWN_API_KEY }}
           SEND: ${{ github.event_name == 'schedule' || inputs.send_newsletter == true }}
+          TEST: ${{ inputs.test_newsletter == true }}
         run: |
+          if [ "$TEST" = "true" ]; then python3 newsletter.py --test; fi
           if [ "$SEND" = "true" ]; then python3 newsletter.py --send; fi
           git add newsletter_log.json 2>/dev/null || true
           if ! git diff --cached --quiet; then

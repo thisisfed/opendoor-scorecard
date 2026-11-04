@@ -9,6 +9,7 @@ Runs from the GitHub workflow after the page is published. Needs the BUTTONDOWN_
 it does nothing. A log (newsletter_log.json) stops the same email going out twice.
 
   python3 newsletter.py --send               send what is due today
+  python3 newsletter.py --test               email both kinds to you only (the newsletter's own address), as drafts
   python3 newsletter.py --preview weekly     print an email instead of sending it (also: results)
 """
 import argparse
@@ -25,10 +26,11 @@ API = "https://api.buttondown.com/v1"
 SITE = os.environ.get("SITE_URL", "https://thisisfed.github.io/opendoor-scorecard/")
 
 
-def api(method, path, key, body=None):
+def api(method, path, key, body=None, extra=None):
     req = urllib.request.Request(API + path, method=method, data=json.dumps(body).encode() if body is not None else None,
                                  headers={"Authorization": f"Token {key}", "Content-Type": "application/json",
-                                          "X-API-Version": "2026-04-01", "X-Buttondown-Live-Dangerously": "true"})
+                                          "X-API-Version": "2026-04-01", "X-Buttondown-Live-Dangerously": "true",
+                                          **(extra or {})})
     with urllib.request.urlopen(req, timeout=30) as r:
         txt = r.read().decode()
         return json.loads(txt) if txt else {}
@@ -188,6 +190,7 @@ def main():
     ap.add_argument("--log", default=os.path.join(HERE, "newsletter_log.json"))
     ap.add_argument("--setup", action="store_true", help=argparse.SUPPRESS)  # older workflow; nothing to set up now
     ap.add_argument("--send", action="store_true")
+    ap.add_argument("--test", action="store_true")
     ap.add_argument("--preview", choices=["weekly", "results"])
     a = ap.parse_args()
     key = os.environ.get("BUTTONDOWN_API_KEY", "").strip()
@@ -200,6 +203,19 @@ def main():
         print("BUTTONDOWN_API_KEY not set: newsletter off")
         return
     try:
+        if a.test:
+            res, hist = load(a.site)
+            for kind, build in (("weekly", weekly), ("results", results)):
+                subject, body = build(res, hist)
+                em = api("POST", "/emails", key, {"subject": "[Test] " + subject, "body": body, "status": "draft"})
+                try:
+                    # test mode: rendered as for a subscriber, delivered only to the newsletter's own address
+                    api("POST", f"/emails/{em['id']}/send-draft", key, {"subscribers": [], "recipients": []},
+                        extra={"X-Buttondown-Test-Mode": "true"})
+                    print(f"test {kind} emailed to you: {subject}")
+                except urllib.error.HTTPError as e:
+                    print(f"::warning::test {kind} saved as a draft in Buttondown but not emailed ({e.code}: "
+                          f"{e.read().decode()[:200]}). Open it under Emails, Drafts, and use Send draft.")
         if a.send:
             res, hist = load(a.site)
             log = json.load(open(a.log)) if os.path.exists(a.log) else {}
