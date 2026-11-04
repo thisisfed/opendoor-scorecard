@@ -24,7 +24,7 @@ import urllib.request
 HERE = os.path.dirname(os.path.abspath(__file__))
 API = "https://api.buttondown.com/v1"
 SITE = os.environ.get("SITE_URL", "https://thisisfed.github.io/opendoor-scorecard/")
-TAGS = {"daily": "Every weekday, after the US close", "weekly": "Fridays, a round-up of the week"}
+TAGS = {"daily": ("Every weekday, after the US close", "#1d4ed8"), "weekly": ("Fridays, a round-up of the week", "#10b981")}
 
 
 def api(method, path, key, body=None):
@@ -38,9 +38,9 @@ def api(method, path, key, body=None):
 
 def setup(key):
     have = {t["name"] for t in api("GET", "/tags", key).get("results", [])}
-    for name, desc in TAGS.items():
+    for name, (desc, color) in TAGS.items():
         if name not in have:
-            api("POST", "/tags", key, {"name": name, "description": desc})
+            api("POST", "/tags", key, {"name": name, "description": desc, "color": color})
             print(f"created tag {name}")
 
 
