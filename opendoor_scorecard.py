@@ -889,12 +889,12 @@ radial-gradient(65% 35% at 50% 0%,rgba(160,195,255,.55) 0%,rgba(0,0,0,0) 58%),
 radial-gradient(50% 30% at 88% 0%,rgba(235,160,250,.45) 0%,rgba(0,0,0,0) 50%),var(--bg);background-repeat:no-repeat}
 a{color:inherit}
 .bar{background:rgba(255,255,255,.92);backdrop-filter:saturate(1.4) blur(8px);position:sticky;top:0;z-index:5;border-bottom:1px solid rgba(0,0,0,.04)}
-.bar .in{max-width:1280px;margin:0 auto;padding:16px 24px;display:flex;align-items:center;gap:20px}
-.brand{font-weight:600;font-size:17px;letter-spacing:-.02em;text-decoration:none}
-.brand small{font-weight:400;color:var(--muted);font-size:13px;margin-left:8px;letter-spacing:0}
-.bar nav{margin-left:auto;display:flex;gap:22px;font-size:15px;font-weight:500}
+.bar .in{max-width:1280px;margin:0 auto;padding:12px 24px;display:grid;grid-template-columns:1fr auto 1fr;align-items:center;gap:20px}
+.brand{grid-column:2;text-align:center;font-weight:600;font-size:18px;line-height:1.25;letter-spacing:-.02em;text-decoration:none}
+.brand small{display:block;font-weight:400;color:var(--muted);font-size:12.5px;margin-top:2px;letter-spacing:0}
+.bar nav{grid-column:1;justify-self:start;display:flex;gap:22px;font-size:15px;font-weight:500}
 .bar nav a{text-decoration:none}
-.by{font-size:13px;color:var(--muted);text-decoration:none;white-space:nowrap;padding:6px 12px;border:1px solid var(--line);border-radius:10px;background:#fff}
+.by{grid-column:3;justify-self:end;font-size:13px;color:var(--muted);text-decoration:none;white-space:nowrap;padding:6px 12px;border:1px solid var(--line);border-radius:10px;background:#fff}
 .by:hover{color:var(--ink)}
 .credit{font-size:14px;color:var(--ink);padding:14px 0;border-top:1px solid #e3dfda;border-bottom:1px solid #e3dfda}
 .credit a{font-weight:500;text-decoration:none;border-bottom:1px solid #cfc8c0}.credit a:hover{border-color:var(--ink)}
@@ -967,11 +967,11 @@ details[open] .chev{transform:rotate(180deg)}.chev{display:inline-block;transiti
 .note{color:var(--muted);font-size:13px}
 footer{margin-top:56px;font-size:13px;color:#5d5d6a;line-height:1.6;max-width:900px}
 footer b{color:var(--ink);font-weight:500}
-@media (max-width:900px){.by{margin-left:auto}.hero{grid-template-columns:1fr;gap:20px;padding-top:48px}.asof{position:static;text-align:left;order:-1}
+@media (max-width:900px){.hero{grid-template-columns:1fr;gap:20px;padding-top:48px}.asof{position:static;text-align:left;order:-1}
 .grid{grid-template-columns:1fr}.kpis{grid-template-columns:1fr 1fr}.kpi:nth-child(2){border-right:0}
 .kpi:nth-child(-n+2){border-bottom:1px solid var(--line)}h1{margin-top:8px}.bar nav{display:none}}
 @media (max-width:520px){.pbar{grid-template-columns:110px 1fr 34px;gap:10px;font-size:14px}.pbar .w{display:none}
-.card .hd{flex-wrap:nowrap;gap:12px}.card .hd>div:first-child{flex:1 1 auto;min-width:0}.card .hd>.right{flex:0 0 auto}.card .hd.stack{flex-direction:column;gap:10px}.hd.stack .right{text-align:left}.brand small{display:block;margin:2px 0 0}.bd,.card .hd,.kpi,.ft{padding-left:18px;padding-right:18px}.wrap{padding:0 14px 80px}}
+.card .hd{flex-wrap:nowrap;gap:12px}.card .hd>div:first-child{flex:1 1 auto;min-width:0}.card .hd>.right{flex:0 0 auto}.card .hd.stack{flex-direction:column;gap:10px}.hd.stack .right{text-align:left}.by{display:none}.bar .in{grid-template-columns:1fr;padding:10px 16px}.brand{grid-column:1}.bd,.card .hd,.kpi,.ft{padding-left:18px;padding-right:18px}.wrap{padding:0 14px 80px}}
 """
 
 
@@ -1049,16 +1049,17 @@ def write_html(res, path):
                 f"${ex['revenue_per_home_k']:.1f}K average revenue per home, until Opendoor reports. ") if ex.get("q3_revenue_estimate_musd") and ex.get("q3_prior_revenue_musd") else ""
     doc = f"""<!DOCTYPE html><html lang="en"><head><meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
-<title>OPEN Scorecard: {s['overall']:.2f}/10 ({s['grade']})</title>
+<title>Opendoor Scorecard: {s['overall']:.2f}/10 ({s['grade']})</title>
 <meta name="description" content="Independent, automatically updated scorecard for Opendoor ($OPEN). {e(s['verdict'])}">
 <link rel="icon" href="favicon.svg" type="image/svg+xml"><link rel="icon" href="favicon-32.png" sizes="32x32" type="image/png">
 <link rel="apple-touch-icon" href="apple-touch-icon.png"><meta name="theme-color" content="#f3f2f0">
 <link rel="preconnect" href="https://fonts.googleapis.com"><link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600&display=swap" rel="stylesheet">
 <style>{CSS}</style></head><body>
-<div class="bar"><div class="in"><a class="brand" href="./">OPEN Scorecard<small>Independent · not affiliated with Opendoor</small></a>
+<div class="bar"><div class="in">
 <nav><a href="#pillars">Pillars</a><a href="#contracts">Contracts</a><a href="#history">History</a><a href="#method">Method</a></nav>
-<a class="by" href="https://thisisfed.xyz" target="_blank" rel="noopener">by Federico Ferrari</a></div></div>
+<a class="brand" href="./">Opendoor Scorecard<small>Independent and not affiliated with Opendoor</small></a>
+<a class="by" href="https://thisisfed.xyz" target="_blank" rel="noopener">by Federico R. T. Ferrari</a></div></div>
 <div class="wrap">
 <section class="hero">
 <div class="asof"><span class="dot"></span>Updated {e(_d(res['generated']))}, {e(res['generated'][11:16])} UK<i>Prices to {e(_d(px['date']))} · Opendoor tracker as of {e(_d(asof))} (refreshed weekly)</i></div>
@@ -1098,7 +1099,7 @@ Pillars average their metrics, and the overall score weights the pillars as show
 The thresholds and weights are judgement calls and have not been back-tested against share-price returns. {e(est_note)}{e(pf_note)}</p>
 <p><b>Sources.</b> SEC EDGAR (financial statements and earnings releases), accountable.opendoor.com, {e(str(px.get('source', 'price data')))} (price),
 {e(mort.get('source') or 'Freddie Mac')} (mortgage rate). Download the <a href="history.csv">score history</a> or <a href="scorecard.json">all the data</a>.</p>
-<p class="credit">Made by <a href="https://thisisfed.xyz" target="_blank" rel="noopener">Federico Ferrari</a> ·
+<p class="credit">Made by <a href="https://thisisfed.xyz" target="_blank" rel="noopener">Federico R. T. Ferrari</a> ·
 <a href="https://thisisfed.xyz" target="_blank" rel="noopener">thisisfed.xyz</a> ·
 <a href="https://github.com/thisisfed/opendoor-scorecard" target="_blank" rel="noopener">source code</a></p>
 <p><b>Independent project</b>, not affiliated with or endorsed by Opendoor Technologies Inc. A structured summary of public numbers, not a forecast,
