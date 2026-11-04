@@ -1329,10 +1329,11 @@ radial-gradient(50% 30% at 88% 0%,rgba(235,160,250,.45) 0%,rgba(0,0,0,0) 50%),va
 a{color:inherit}
 .bar{background:rgba(255,255,255,.92);backdrop-filter:saturate(1.4) blur(8px);position:sticky;top:0;z-index:5;border-bottom:1px solid rgba(0,0,0,.04)}
 .bar .in{max-width:1280px;margin:0 auto;padding:12px 24px;display:grid;grid-template-columns:1fr auto 1fr;align-items:center;gap:20px}
+.bar .in>*{grid-row:1}
 .brand{grid-column:2;text-align:center;font-weight:600;font-size:18px;line-height:1.25;letter-spacing:-.02em;text-decoration:none}
 .brand small{display:block;font-weight:400;color:var(--muted);font-size:12.5px;margin-top:2px;letter-spacing:0}
 .bar nav.desk{grid-column:1;justify-self:start;display:flex;gap:22px;font-size:15px;font-weight:500}
-.bar nav.desk a{text-decoration:none}
+.bar nav.desk a{text-decoration:none;white-space:nowrap}
 .burger{display:none;grid-column:3;justify-self:end;width:42px;height:42px;border:1px solid var(--line);border-radius:12px;background:#fff;
 padding:0;cursor:pointer;position:relative}
 .burger span{position:absolute;left:12px;right:12px;height:2px;border-radius:2px;background:var(--ink);transition:transform .25s,opacity .2s,top .25s}
@@ -1451,6 +1452,8 @@ td.up{color:#10b981}td.down{color:#e5484d}
 @media (max-width:640px){.chartbox .dchart{min-width:600px}}
 @media (max-width:520px){.pair{grid-template-columns:96px 1fr 70px;gap:8px}.dlab b{font-size:22px}}
 @media (prefers-reduced-motion:reduce){.dchart .pulse{animation:none}}
+@media (max-width:1180px){.bar nav.desk{display:none}.burger{display:block}.by{grid-column:1;justify-self:start}
+.menu a{max-width:680px;margin-left:auto;margin-right:auto}}
 @media (max-width:900px){.burger{display:block}.by{display:none}.bar nav.desk{display:none}.hero{grid-template-columns:1fr;gap:20px;padding-top:48px}.asof{position:static;text-align:left;order:-1}
 .grid{grid-template-columns:1fr}.kpis{grid-template-columns:1fr 1fr}.kpi:nth-child(2){border-right:0}
 .kpi:nth-child(-n+2){border-bottom:1px solid var(--line)}h1{margin-top:8px}.bar nav.desk{display:none}}
@@ -1679,7 +1682,7 @@ def write_html(res, path):
 <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600&display=swap" rel="stylesheet">
 <style>{CSS}</style></head><body>
 <div class="bar"><div class="in">
-<nav class="desk"><a href="#score">Score</a><a href="#pillars">Pillars</a><a href="#deep">Deep dive</a><a href="#contracts">Contracts</a><a href="#history">History</a><a href="#method">Method</a></nav>
+<nav class="desk"><a href="#score">Score</a><a href="#pillars">Pillars</a><a href="#deep">Details</a><a href="#contracts">Contracts</a><a href="#history">History</a><a href="#method">Method</a></nav>
 <a class="brand" href="./">Opendoor Scorecard<small>Independent and not affiliated with Opendoor</small></a>
 <a class="by" href="https://thisisfed.xyz" target="_blank" rel="noopener">by Federico R. T. Ferrari</a>
 <button class="burger" type="button" aria-label="Open menu" aria-expanded="false" aria-controls="menu"><span></span><span></span><span></span></button>
@@ -1688,7 +1691,7 @@ def write_html(res, path):
 <nav class="menu" id="menu" hidden>
 <a href="#score"><span>Overall score</span><small>The grade and why</small></a>
 <a href="#pillars"><span>Pillars</span><small>What drives each score</small></a>
-<a href="#deep"><span>Deep dive</span><small>Debt, dilution and Opendoor&#39;s markets</small></a>
+<a href="#deep"><span>Details</span><small>Debt, dilution and Opendoor&#39;s markets</small></a>
 <a href="#contracts"><span>Contracts</span><small>Opendoor against its own targets</small></a>
 <a href="#history"><span>History</span><small>Score over time and quarterly results</small></a>
 <a href="#method"><span>Method</span><small>How the score works, and sources</small></a>
@@ -1714,7 +1717,7 @@ def write_html(res, path):
 <p class="section" id="pillars">What drives each score</p>
 <div class="grid" style="margin-top:16px">{cards}</div>
 
-<p class="section" id="deep">Deep dive</p>
+<p class="section" id="deep">Details</p>
 {deep}
 
 <p class="section" id="contracts">Opendoor's own targets</p>
@@ -1734,7 +1737,7 @@ def write_html(res, path):
 <footer id="method"><p><b>Method.</b> Each metric scores 0–10 on a straight line between a "0 points" and a "10 points" value (hover a metric to see them).
 Pillars average their metrics, and the overall score weights the pillars as shown. Grades: A 8+, B 6.5+, C 5+, D 3.5+, F below.
 Debt is split by what backs it: home-backed debt, which lenders can recover only from the homes, is measured against the homes it funds,
-and the company's own convertible notes against its cash. Potential new shares count only once they are live at today's price (see Deep dive).
+and the company's own convertible notes against its cash. Potential new shares count only once they are live at today's price (see Details).
 A quarterly figure one quarter old is labelled; older than that, it stops counting.
 The thresholds and weights are judgement calls and have not been back-tested against share-price returns. {e(est_note)}{e(pf_note)}</p>
 <p><b>Sources.</b> SEC EDGAR (financial statements and earnings releases), accountable.opendoor.com, {e(str(px.get('source', 'price data')))} (price),
@@ -1757,7 +1760,7 @@ a recommendation or investment advice.</p></footer>
   btn.addEventListener("click", function () {{ toggle(menu.hidden); }});
   menu.addEventListener("click", function (ev) {{ if (ev.target.closest("a")) toggle(false); }});
   document.addEventListener("keydown", function (ev) {{ if (ev.key === "Escape" && !menu.hidden) {{ toggle(false); btn.focus(); }} }});
-  window.addEventListener("resize", function () {{ if (window.innerWidth > 900 && !menu.hidden) toggle(false); }});
+  window.addEventListener("resize", function () {{ if (window.innerWidth > 1180 && !menu.hidden) toggle(false); }});
 
 }})();
 (function () {{
