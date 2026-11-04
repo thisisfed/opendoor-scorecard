@@ -33,7 +33,7 @@ for corrections and for anything the release stops giving.
 Standard library only. SEC asks for a contact User-Agent: set SEC_UA="Your Name you@email.com".
 Not investment advice: the thresholds in RULES are opinions, tune them.
 """
-import argparse, csv, datetime as dt, html, json, os, re, sys, urllib.request
+import argparse, csv, datetime as dt, html, json, os, re, sys, urllib.parse, urllib.request
 
 TICKER, CIK = "OPEN", "0001801169"
 METHOD = "2"  # bump when metrics, thresholds or weights change, so the history marks the break
@@ -120,7 +120,27 @@ GUIDANCE = [
 # columns). Newer releases are parsed automatically and take priority; these cover quarters before the parser.
 UNDER_CONTRACT_SEED = {"2024-09-30": 1006, "2024-12-31": 1705, "2025-03-31": 1051, "2025-06-30": 393,
                        "2025-09-30": 526, "2025-12-31": 710, "2026-03-31": 1939, "2026-06-30": 2310}
-NEXT_RESULTS = {"date": "2026-11-05", "what": "Q3 2026 results, after the US close"}  # Opendoor press release, Oct 19, 2026
+NEXT_RESULTS = {"date": "2026-11-05", "what": "Q3 2026 results, after the US close",  # Opendoor press release, Oct 19, 2026
+                "quarter": "2026-09-30"}
+# Which scored metrics a quarterly report changes, and when. The earnings release (8-K) is parsed the first evening
+# it is on the SEC site; the balance sheet, share count and stock pay come from the 10-Q, often filed days later.
+FROM_RELEASE = ["rev_nowcast_yoy", "contrib_margin", "contrib_trend", "gross_margin", "aged_inventory", "days_inventory",
+                "net_margin_2q", "adj_ebitda_m", "ani_margin", "fallout", "ps"]
+FROM_10Q = ["cash_vs_notes", "home_debt_ltv", "runway_q", "share_yoy", "sbc_pct", "dilution_live", "pb"]
+# Scenario presets for the quarter about to be reported: hypothetical inputs set around Opendoor's own guidance
+# (Q2 2026 release: revenue up at least 20% year on year, contribution margin around 4% to 4.5%). Not forecasts.
+# They disappear once that quarter is in the score.
+SCENARIOS = {"quarter": "2026-09-30", "presets": [
+    {"name": "Bull Q3", "note": "Revenue +25% YoY, five points above the guided floor; contribution margin 4.5%, the top of the guided range",
+     "values": {"rev_nowcast_yoy": 0.25, "contrib_margin": 0.045}},
+    {"name": "Bear Q3", "note": "Revenue +12% YoY, this page's own estimate (a guidance miss); contribution margin 3.5%, below the guided range",
+     "values": {"rev_nowcast_yoy": 0.12, "contrib_margin": 0.035}},
+]}
+# Changes to what is scored or how. The score history marks each break (method version in history.csv).
+METHOD_CHANGES = [
+    ("2", "2026-11-04", "Added three metrics: contribution margin vs the quarter before and days of inventory (Unit economics), "
+                        "and signed contracts that fell through (Execution). Scores from before this date are not directly comparable."),
+]
 
 # ---------------------------------------------------------------- scoring rules
 # metric: (label, value scoring 0, value scoring 10, format). Linear in between, clipped.
@@ -472,6 +492,12 @@ def accountable_metrics(acc):
         "clearance": sum(cl[-4:]) / len(cl[-4:]) if cl else None,
         "weekly": c,
         "quarters": contract_quarters(acc["contracts"]),
+        # for sparklines: contracts in each rolling 4 weeks vs Opendoor's projected midpoint, last 13 weeks
+        "contracts_vs_proj_series": [
+            (c[j][0], sum(r[1] for r in c[j - 3:j + 1]) / ((sum(r[2] for r in c[j - 3:j + 1]) + sum(r[3] for r in c[j - 3:j + 1])) / 2) - 1)
+            for j in range(max(3, len(c) - 13), len(c))],
+        # and homes sold so far this quarter vs the same point a year earlier, week by week
+        "coe_yoy_series": [(d, v / q4py[d] - 1) for d, v in q4 if q4py.get(d)],
     }
 
 
@@ -834,6 +860,45 @@ def dilution_at(lines, p, today):
 
 
 # ---------------------------------------------------------------- 3c. mortgage rates (FRED, no key needed)
+def short_interest(log=None):
+    """Latest short interest and days to cover (FINRA figures, as Nasdaq publishes them twice a month), plus the
+    float from Yahoo when it answers; without a float the page uses shares outstanding and says so."""
+    req = urllib.request.Request(
+        f"https://api.nasdaq.com/api/quote/{TICKER}/short-interest?assetClass=stocks",
+        headers={"User-Agent": BROWSER_UA, "Accept": "application/json, text/plain, */*", "Accept-Language": "en-US,en;q=0.9",
+                 "Origin": "https://www.nasdaq.com", "Referer": "https://www.nasdaq.com/", "Accept-Encoding": "identity"})
+    with urllib.request.urlopen(req, timeout=30) as resp:
+        j = json.loads(resp.read().decode("utf-8"))
+    rows = ((j.get("data") or {}).get("shortInterestTable") or {}).get("rows") or []
+    num = lambda v: float(str(v).replace(",", "").strip()) if v not in (None, "", "N/A") else None
+    parsed = []
+    for r in rows:
+        m, d, y = r["settlementDate"].split("/")
+        parsed.append({"settlement": f"{y}-{int(m):02d}-{int(d):02d}", "shares_short": num(r.get("interest")),
+                       "avg_volume": num(r.get("avgDailyShareVolume")), "days_to_cover": num(r.get("daysToCover"))})
+    if not parsed:
+        raise ValueError("no short-interest rows")
+    parsed.sort(key=lambda r: r["settlement"])
+    out = dict(parsed[-1], previous=parsed[-2] if len(parsed) > 1 else None, source="Nasdaq (FINRA short interest)")
+    try:
+        import http.cookiejar
+        op = urllib.request.build_opener(urllib.request.HTTPCookieProcessor(http.cookiejar.CookieJar()))
+        op.addheaders = [("User-Agent", BROWSER_UA)]
+        try:
+            op.open("https://fc.yahoo.com", timeout=15)
+        except Exception:
+            pass  # only the cookie it sets matters
+        crumb = op.open("https://query1.finance.yahoo.com/v1/test/getcrumb", timeout=15).read().decode().strip()
+        js = json.loads(op.open(f"https://query1.finance.yahoo.com/v10/finance/quoteSummary/{TICKER}"
+                                f"?modules=defaultKeyStatistics&crumb={urllib.parse.quote(crumb)}", timeout=15).read().decode())
+        fl = js["quoteSummary"]["result"][0]["defaultKeyStatistics"]["floatShares"]["raw"]
+        out.update(float_shares=float(fl), float_source="Yahoo Finance")
+    except Exception as e:
+        if log is not None:
+            log.append(f"float unavailable ({e}); short interest shown against shares outstanding")
+    return out
+
+
 def _fred():
     txt = get("https://fred.stlouisfed.org/graph/fredgraph.csv?id=MORTGAGE30US", timeout=60)
     pts = []
@@ -1479,6 +1544,7 @@ def score(m, extra=None):
     out = {"overall": overall, "grade": grade, "verdict": verdict, "pillars": pillars, "weights_used": wsum}
     out["why"] = explain(out)
     out["what_if"] = what_if(pillars, "contracts_vs_proj", 0.0, overall)
+    out["leverage"] = leverage(pillars, overall)
     # stress tests, alone and combined: the same scoring run on the changed inputs
     base = extra.get("stress") or {}
     out["stress"] = {}
@@ -1491,6 +1557,29 @@ def score(m, extra=None):
                                 "pillars": [[p["name"], p["score"], ps[p["name"]]] for p in pillars
                                             if ps.get(p["name"]) is not None and ps[p["name"]] != p["score"]]}
     return out
+
+
+def leverage(pillars, overall):
+    """How much each scored metric supplies to the overall score, what one more point of it is worth, and how far the
+    overall would move if it reached full marks (its "10 points" value), all else unchanged."""
+    wsum = sum(p["weight"] for p in pillars if p["score"] is not None)
+    rows = []
+    for p in pillars:
+        scored = [i for i in p["metrics"] if i["score"] is not None]
+        for i in scored:
+            per_pt = p["weight"] / (len(scored) * wsum)
+            full = None
+            if i["score"] < 9.95:
+                ov, _ = _rescore(pillars, {i["key"]: i["good"]})
+                full = round(ov - overall, 2)
+            rows.append({"key": i["key"], "label": i["label"], "pillar": p["name"], "value": i["value"], "fmt": i["fmt"],
+                         "points": i["score"], "bad": i["bad"], "good": i["good"], "per_point": per_pt,
+                         "contribution": i["score"] * per_pt, "to_full": full,
+                         "step": (i["good"] - i["bad"]) / 10})  # metric change worth one point
+    top = sorted((r for r in rows if r["to_full"]), key=lambda r: -r["to_full"])[:5]
+    together = _rescore(pillars, {r["key"]: r["good"] for r in top})[0] if top else overall
+    grades = [{"grade": g, "at": t, "gap": round(t - overall, 2)} for t, g, _ in GRADES if t > overall]
+    return {"rows": rows, "top": [r["key"] for r in top], "top_together": together, "grades": sorted(grades, key=lambda x: x["at"])}
 
 
 def _rescore(pillars, overrides):
@@ -1825,6 +1914,41 @@ h1{font-size:clamp(46px,8.4vw,92px);line-height:1;font-weight:500;letter-spacing
 .section{font-size:13px;font-weight:500;color:var(--muted);text-transform:uppercase;letter-spacing:.06em;margin:56px 0 0}
 .m{display:flex;justify-content:space-between;gap:12px;padding:10px 0;border-bottom:1px solid var(--line);font-size:14px}
 .m:last-child{border-bottom:0}.m .lab{color:var(--muted2)}
+.mini{display:flex;align-items:center;gap:6px;margin-top:4px}.mini svg{flex:0 0 auto}.mini i{font-style:normal;font-size:11.5px;color:var(--muted)}
+.mini-a{font-size:12px;color:#1d4ed8;display:inline-block;margin-top:2px}
+.score .mini{margin:0 0 10px 14px;align-self:flex-end}
+.si{margin-top:10px;padding:10px 12px;border-radius:10px;background:#f6f4f1;font-size:13.5px;color:var(--muted2);line-height:1.45}
+.si b{color:var(--ink,#23201d);font-weight:500}.si small{display:block;font-size:11.5px;color:var(--muted);margin-top:3px}
+.ns{font-size:11px;background:#fff;border:1px solid var(--line);border-radius:6px;padding:0 6px;margin-left:4px;color:var(--muted)}
+.rb{display:flex;gap:12px;align-items:flex-start;margin-top:8px;padding:14px 18px;border-radius:14px;background:rgba(255,255,255,.75);
+border:1px solid #d9e1fb;font-size:14.5px;color:var(--muted2);line-height:1.5}.rb p{margin:0}.rb b{color:var(--ink,#23201d);font-weight:500}
+.rb ul{margin:6px 0 0;padding-left:18px}.rb li{margin:2px 0}.rb-dot{flex:0 0 auto;width:9px;height:9px;border-radius:50%;background:#1d4ed8;margin-top:7px}
+.rb.done{border-color:#bfe8d5}.rb.done .rb-dot{background:#10b981}
+.gaps{display:flex;flex-wrap:wrap;gap:8px;margin:0}.gap{background:#f6f4f1;border-radius:10px;padding:7px 12px;font-size:14px;color:var(--muted2)}
+.gap b{color:var(--ink,#23201d);font-weight:600}.mv-h{margin:16px 0 0;font-weight:500;font-size:15px}
+table.mv td small{display:block;font-size:11.5px;color:var(--muted)}table.mv td,table.mv th{white-space:nowrap}
+.mv-sum{font-size:14px;color:var(--muted2);margin:12px 0 0}.mv-all{margin-top:12px}.mv-all summary{cursor:pointer;color:#1d4ed8;font-size:14px}
+table.mv2 td,table.mv2 th{white-space:nowrap}
+.tool-h{margin:4px 0 8px;font-weight:500;font-size:15px}.tool-h~.tool-h{margin-top:22px}
+.scen-note{font-size:13.5px;color:var(--muted2);margin:-4px 0 10px}
+.ins{display:grid;grid-template-columns:repeat(3,1fr);gap:10px}.in{display:flex;flex-direction:column;gap:6px;border:1px solid var(--line);
+border-radius:12px;padding:10px 12px;font-size:14px}.in small{display:block;font-size:12px;color:var(--muted)}
+.in-f{display:flex;align-items:center;gap:6px}.in-f input{width:100%;font:inherit;font-size:16px;padding:7px 9px;border:1px solid var(--line);border-radius:8px}
+.in-note{margin:8px 0 0;font-size:12.5px}.sc-pil{font-size:13.5px;color:var(--muted2);margin:12px 0 0}
+.spre{font:inherit;font-size:14px;border:1px solid var(--line);background:#fff;border-radius:999px;padding:7px 14px;cursor:pointer}
+.spre.on{background:#1d4ed8;color:#fff;border-color:#1d4ed8}
+.mc{margin:0;padding-left:18px;font-size:14px;color:var(--muted2)}.mc li{margin:4px 0}
+/* wide tables on phones: scroll sideways, keep the first column in view */
+table.dil td:first-child,table.dil th:first-child,table.mk td:first-child,table.mk th:first-child,table.mv td:first-child,
+table.mv th:first-child,table.mv2 td:first-child,table.mv2 th:first-child{position:sticky;left:0;background:#fff;z-index:1;box-shadow:1px 0 0 var(--line)}
+table.dil tr.tot td:first-child{background:inherit}
+@media (max-width:640px){table.mk{min-width:620px}table.dil{min-width:420px}.ins{grid-template-columns:1fr}
+table.mv tr:first-child{display:none}table.mv,table.mv tbody{display:block}
+table.mv tr{display:grid;grid-template-columns:1fr 1fr 1fr;gap:4px 8px;padding:10px 0;border-bottom:1px solid #eee}
+table.mv td{border:0;padding:0;text-align:left!important;white-space:normal!important;font-size:13px;position:static!important;box-shadow:none!important}
+table.mv td:first-child{grid-column:1/-1;font-weight:500;min-width:0}
+table.mv td[data-l]::before{content:attr(data-l);display:block;font-size:11px;color:#8a8a8a}
+.score .mini{margin:6px 0 0;flex-basis:100%}.score{flex-wrap:wrap}}
 .m .scale{display:none;font-size:12px;color:#1d4ed8;margin-top:3px}.show-scale .m .scale{display:block}
 .spark{display:flex;align-items:center;gap:8px;flex-wrap:wrap;margin-top:4px}.spark svg{flex:0 0 auto}
 .spark i{font-style:normal;font-size:12px;color:var(--muted)}.spark a,.how a{font-size:12px;color:#1d4ed8}
@@ -2092,20 +2216,6 @@ def _targets_card(res):
 NEWSLETTER_USER = os.environ.get("BUTTONDOWN_USERNAME", "").strip()  # set as a repository variable to switch the signup on
 
 
-def _spark(vals):
-    """A small line of the last few quarters; the latest point is marked."""
-    W, H, P = 110, 28, 4
-    lo, hi = min(vals + [0.0]), max(vals)
-    span = (hi - lo) or 1.0
-    pts = [(P + k * (W - 2 * P) / (len(vals) - 1), H - P - (v - lo) / span * (H - 2 * P)) for k, v in enumerate(vals)]
-    line = " ".join(f"{x:.1f},{y:.1f}" for x, y in pts)
-    x, y = pts[-1]
-    return (f'<svg viewBox="0 0 {W} {H}" width="{W}" height="{H}" aria-hidden="true">'
-            f'<line x1="{P}" x2="{W - P}" y1="{H - P - (0 - lo) / span * (H - 2 * P):.1f}" y2="{H - P - (0 - lo) / span * (H - 2 * P):.1f}" stroke="{LINE}"/>'
-            f'<polyline points="{line}" fill="none" stroke="{BLUE}" stroke-width="2" stroke-linejoin="round" stroke-linecap="round"/>'
-            f'<circle cx="{x:.1f}" cy="{y:.1f}" r="3" fill="{BLUE}"/></svg>')
-
-
 def _subscribe_card():
     if not NEWSLETTER_USER:
         return ""
@@ -2289,21 +2399,228 @@ PRESETS = [("This page", None),
                             "Dilution": 10, "Valuation": 5, "Momentum": 5, "Housing market": 10})]
 
 
-def _weights_play_card(s):
+SCENARIO_INPUTS = [("rev_nowcast_yoy", "Revenue YoY, latest quarter"), ("contrib_margin", "Contribution margin"),
+                   ("coe_vs_guide", "Homes sold vs Opendoor's expectation")]
+
+
+def _scenario_card(res):
+    """Weights and a few inputs, re-scored in the browser with the same thresholds and arithmetic as the page."""
+    s, ex = res["score"], res["extra"]
     e = html.escape
-    pil = [{"n": p["name"], "s": p["score"], "w": p["weight"]} for p in s["pillars"]]
+    pending = res["quarters"][-1]["quarter_end"] < SCENARIOS["quarter"]
+    cm_rows = [r for r in res["quarters"] if r.get("contribution_margin_pct") is not None]
+    cm_last = cm_rows[-1]["contribution_margin_pct"] / 100 if cm_rows else None
+    items = {i["key"]: i for p in s["pillars"] for i in p["metrics"]}
+    data = {"published": s["overall"], "grades": GRADES, "pending": pending, "cmLast": cm_last,
+            "pillars": [{"n": p["name"], "w": p["weight"], "s": p["score"],
+                         "ms": [{"k": i["key"], "v": i["value"], "b": i["bad"], "g": i["good"]}
+                                for i in p["metrics"] if i["score"] is not None]} for p in s["pillars"]]}
+    ins = ""
+    for k, label in SCENARIO_INPUTS:
+        i = items.get(k)
+        if not i or i["score"] is None:
+            continue
+        pub = i["value"] * 100
+        ins += (f'<label class="in"><span>{e(label)}<small>published {e(fmt(i["value"], i["fmt"]))}'
+                f'{" (estimate)" if k == "rev_nowcast_yoy" and ex.get("nowcast") else ""}</small></span>'
+                f'<span class="in-f"><input type="number" step="0.1" value="{pub:.1f}" data-k="{k}" data-pub="{pub:.4f}">%</span></label>')
+    scen = [{"name": "Base", "note": "Today's published inputs", "values": {}}] + (SCENARIOS["presets"] if pending else [])
+    sbtn = "".join(f'<button type="button" class="spre{" on" if k == 0 else ""}" data-v=\'{html.escape(json.dumps(x["values"]))}\' '
+                   f'data-note="{e(x["note"])}">{e(x["name"])}</button>' for k, x in enumerate(scen))
     sliders = "".join(f'<div class="sl"><span class="sl-n">{e(p["name"])}<i>{_num(p["score"])}</i></span>'
                       f'<input type="range" min="0" max="30" step="0.5" value="{p["weight"]}" data-i="{k}" aria-label="{e(p["name"])} weight">'
                       f'<span class="sl-v">{p["weight"]:g}%</span></div>' for k, p in enumerate(s["pillars"]))
-    presets = "".join(f'<button type="button" class="pre{" on" if w is None else ""}" data-w=\'{json.dumps(w) if w else ""}\'>{e(name)}</button>'
-                      for name, w in PRESETS)
-    data = json.dumps({"pillars": pil, "grades": GRADES}, separators=(",", ":"))
-    return ('<div class="card" id="weights-play"><div class="hd stack"><div><h2>Try your own weights</h2><p class="sub">Same pillar '
-            'scores, your weighting. The published score doesn\'t change.</p></div>'
+    wbtn = "".join(f'<button type="button" class="pre{" on" if w is None else ""}" data-w=\'{json.dumps(w) if w else ""}\'>{e(name)}</button>'
+                   for name, w in PRESETS)
+    derived = (f'<p class="dim in-note">A contribution margin you enter is treated as {_qlabel(SCENARIOS["quarter"])}\'s, so '
+               f'"margin vs the quarter before" becomes it minus {_qlabel(cm_rows[-1]["quarter_end"])}\'s {cm_last * 100:.1f}%. '
+               f'Homes sold vs expectation for {_qlabel(SCENARIOS["quarter"])} is already final on the tracker, so the presets leave it alone.</p>'
+               if pending and cm_last is not None else "")
+    return ('<div class="card" id="weights-play"><div class="hd stack"><div><h2>Scenario tool</h2><p class="sub">Change a few '
+            'inputs or the pillar weights; the same thresholds and arithmetic re-score it here. The published score doesn\'t change.</p></div>'
             f'<div class="right"><span class="wp-score">{s["overall"]:.2f}</span><p class="sub wp-grade">grade {e(s["grade"])}, as published</p></div></div>'
-            f'<div class="bd"><div class="presets">{presets}</div><div class="sliders" data-play=\'{html.escape(data)}\'>{sliders}</div></div>'
-            '<div class="ft">Weights are scaled to add up to 100%, so only their sizes relative to each other matter. A pillar with no '
-            'score is left out, as on the rest of the page.</div></div>')
+            f'<div class="bd" data-scen=\'{html.escape(json.dumps(data, separators=(",", ":")))}\'>'
+            f'<p class="tool-h">Inputs</p><div class="presets">{sbtn}</div><p class="scen-note">Today\'s published inputs</p>'
+            f'<div class="ins">{ins}</div>{derived}'
+            f'<p class="tool-h">Pillar weights</p><div class="presets">{wbtn}</div><div class="sliders">{sliders}</div>'
+            '<p class="sc-pil"></p></div>'
+            '<div class="ft">Presets are hypothetical inputs set around Opendoor\'s own guidance, not forecasts, and disappear once '
+            'that quarter is reported. Weights are scaled to add up to 100%, so only their sizes relative to each other matter. '
+            'A pillar with no score is left out, as on the rest of the page.</div></div>')
+
+
+# ---------------------------------------------------------------- what would move the score, results banner, sparklines
+SHORT = {"rev_nowcast_yoy": "revenue YoY, replacing the estimate", "contrib_margin": "contribution margin",
+         "contrib_trend": "margin vs the quarter before", "gross_margin": "gross margin", "aged_inventory": "homes listed 120+ days",
+         "days_inventory": "days of inventory", "net_margin_2q": "GAAP net margin", "adj_ebitda_m": "Adj. EBITDA margin",
+         "ani_margin": "Adj. net income margin", "fallout": "contracts that fell through", "ps": "price/sales",
+         "cash_vs_notes": "cash vs notes", "home_debt_ltv": "home-backed debt", "runway_q": "cash runway",
+         "share_yoy": "share count", "sbc_pct": "stock pay", "dilution_live": "potential new shares", "pb": "price/book"}
+
+
+def _delta(a, b, kind):
+    """The change from a to b in the metric's own units."""
+    d = b - a
+    if kind in ("pct", "share", "rate", "pp"):
+        return f"{d * 100:+.1f}pp"
+    if kind == "x":
+        return f"{d:+.2f}x"
+    if kind == "days":
+        return f"{d:+.0f} days"
+    if kind == "qtrs":
+        return f"{d:+.1f} qtrs"
+    return f"{d:+.2f}"
+
+
+def _grade_of(v):
+    return next(g for t, g, _ in GRADES if v >= t)
+
+
+def _move_card(res):
+    s = res["score"]
+    lev = s.get("leverage")
+    if not lev:
+        return ""
+    e = html.escape
+    by = {r["key"]: r for r in lev["rows"]}
+    gaps = " ".join(f'<span class="gap"><b>{g["grade"]}</b> starts at {g["at"]:.2f}: <b>{g["gap"]:.2f}</b> away</span>'
+                    for g in lev["grades"])
+    top = [by[k] for k in lev["top"]]
+    rows = "".join(
+        f'<tr><td class="wtxt">{e(r["label"])}<small>{e(r["pillar"])}</small></td>'
+        f'<td data-l="Now">{e(fmt(r["value"], r["fmt"]))}<small>{r["points"]:.1f} pts</small></td>'
+        f'<td data-l="Full marks at">{e(fmt(r["good"], r["fmt"]))}</td>'
+        f'<td data-l="Change needed">{e(_delta(r["value"], r["good"], r["fmt"]))}</td>'
+        f'<td data-l="Overall"><b>+{r["to_full"]:.2f}</b></td>'
+        f'<td data-l="Each point">{e(_delta(0, r["step"], r["fmt"]).lstrip("+"))} = +{r["per_point"]:.3f}</td></tr>' for r in top)
+    tog = lev["top_together"]
+    gap_b = next((g["gap"] for g in lev["grades"] if g["grade"] == "B"), None)
+    alone = max((r["to_full"] for r in top), default=0)
+    lines = [f'All five together: {s["overall"]:.2f} to <b>{tog:.2f}</b>, grade {_grade_of(tog)}.']
+    if gap_b is not None and alone < gap_b:
+        lines.append(f'No single metric closes the {gap_b:.2f} gap to B on its own.')
+    allrows = ""
+    for p in s["pillars"]:
+        for r in [x for x in lev["rows"] if x["pillar"] == p["name"]]:
+            full = "–" if r["to_full"] is None else "+%.2f" % r["to_full"]
+            allrows += (f'<tr><td class="wtxt">{e(r["label"])}</td><td>{e(r["pillar"])}</td><td>{r["points"]:.1f}</td>'
+                        f'<td>{r["per_point"]:.3f}</td><td>{r["contribution"]:.2f}</td><td>{full}</td></tr>')
+    total = sum(r["contribution"] for r in lev["rows"])
+    note = ("" if abs(total - s["overall"]) < 0.005 else
+            f' They add up to {total:.2f}; the published {s["overall"]:.2f} differs only because pillar scores are rounded to one decimal first.')
+    return ('<div class="card" id="move"><div class="hd"><div><h2>What would move the score</h2>'
+            f'<p class="sub">Where the {s["overall"]:.2f} comes from, and the moves that would add most</p></div></div>'
+            f'<div class="bd"><p class="gaps"><span class="gap">Now <b>{s["overall"]:.2f}</b>, grade {e(s["grade"])}</span>{gaps}</p>'
+            '<p class="mv-h">The five biggest single moves</p></div>'
+            '<div class="bd scroll" style="padding-top:0"><table class="mv"><tr><th>Metric</th><th>Now</th><th>Full marks at</th>'
+            '<th>Change needed</th><th>Overall</th><th>Each point</th></tr>' + rows + '</table>'
+            f'<p class="mv-sum">{" ".join(lines)}</p>'
+            '<details class="mv-all"><summary>Every metric\'s share of the score</summary><div class="scroll"><table class="mv2">'
+            '<tr><th>Metric</th><th>Pillar</th><th>Points</th><th>Overall per point</th><th>Supplies</th><th>At full marks</th></tr>'
+            + allrows + f'</table></div><p class="dim">A metric supplies its points x its pillar\'s weight, shared between the '
+            f'pillar\'s scored metrics.{note}</p></details></div>'
+            '<div class="ft">"Overall" re-runs the scoring with that one metric at its 10-point value and everything else '
+            'unchanged. "Each point" is the change in the metric that earns one more point, and what that adds to the overall. '
+            'The list ranks arithmetic, not likelihood: some inputs, such as the share price, are not in management\'s hands.</div></div>')
+
+
+def _results_banner(res):
+    nr = NEXT_RESULTS
+    if not nr.get("quarter"):
+        return ""
+    e = html.escape
+    today = res["generated"][:10]
+    latest = res["quarters"][-1]["quarter_end"]
+    ql = _qlabel(nr["quarter"])
+    if latest >= nr["quarter"]:
+        if _days(nr["date"], today) > 10:
+            return ""
+        bs_in = ((res["extra"].get("pro_forma") or {}).get("as_of") or "") >= nr["quarter"]
+        return (f'<div class="rb done"><span class="rb-dot"></span><p><b>{ql} results are in the score.</b> '
+                + ("The balance sheet, share count and stock pay are updated too (10-Q filed)." if bs_in else
+                   "Balance sheet, share count and stock pay still use the previous quarter until the 10-Q is filed, "
+                   "usually within days.") + '</p></div>')
+    if _days(nr["date"], today) > 21:
+        return ""
+    pil = {p["name"]: [i for i in p["metrics"] if i["score"] is not None] for p in res["score"]["pillars"]}
+
+    def group(keys):
+        out = []
+        for name, items in pil.items():
+            hit = [i for i in items if i["key"] in keys]
+            if hit:
+                out.append(f"{name} ({'all ' + str(len(hit)) if len(hit) == len(items) and len(hit) > 1 else ', '.join(SHORT.get(i['key'], i['label']) for i in hit)})")
+        return "; ".join(out)
+    same = [n for n, items in pil.items() if items and not any(i["key"] in FROM_RELEASE + FROM_10Q for i in items)]
+    when = (f"due after the US close on {_d(nr['date'])} (about 21:00 UK)" if today <= nr["date"] else
+            f"were due on {_d(nr['date'])}; they reach the score on the first evening run after the release is on the SEC site")
+    return (f'<div class="rb"><span class="rb-dot"></span><div><p><b>{ql} results {when}.</b> Until then the quarterly '
+            f'figures below are {_qlabel(latest)}, marked "over a quarter old".</p><ul>'
+            f'<li><b>With the earnings release</b> (the first evening run after it): {e(group(FROM_RELEASE))}.</li>'
+            f'<li><b>With the 10-Q</b>, often filed a few days later: {e(group(FROM_10Q))}.</li>'
+            f'<li><b>Not affected:</b> {e(", ".join(same))}, and the tracker-based metrics (homes sold, contracts, sale speed), '
+            'which update weekly.</li></ul></div></div>')
+
+
+def _mini(series, caption):
+    """A tiny sparkline (with its caption), or just the caption while there are fewer than two points."""
+    vals = [v for v in series if v is not None]
+    if len(vals) < 2:
+        return f'<span class="mini"><i>{html.escape(caption)}</i></span>'
+    W, H, P = 84, 20, 3
+    lo, hi = min(vals), max(vals)
+    span = (hi - lo) or 1.0
+    pts = [(P + k * (W - 2 * P) / (len(vals) - 1), H - P - (v - lo) / span * (H - 2 * P)) for k, v in enumerate(vals)]
+    x, y = pts[-1]
+    return (f'<span class="mini"><svg viewBox="0 0 {W} {H}" width="{W}" height="{H}" aria-hidden="true">'
+            f'<polyline points="{" ".join(f"{a:.1f},{b:.1f}" for a, b in pts)}" fill="none" stroke="{BLUE}" stroke-width="1.6" '
+            f'stroke-linejoin="round" stroke-linecap="round"/><circle cx="{x:.1f}" cy="{y:.1f}" r="2.4" fill="{BLUE}"/></svg>'
+            f'<i>{html.escape(caption)}</i></span>')
+
+
+def _series(res):
+    """Where each sparkline comes from: quarterly figures, the weekly tracker, or this page's own run history."""
+    ex, acc = res["extra"], res.get("accountable") or {}
+    mh = res.get("metric_history") or []
+    since = f"since {_d(mh[0]['run_date'])}" if mh else ""
+    runs = lambda k: [float(r[k]) for r in mh if r.get(k) not in (None, "")]
+    ue = (ex.get("ue_history") or [])[-6:]
+    out = {}
+    if ue:
+        out["contrib_margin"] = ([r["cm"] for r in ue], f"{_qlabel(ue[0]['quarter'])} to {_qlabel(ue[-1]['quarter'])}: "
+                                 + ", ".join("%.1f%%" % r["cm"] for r in ue))
+    cy = acc.get("coe_yoy_series") or []
+    if cy:
+        out["coe_q4_yoy"] = ([v for _, v in cy], f"through the quarter, week by week")
+    cv = acc.get("contracts_vs_proj_series") or []
+    if cv:
+        out["contracts_vs_proj"] = ([v for _, v in cv], "rolling 4 weeks, last 13 weeks")
+    out["cash_vs_notes"] = (runs("cash_vs_notes"), f"run by run, {since}" if len(runs("cash_vs_notes")) > 1 else f"history starts {since[6:]}")
+    return out
+
+
+def _short_line(res):
+    si = res.get("short_interest")
+    if not si or not si.get("shares_short"):
+        return ""
+    sh = (res["extra"].get("shares_m") or 0) * 1e6
+    base, what = (si["float_shares"], "of float") if si.get("float_shares") else (sh, "of shares outstanding (float not available)")
+    pct = f", {si['shares_short'] / base * 100:.1f}% {what}" if base else ""
+    prev = si.get("previous") or {}
+    chg = (f"; {(si['shares_short'] / prev['shares_short'] - 1) * 100:+.0f}% since {_d(prev['settlement'])}"
+           if prev.get("shares_short") else "")
+    dtc = f", {si['days_to_cover']:.1f} days to cover" if si.get("days_to_cover") is not None else ""
+    return (f'<div class="si"><b>Short interest</b> <span class="ns">not scored</span><br>{si["shares_short"] / 1e6:,.1f}M shares'
+            f'{pct}{dtc}{chg}.<small>Settlement {_d(si["settlement"])}; {html.escape(si.get("source", ""))}'
+            + (f', float from {html.escape(si["float_source"])}' if si.get("float_shares") else "")
+            + '. Published twice a month, about a week after each settlement date.</small></div>')
+
+
+def _method_changes_card():
+    items = "".join(f'<li><b>v{v}, {_d(d)}.</b> {html.escape(t)}</li>' for v, d, t in reversed(METHOD_CHANGES))
+    return ('<div class="card" id="method-changes"><div class="hd"><div><h2>Method changes</h2><p class="sub">What changed in '
+            'the scoring, and when. The run history marks each break with the method version.</p></div></div>'
+            f'<div class="bd"><ul class="mc">{items or "<li>None yet.</li>"}</ul></div></div>')
 
 
 WEIGHT_WHY = {
@@ -2484,7 +2801,7 @@ def write_html(res, path):
                    f'<b>{_num(p["score"])}</b></div>' for p in s["pillars"])
     decomp = " + ".join(f'{e(p["name"])} {p["contribution"]:.2f}' for p in s["pillars"] if p.get("contribution") is not None)
     cards = ""
-    ueh = (res["extra"].get("ue_history") or [])[-6:]
+    ser = _series(res)  # sparkline data per metric
     for p in s["pillars"]:
         def note(i):
             return f'<small>{e(i["note"])}</small>' if i.get("note") else ""
@@ -2500,10 +2817,9 @@ def write_html(res, path):
                     f'{", too old to score" if gone else (", over a quarter old" if f_["old"] else "")}</em>')
         def extra_bits(i):
             k = i["key"]
-            if k == "contrib_margin" and len(ueh) >= 3:
-                cms = ", ".join("%.1f%%" % r["cm"] for r in ueh)
-                return (f'<span class="spark">{_spark([r["cm"] for r in ueh])}<i>{_qlabel(ueh[0]["quarter"])} to '
-                        f'{_qlabel(ueh[-1]["quarter"])}: {cms}</i><a href="#unit-history">By quarter</a></span>')
+            if k in ser:
+                link = '<a class="mini-a" href="#unit-history">By quarter</a>' if k == "contrib_margin" else ""
+                return _mini(*ser[k]) + link
             if k == "fallout":
                 return ('<span class="how">Open contracts at the start, plus contracts signed, less homes bought, less '
                         'contracts still open at the end. <a href="#fallout">How it\'s estimated</a></span>')
@@ -2519,7 +2835,11 @@ def write_html(res, path):
         sc = "n/a" if p["score"] is None else f"{p['score']:.1f}"
         cards += (f'<div class="card"><div class="hd"><div><h2>{e(p["name"])}</h2><p class="sub">{e(p["question"])}</p></div>'
                   f'<div class="right">{_badge(sc, _tone(p["score"]))}<p class="sub">{p["weight"]}% weight</p></div></div>'
-                  f'<div class="bd" style="padding-top:6px;padding-bottom:6px">{rows}</div></div>')
+                  f'<div class="bd" style="padding-top:6px;padding-bottom:6px">{rows}'
+                  f'{_short_line(res) if p["name"] == "Momentum" else ""}</div></div>')
+    hv = [float(h["overall"]) for h in (res.get("history") or []) if h.get("overall")]
+    h0 = (res.get("history") or [{}])[0].get("run_at", res["generated"])
+    ospark = _mini(hv, f"since {_d(h0)}" if len(hv) > 1 else f"score history starts {_d(h0)}")
     pil = {p["name"]: p for p in s["pillars"]}
     dil_metric = next(i for i in pil["Dilution"]["metrics"] if i["key"] == "dilution_live")
     deep = (f'<div class="grid2">{_debt_card(res, pil["Balance sheet"])}{_dilution_card(res, dil_metric)}</div>'
@@ -2596,13 +2916,15 @@ def write_html(res, path):
 {'<a class="nl-cta" href="#subscribe">Get the weekly email, free <span>&rarr;</span></a>' if NEWSLETTER_USER else ''}</div>
 </section>
 
+{_results_banner(res)}
 <div class="card" id="score"><div class="hd stack"><div><h2>Overall score</h2><p class="sub">Weighted across nine pillars</p></div>
 <div class="right">{change}<p class="sub">{e(change_sub)}</p></div></div>
 <div class="bd"><div class="score"><span class="num">{s['overall']:.2f}</span><span class="of">/ 10</span>
-<span class="grade badge {tone}">{e(s['grade'])}</span></div>
+<span class="grade badge {tone}">{e(s['grade'])}</span>{ospark}</div>
 <p class="verdict">{e(s['verdict'])}</p><p class="why">{e(s['why'])}</p></div>
 <div class="kpis">{kpi_html}</div></div>
 
+{_move_card(res)}
 {_subscribe_card()}
 
 <div class="card"><div class="hd"><div><h2>Score by pillar</h2><p class="sub">Each pillar is the average of its metrics, 0–10</p></div></div>
@@ -2635,8 +2957,9 @@ def write_html(res, path):
 
 <p class="section" id="method">How the score works</p>
 {_weights_card(s)}
-{_weights_play_card(s)}
+{_scenario_card(res)}
 {_thresholds_card(s)}
+{_method_changes_card()}
 
 {_subscribe_strip()}
 <footer><p><b>Method.</b> Each metric scores 0–10 on a straight line between a "0 points" and a "10 points" value (all of them are listed above).
@@ -2767,37 +3090,85 @@ a recommendation or investment advice.</p></footer>
     }}
     boxes.forEach(function (b) {{ b.addEventListener("change", upd); }});
   }}
-  var box = document.querySelector(".sliders");
-  if (box) {{
-    var play = JSON.parse(box.getAttribute("data-play")), inputs = box.querySelectorAll("input[type=range]");
+  // Scenario tool: the page's scoring, re-run in the browser. lin() and the rounding match the Python exactly:
+  // metric points on a straight line between its 0 and 10 values, pillar = mean rounded to 0.1, overall = weighted mean.
+  var sc = document.querySelector("[data-scen]");
+  if (sc) {{
+    var D = JSON.parse(sc.getAttribute("data-scen")), ov = {{}};
+    var sliders = sc.querySelectorAll(".sliders input"), ins = sc.querySelectorAll(".ins input");
     var scoreEl = document.querySelector(".wp-score"), gradeEl = document.querySelector(".wp-grade");
-    var page = play.pillars.map(function (p) {{ return p.w; }});
+    var pilEl = sc.querySelector(".sc-pil"), noteEl = sc.querySelector(".scen-note");
+    var page = D.pillars.map(function (p) {{ return p.w; }});
+    // Python's round(): exact ties go to the even digit, everything else rounds on the exact binary value (as toFixed does)
+    function r(x, n) {{
+      var t = Math.abs(x).toFixed(n + 30), cut = t.indexOf(".") + n + 1;   // the double's exact decimal digits
+      if (/^50*$/.test(t.slice(cut))) {{                                     // an exact tie: round to the even digit
+        var keep = parseFloat(t.slice(0, cut)), last = parseInt(t.charAt(cut - 1 - (n === 0 ? 1 : 0)), 10);
+        var v = last % 2 === 0 ? keep : keep + Math.pow(10, -n);
+        return parseFloat((x < 0 ? -v : v).toFixed(n));
+      }}
+      return parseFloat(x.toFixed(n));
+    }}
+    function lin(x, b, g) {{ return r(Math.max(0, Math.min(1, (x - b) / (g - b))) * 10, 1); }}
+    // Python's sum() of floats (3.12+) uses compensated summation; the same here, so pillar means match to the bit
+    function fsum(a) {{
+      var s = 0, c = 0;
+      a.forEach(function (x) {{ var t = s + x; c += Math.abs(s) >= Math.abs(x) ? (s - t) + x : (x - t) + s; s = t; }});
+      return s + c;
+    }}
+    function grade(v) {{ for (var i = 0; i < D.grades.length; i++) if (v >= D.grades[i][0]) return D.grades[i][1]; return "F"; }}
+    function setInput(k, v) {{
+      // an input is a metric override; the margin also moves "vs the quarter before" while a quarter is pending
+      ov[k] = v;
+      if (k === "contrib_margin" && D.pending && D.cmLast !== null) ov.contrib_trend = v - D.cmLast;
+    }}
     function calc() {{
-      var t = 0, ws = 0, w = [];
-      inputs.forEach(function (inp, k) {{ w[k] = parseFloat(inp.value); }});
+      var w = [], t = 0, ws = 0, moved = [];
+      sliders.forEach(function (s, k) {{ w[k] = parseFloat(s.value); }});
       var sum = w.reduce(function (a, b) {{ return a + b; }}, 0);
-      inputs.forEach(function (inp, k) {{
-        inp.parentNode.querySelector(".sl-v").textContent = (sum ? (w[k] / sum * 100) : 0).toFixed(0) + "%";
-        var p = play.pillars[k];
-        if (p.s !== null && w[k] > 0) {{ t += p.s * w[k]; ws += w[k]; }}
+      D.pillars.forEach(function (p, k) {{
+        sliders[k].parentNode.querySelector(".sl-v").textContent = (sum ? w[k] / sum * 100 : 0).toFixed(0) + "%";
+        if (!p.ms.length) return;
+        var pts = p.ms.map(function (m) {{ return lin(m.k in ov ? ov[m.k] : m.v, m.b, m.g); }});
+        var ps = r(fsum(pts) / pts.length, 1);
+        if (p.s !== null && Math.abs(ps - p.s) > 0.001) moved.push(p.n + " " + p.s.toFixed(1) + " \u2192 " + ps.toFixed(1));
+        if (w[k] > 0) {{ t += ps * w[k]; ws += w[k]; }}
       }});
       if (!ws) {{ scoreEl.textContent = "n/a"; gradeEl.textContent = "set at least one weight"; return; }}
-      var v = Math.round(t / ws * 100) / 100, g = "F";
-      for (var i = 0; i < play.grades.length; i++) {{ if (v >= play.grades[i][0]) {{ g = play.grades[i][1]; break; }} }}
-      var same = w.every(function (x, k) {{ return x === page[k]; }});
+      var v = r(t / ws, 2), d = v - D.published;
+      var asPub = !Object.keys(ov).length && w.every(function (x, k) {{ return x === page[k]; }});
       scoreEl.textContent = v.toFixed(2);
-      gradeEl.textContent = "grade " + g + (same ? ", as published" : ", with your weights");
+      gradeEl.textContent = "grade " + grade(v) + (asPub ? ", as published" :
+        " (" + (d >= 0 ? "+" : "\u2212") + Math.abs(d).toFixed(2) + " vs published " + D.published.toFixed(2) + ")");
+      pilEl.textContent = moved.length ? "Pillars that move: " + moved.join("; ") : "";
     }}
-    inputs.forEach(function (inp) {{ inp.addEventListener("input", function () {{
-      document.querySelectorAll(".pre").forEach(function (b) {{ b.classList.remove("on"); }}); calc(); }}); }});
-    document.querySelectorAll(".pre").forEach(function (b) {{
-      b.addEventListener("click", function () {{
-        var w = b.getAttribute("data-w") ? JSON.parse(b.getAttribute("data-w")) : null;
-        inputs.forEach(function (inp, k) {{ inp.value = w ? w[play.pillars[k].n] : page[k]; }});
-        document.querySelectorAll(".pre").forEach(function (x) {{ x.classList.remove("on"); }});
-        b.classList.add("on"); calc();
+    ins.forEach(function (i) {{ i.addEventListener("input", function () {{
+      var v = parseFloat(i.value);
+      if (isNaN(v)) return;
+      setInput(i.getAttribute("data-k"), v / 100);
+      sc.querySelectorAll(".spre").forEach(function (b) {{ b.classList.remove("on"); }});
+      noteEl.textContent = "Your inputs";
+      calc();
+    }}); }});
+    sc.querySelectorAll(".spre").forEach(function (b) {{ b.addEventListener("click", function () {{
+      var vals = JSON.parse(b.getAttribute("data-v"));
+      ov = {{}};
+      ins.forEach(function (i) {{
+        var k = i.getAttribute("data-k");
+        i.value = (k in vals ? vals[k] * 100 : parseFloat(i.getAttribute("data-pub"))).toFixed(1);
       }});
-    }});
+      Object.keys(vals).forEach(function (k) {{ setInput(k, vals[k]); }});
+      sc.querySelectorAll(".spre").forEach(function (x) {{ x.classList.remove("on"); }});
+      b.classList.add("on"); noteEl.textContent = b.getAttribute("data-note"); calc();
+    }}); }});
+    sliders.forEach(function (s) {{ s.addEventListener("input", function () {{
+      sc.querySelectorAll(".pre").forEach(function (b) {{ b.classList.remove("on"); }}); calc(); }}); }});
+    sc.querySelectorAll(".pre").forEach(function (b) {{ b.addEventListener("click", function () {{
+      var w = b.getAttribute("data-w") ? JSON.parse(b.getAttribute("data-w")) : null;
+      sliders.forEach(function (s, k) {{ s.value = w ? w[D.pillars[k].n] : page[k]; }});
+      sc.querySelectorAll(".pre").forEach(function (x) {{ x.classList.remove("on"); }});
+      b.classList.add("on"); calc();
+    }}); }});
     calc();
   }}
 }})();
@@ -2885,6 +3256,23 @@ def update_history(res, path):
     return prev, rows
 
 
+def update_metric_history(res, path):
+    """One row per day with every metric's value, so sparklines can show how a figure has moved between runs."""
+    rows = []
+    if os.path.exists(path):
+        with open(path, newline="") as fh:
+            rows = list(csv.DictReader(fh))
+    row = {"run_date": res["generated"][:10], "overall": res["score"]["overall"],
+           **{k: ("" if v is None else round(v, 6)) for k, v in res["metrics"].items()}}
+    rows = [r for r in rows if r.get("run_date") != row["run_date"]] + [{k: str(v) for k, v in row.items()}]
+    fields = ["run_date", "overall"] + list(res["metrics"])
+    with open(path, "w", newline="") as fh:
+        w = csv.DictWriter(fh, fieldnames=fields, extrasaction="ignore")
+        w.writeheader()
+        w.writerows(rows)
+    return rows
+
+
 def change_summary(res, prev):
     s = res["score"]
     if not prev:
@@ -2920,6 +3308,7 @@ def main():
     ap.add_argument("--dilution-cache", default=os.path.join(HERE, "dilution_cache.json"))
     ap.add_argument("--housing-cache", default=os.path.join(HERE, "housing_cache.json"))
     ap.add_argument("--contracts-cache", default=os.path.join(HERE, "contracts_quarterly.json"))
+    ap.add_argument("--short-cache", default=os.path.join(HERE, "short_cache.json"))
     ap.add_argument("--ua", default=os.environ.get("SEC_UA", "OPEN scorecard research contact@example.com"))
     ap.add_argument("--shares", type=float, help="shares you hold")
     ap.add_argument("--avg-cost", type=float, help="your average cost per share, USD")
@@ -2928,7 +3317,7 @@ def main():
     ap.add_argument("--export-rows", metavar="DIR", help="also write flat JSON row files for the dashboard")
     a = ap.parse_args()
 
-    log, edgar, acc_raw, releases, macro, dil_cache, housing, sub = [], {}, None, {}, None, None, None, None
+    log, edgar, acc_raw, releases, macro, dil_cache, housing, sub, short = [], {}, None, {}, None, None, None, None, None
     px = dict(PRICE_SNAPSHOT, source="price snapshot")
     cached_px = json.load(open(a.price_cache)) if os.path.exists(a.price_cache) else None
     if a.offline and cached_px and cached_px.get("date", "") > PRICE_SNAPSHOT["date"]:
@@ -2968,6 +3357,17 @@ def main():
         except Exception as e:
             log.append(f"mortgage rates unavailable ({e}); using cached copy")
         try:
+            short = short_interest(log)
+            old = json.load(open(a.short_cache)) if os.path.exists(a.short_cache) else {}
+            if not short.get("float_shares") and old.get("float_shares"):  # the float changes slowly: keep the last one
+                short.update(float_shares=old["float_shares"], float_source=old.get("float_source", "") + " (last good copy)")
+            with open(a.short_cache, "w") as fh:
+                json.dump(short, fh, indent=1)
+            log.append(f"short interest {short['shares_short'] / 1e6:,.1f}M shares, {short['days_to_cover']} days to cover "
+                       f"(settlement {short['settlement']})")
+        except Exception as e:
+            log.append(f"short interest unavailable ({e}); using cached copy")
+        try:
             acc_raw = parse_accountable(get("https://accountable.opendoor.com/"))
             log.append(f"accountable.opendoor.com: data as of {acc_raw['as_of']}")
         except Exception as e:
@@ -2994,6 +3394,8 @@ def main():
         macro = json.load(open(a.macro_cache))
     if dil_cache is None and os.path.exists(a.dilution_cache):
         dil_cache = json.load(open(a.dilution_cache))
+    if short is None and os.path.exists(a.short_cache):
+        short = json.load(open(a.short_cache))
     if housing is None and os.path.exists(a.housing_cache):
         housing = json.load(open(a.housing_cache))
     dil = latest_dilution(dil_cache) if dil_cache else None
@@ -3014,7 +3416,7 @@ def main():
         now = dt.datetime.now()
     res = {"generated": now.isoformat(timespec="minutes"), "ticker": TICKER, "price": px,
            "extra": extra, "metrics": m, "score": score(m, extra), "quarters": q, "accountable": acc, "log": log,
-           "contracts_all": (acc_raw or {}).get("contracts")}
+           "contracts_all": (acc_raw or {}).get("contracts"), "short_interest": short}
     if a.shares and a.avg_cost:
         val, cost = a.shares * px["price"], a.shares * a.avg_cost
         res["position"] = {"shares": a.shares, "avg_cost": a.avg_cost, "value": val, "pnl": val - cost,
@@ -3023,6 +3425,7 @@ def main():
         save_snapshot(acc_raw, a.snapshot)
     os.makedirs(a.outdir, exist_ok=True)
     prev, history = update_history(res, os.path.join(a.outdir, "history.csv"))
+    res["metric_history"] = update_metric_history(res, os.path.join(a.outdir, "metric_history.csv"))
     res["change"] = change_summary(res, prev)
     res["history"] = history
     print("\n".join(log))
