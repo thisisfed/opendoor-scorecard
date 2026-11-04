@@ -10,7 +10,7 @@ Each run pulls:
 - Opendoor's weekly tracker from accountable.opendoor.com;
 - the share price (Yahoo Finance, then Nasdaq, then Stooq);
 - the 30-year US mortgage rate (Freddie Mac, via the St. Louis Fed);
-- days on market, price cuts, asking prices and listings in 12 of Opendoor's markets (Realtor.com, via the St. Louis Fed);
+- days on market, price cuts, asking prices and listings in 12 of Opendoor's markets (Realtor.com's monthly data);
 - the table of potential new shares (awards, warrants, convertible notes) from each 10-Q.
 
 It rescores the company, records the day's score in the history and republishes the page. The page shows the change

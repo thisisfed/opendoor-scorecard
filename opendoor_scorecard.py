@@ -12,7 +12,8 @@ Data sources (all free, pulled live unless --offline):
   4. Prices              - Yahoo Finance, then Nasdaq, then Stooq
   5. Freddie Mac 30-year mortgage rate via FRED (St. Louis Fed)
   6. 10-Q / 10-K table of anti-dilutive securities - potential new shares by type (awards, warrants, notes)
-  7. Realtor.com via FRED - days on market, price cuts, asking prices and listings in 12 Opendoor markets
+  7. Realtor.com monthly data (FRED as backup) - days on market, price cuts, asking prices, listings
+                           in 12 Opendoor markets
   8. opendoor_kpis.csv   - hand-entered figures; any value here overrides the automatic sources
   9. CAPITAL_EVENTS / PRICE_TRIGGERED - deals after the last balance sheet, and the price terms of awards,
                            warrants and convertible notes (from Opendoor's 8-Ks)
@@ -774,43 +775,116 @@ def _yoy(pts, ratio=True):
     return m, v, (v / prior - 1) if ratio else v - prior
 
 
-def housing_markets(log):
-    """Days on market, price cuts, asking prices and listings in Opendoor's markets (Realtor.com via FRED)."""
+RDC = "https://econdata.s3-us-west-2.amazonaws.com/Reports/Core/RDC_Inventory_Core_Metrics_{}.csv"
+
+
+def _num_or_none(v):
+    try:
+        return float(v)
+    except (TypeError, ValueError):
+        return None
+
+
+RDC_CHANGES = ("median_days_on_market_yy", "median_listing_price_yy", "active_listing_count_yy", "price_reduced_count_yy")
+
+
+def _rdc_scales(rows):
+    """Realtor.com gives changes as fractions (0.05); if a file ever switches to percent (5.0), the typical size
+    across hundreds of metros gives it away."""
+    out = {}
+    for k in RDC_CHANGES:
+        v = sorted(abs(x) for x in (_num_or_none(r.get(k)) for r in rows) if x is not None)
+        out[k] = 100.0 if v and v[len(v) // 2] > 0.5 else 1.0
+    return out
+
+
+def _rdc_row(r, scales):
+    """One Realtor.com row -> our fields. Changes are fractions; the price-cut share change is in share points."""
+    f = lambda k: _num_or_none(r.get(k))
+    yy = lambda k: (lambda v: None if v is None else v / scales.get(k, 1.0))(f(k))
+    listings, cuts = f("active_listing_count"), f("price_reduced_count")
+    share = cuts / listings if cuts is not None and listings else None
+    l_yy, c_yy = yy("active_listing_count_yy"), yy("price_reduced_count_yy")
+    prior = None
+    if cuts and listings and l_yy is not None and c_yy is not None and c_yy > -1 and l_yy > -1:
+        prior = (cuts / (1 + c_yy)) / (listings / (1 + l_yy))
+    m = str(r.get("month_date_yyyymm", "")).strip()
+    return {"month": f"{m[:4]}-{m[4:6]}" if len(m) >= 6 else None, "dom": f("median_days_on_market"),
+            "dom_yoy": yy("median_days_on_market_yy"), "price": f("median_listing_price"),
+            "price_yoy": yy("median_listing_price_yy"), "listings": listings, "listings_yoy": l_yy,
+            "cut_share": share, "cuts_yoy": (share - prior) if share is not None and prior is not None else None}
+
+
+def _housing_realtor():
+    codes = {c: n for n, c in HOUSING_METROS}
+    rows = list(csv.DictReader(get(RDC.format("Metro"), timeout=60).splitlines()))
+    scales = _rdc_scales(rows)
+    metros = {}
+    for r in rows:
+        code = str(r.get("cbsa_code", "")).strip()
+        if code in codes:
+            metros[code] = dict(_rdc_row(r, scales), name=codes[code], code=code)
+    us = None
+    for r in csv.DictReader(get(RDC.format("Country"), timeout=60).splitlines()):
+        if _num_or_none(r.get("median_days_on_market")) is not None:
+            us = dict(_rdc_row(r, scales), name="United States", code="US")
+            break
+    return [metros[c] for _, c in HOUSING_METROS if c in metros], us, "Realtor.com"
+
+
+def _housing_fred():
+    """Backup: the same Realtor.com series as mirrored by FRED (one quick probe first, as FRED often
+    times out from cloud servers)."""
     from concurrent.futures import ThreadPoolExecutor
     start = (dt.date.today() - dt.timedelta(days=800)).isoformat()
+    get(f"https://fred.stlouisfed.org/graph/fredgraph.csv?id=MEDDAYONMARUS&cosd={start}", timeout=15)
     places = HOUSING_METROS + [("United States", "US")]
     jobs = {(name, key): f"{prefix}{code}" for name, code in places for key, prefix in HOUSING_SERIES.items()}
-    got, failed = {}, []
-    with ThreadPoolExecutor(max_workers=8) as pool:
+    got = {}
+    with ThreadPoolExecutor(max_workers=6) as pool:
         futs = {k: pool.submit(_fred_series, sid, start) for k, sid in jobs.items()}
-        for k, f in futs.items():
+        for k, fu in futs.items():
             try:
-                got[k] = f.result()
-            except Exception as e:
-                failed.append(f"{jobs[k]} ({str(e)[:40]})")
+                got[k] = fu.result()
+            except Exception:
+                pass
     rows = []
     for name, code in places:
-        s = {key: got.get((name, key), []) for key in HOUSING_SERIES}
-        month, dom, dom_yoy = _yoy(s["dom"])
-        _, price, price_yoy = _yoy(s["price"])
-        _, listings, listings_yoy = _yoy(s["listings"])
-        share = [(m, c / dict(s["listings"])[m]) for m, c in s["cuts"] if dict(s["listings"]).get(m)]
+        ser = {key: got.get((name, key), []) for key in HOUSING_SERIES}
+        month, dom, dom_yoy = _yoy(ser["dom"])
+        _, price, price_yoy = _yoy(ser["price"])
+        _, listings, listings_yoy = _yoy(ser["listings"])
+        lst = dict(ser["listings"])
+        share = [(m, c / lst[m]) for m, c in ser["cuts"] if lst.get(m)]
         _, cut_share, cuts_yoy = _yoy(share, ratio=False)
         if month:
             rows.append({"name": name, "code": code, "month": month, "dom": dom, "dom_yoy": dom_yoy, "price": price,
                          "price_yoy": price_yoy, "listings": listings, "listings_yoy": listings_yoy,
                          "cut_share": cut_share, "cuts_yoy": cuts_yoy})
-    metros = [r for r in rows if r["code"] != "US"]
-    if len(metros) < len(HOUSING_METROS) // 2:
-        raise RuntimeError(f"only {len(metros)} markets came back; failed: {', '.join(failed[:6])}")
-    med = lambda k: (lambda v: None if not v else sorted(v)[len(v) // 2] if len(v) % 2 else sum(sorted(v)[len(v) // 2 - 1:len(v) // 2 + 1]) / 2)(
-        [r[k] for r in metros if r.get(k) is not None])
+    return [r for r in rows if r["code"] != "US"], next((r for r in rows if r["code"] == "US"), None), "Realtor.com via FRED"
+
+
+def housing_markets(log):
+    """Days on market, price cuts, asking prices and listings in Opendoor's markets."""
+    errors = []
+    for fetch in (_housing_realtor, _housing_fred):
+        try:
+            metros, us, src = fetch()
+            if len(metros) < len(HOUSING_METROS) // 2:
+                raise RuntimeError(f"only {len(metros)} of {len(HOUSING_METROS)} markets")
+            break
+        except Exception as e:
+            errors.append(f"{fetch.__name__.strip('_')}: {str(e)[:70]}")
+    else:
+        raise RuntimeError("; ".join(errors))
+    def med(k):
+        v = sorted(r[k] for r in metros if r.get(k) is not None)
+        return None if not v else v[len(v) // 2] if len(v) % 2 else (v[len(v) // 2 - 1] + v[len(v) // 2]) / 2
     basket = {k: med(k) for k in ("dom", "dom_yoy", "cut_share", "cuts_yoy", "price_yoy", "listings_yoy")}
-    month = max(r["month"] for r in metros)
-    log.append(f"housing: {len(metros)} of {len(HOUSING_METROS)} markets, {month}"
-               + (f"; {len(failed)} series failed: {', '.join(failed[:4])}" if failed else ""))
-    return {"month": month, "metros": metros, "us": next((r for r in rows if r["code"] == "US"), None),
-            "basket": basket, "source": "Realtor.com via FRED"}
+    month = max(r["month"] for r in metros if r.get("month"))
+    log.append(f"housing ({src}): {len(metros)} of {len(HOUSING_METROS)} markets, {month}; median days on market "
+               f"{basket['dom'] or 0:.0f} ({(basket['dom_yoy'] or 0) * 100:+.1f}% YoY)" + (f"; earlier tries: {'; '.join(errors)}" if errors else ""))
+    return {"month": month, "metros": metros, "us": us, "basket": basket, "source": src}
 
 
 def mortgage_rates(log=None):
@@ -1507,7 +1581,7 @@ def _markets_card(res, pillar):
             f'<th>Price cuts<small>share of listings</small></th><th>Price cuts<small>1-year change</small></th>'
             f'<th>Asking prices<small>1-year change</small></th><th>Homes for sale<small>1-year change</small></th></tr>{body}</table></div>'
             f'<div class="ft">Green helps Opendoor resell its homes faster and for more; red hurts. Twelve of Opendoor&#39;s largest Sunbelt and '
-            f'Mountain markets, equally weighted; the median feeds the score. Source: {e(h.get("source", "Realtor.com via FRED"))}.</div></div>')
+            f'Mountain markets, equally weighted; the median feeds the score. Source: {e(h.get("source", "Realtor.com"))} monthly housing data.</div></div>')
 
 
 def write_html(res, path):
@@ -1664,7 +1738,7 @@ and the company's own convertible notes against its cash. Potential new shares c
 A quarterly figure one quarter old is labelled; older than that, it stops counting.
 The thresholds and weights are judgement calls and have not been back-tested against share-price returns. {e(est_note)}{e(pf_note)}</p>
 <p><b>Sources.</b> SEC EDGAR (financial statements and earnings releases), accountable.opendoor.com, {e(str(px.get('source', 'price data')))} (price),
-{e(mort.get('source') or 'Freddie Mac')} (mortgage rate), Realtor.com via FRED (housing in Opendoor's markets). Download the <a href="history.csv">score history</a> or <a href="scorecard.json">all the data</a>.</p>
+{e(mort.get('source') or 'Freddie Mac')} (mortgage rate), Realtor.com (housing in Opendoor's markets). Download the <a href="history.csv">score history</a> or <a href="scorecard.json">all the data</a>.</p>
 <p class="credit"><span>Made by <a href="https://thisisfed.xyz" target="_blank" rel="noopener">Federico R. T. Ferrari</a></span>
 <a href="https://thisisfed.xyz" target="_blank" rel="noopener">thisisfed.xyz</a>
 <a href="https://github.com/thisisfed/opendoor-scorecard" target="_blank" rel="noopener">Source code</a></p>
