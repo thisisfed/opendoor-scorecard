@@ -1380,7 +1380,7 @@ def metrics(q, px, acc, macro=None, dil=None, housing=None, today=None):
     done = [g_ for g_ in guidance if any(i["status"] != "pending" for i in g_["items"])][-4:]
     tally = {k: sum(1 for g_ in done for i in g_["items"] if i["status"] == k) for k in ("met", "beat", "close", "missed")}
     hit_rate = dict(tally, quarters=[g_["quarter"] for g_ in done], items=sum(tally.values())) if done else None
-    extra = {"fallout": fallout_hist, "ue_history": ue_hist, "stress": stress, "hit_rate": hit_rate,
+    extra = {"next_results": NEXT_RESULTS, "fallout": fallout_hist, "ue_history": ue_hist, "stress": stress, "hit_rate": hit_rate,
              "market_cap_musd": mcap, "ttm_revenue_musd": ttm_rev, "shares_m": shares, "pro_forma": pf,
              "capital_events": [e["what"] for e in applied], "q3_revenue_estimate_musd": q3_rev_est,
              "revenue_per_home_k": rph * 1000 if rph else None, "q3_prior_revenue_musd": q3_prior,
@@ -1763,7 +1763,10 @@ padding:8px 16px 32px;overflow-y:auto;z-index:4;animation:drop .22s ease-out}
 .menu a small{display:block;font-size:14px;color:var(--muted);margin-top:1px}
 .menu a.menu-by{background:none;text-align:center;font-size:14px;color:var(--muted);margin-top:18px}
 .credit{display:flex;flex-wrap:wrap;justify-content:center;gap:6px 28px;margin:32px 0 0}
-.by{grid-column:3;justify-self:end;font-size:13px;color:var(--muted);text-decoration:none;white-space:nowrap;padding:6px 12px;border:1px solid var(--line);border-radius:10px;background:#fff}
+.r3{grid-column:3;justify-self:end;display:flex;align-items:center;gap:10px}
+.nl-btn{font-size:14px;font-weight:600;color:#fff;background:#1d4ed8;text-decoration:none;padding:7px 14px;border-radius:10px;white-space:nowrap;box-shadow:0 2px 10px rgba(29,78,216,.25)}
+.nl-btn:hover{background:#1e40af}
+.by{font-size:13px;color:var(--muted);text-decoration:none;white-space:nowrap;padding:6px 12px;border:1px solid var(--line);border-radius:10px;background:#fff}
 .by:hover{color:var(--ink)}
 .credit{font-size:14px;color:var(--ink);padding:14px 0;border-top:1px solid #e3dfda;border-bottom:1px solid #e3dfda}
 .credit a{font-weight:500;text-decoration:none;border-bottom:1px solid #cfc8c0}.credit a:hover{border-color:var(--ink)}
@@ -1888,6 +1891,33 @@ table.thr tr.grp{display:block}table.thr tr.grp td{padding:6px 0}}
 .tgt-hd{display:flex;justify-content:space-between;align-items:baseline;gap:12px;flex-wrap:wrap}.tgt-hd b{font-weight:500;font-size:16px}
 .tgt p{margin:6px 0 0;font-size:14px;color:var(--muted2);max-width:900px}.tgt p.dim{font-size:13px;color:var(--muted)}
 table.guide{margin-top:8px}table.guide td:first-child{white-space:normal}
+.nl{margin-top:24px;border-radius:22px;padding:36px 40px;background:radial-gradient(120% 140% at 0% 0%,#2b4fd8 0%,#1b2f8a 45%,#131a3d 100%);
+color:#fff;display:grid;grid-template-columns:1.05fr 1fr;gap:40px;align-items:center;box-shadow:0 18px 50px rgba(19,26,61,.28);position:relative;overflow:hidden}
+.nl:after{content:"";position:absolute;right:-80px;top:-80px;width:260px;height:260px;border-radius:50%;background:rgba(255,255,255,.06)}
+.nl-k{margin:0 0 8px;font-size:13px;letter-spacing:.08em;text-transform:uppercase;color:#a9bbff;font-weight:600}
+.nl h2{margin:0;font-size:34px;line-height:1.1;font-weight:600;letter-spacing:-.02em;color:#fff}
+.nl-p{margin:12px 0 0;font-size:17px;line-height:1.45;color:#d6defc}
+.nl-list{margin:16px 0 0;padding:0;list-style:none;font-size:15px;color:#e8edff}.nl-list li{padding:4px 0 4px 26px;position:relative}
+.nl-list li:before{content:"";position:absolute;left:0;top:9px;width:14px;height:8px;border-left:2px solid #7ee2b8;border-bottom:2px solid #7ee2b8;transform:rotate(-45deg)}
+.nl-form{position:relative;z-index:1;background:rgba(255,255,255,.08);border:1px solid rgba(255,255,255,.14);border-radius:16px;padding:20px}
+.freq{border:0;margin:0 0 14px;padding:0;display:grid;grid-template-columns:1fr 1fr;gap:10px}.freq legend{font-size:14px;color:#c9d4ff;margin-bottom:8px;padding:0}
+.freq label{display:block;cursor:pointer}.freq input{position:absolute;opacity:0;pointer-events:none}
+.freq span{display:block;border:1.5px solid rgba(255,255,255,.22);border-radius:12px;padding:12px 14px;transition:.15s}
+.freq b{display:block;font-size:17px;font-weight:600;color:#fff}.freq small{display:block;font-size:13px;color:#c9d4ff;margin-top:2px}
+.freq input:checked+span{background:#fff;border-color:#fff}.freq input:checked+span b{color:#1b2f8a}.freq input:checked+span small{color:#4b5a8f}
+.freq input:focus-visible+span{outline:2px solid #7ee2b8;outline-offset:2px}
+.nl-row{display:flex;gap:8px}.nl-row input{flex:1;min-width:0;font:inherit;font-size:16px;padding:13px 14px;border-radius:12px;border:0;color:#23201d}
+.nl-row button{font:inherit;font-size:16px;font-weight:600;padding:13px 18px;border:0;border-radius:12px;background:#7ee2b8;color:#0f2a1f;cursor:pointer;white-space:nowrap}
+.nl-row button:hover{background:#9cf0cc}
+.nl-ok{margin:12px 0 0;font-size:14px;color:#7ee2b8}.nl-fine{margin:12px 0 0;font-size:12.5px;color:#a9b6e8}.nl-fine a{color:#fff}
+.nl-cta{display:inline-flex;align-items:center;gap:8px;margin-top:18px;font-size:16px;font-weight:600;color:#fff;background:#1d4ed8;
+padding:11px 18px;border-radius:12px;text-decoration:none;box-shadow:0 6px 20px rgba(29,78,216,.28)}.nl-cta:hover{background:#1e40af}
+.nl-strip{display:flex;justify-content:space-between;align-items:center;gap:16px;margin-top:28px;padding:18px 22px;border-radius:16px;
+background:#131a3d;color:#e8edff;text-decoration:none;font-size:16px}.nl-strip b{color:#fff;font-weight:600}
+.nl-go{background:#7ee2b8;color:#0f2a1f;font-weight:600;padding:8px 14px;border-radius:10px;white-space:nowrap}
+.menu a.menu-nl{background:#1d4ed8;color:#fff}.menu a.menu-nl small{color:#c9d4ff}
+@media (max-width:900px){.nl{grid-template-columns:1fr;padding:26px 20px;gap:22px;border-radius:18px}.nl h2{font-size:27px}
+.nl-row{flex-direction:column}.freq{grid-template-columns:1fr 1fr}.nl-strip{flex-direction:column;align-items:flex-start}}
 .hit{font-size:15px!important;color:var(--ink,#23201d)!important;margin:8px 0 4px!important}.hit b{font-weight:600}
 table.guide tr.grp td,table.sx tr.grp td{background:#faf8f5;font-weight:500;padding-top:10px}table.guide .dim{color:var(--muted);font-weight:400;font-size:13px}
 td.dim{color:var(--muted);font-size:13px}
@@ -1909,9 +1939,9 @@ background:#fff;border-radius:999px;padding:7px 14px;cursor:pointer}.pre.on{back
 @media (max-width:640px){.chartbox .dchart{min-width:600px}}
 @media (max-width:520px){.pair{grid-template-columns:96px 1fr 70px;gap:8px}.dlab b{font-size:22px}}
 @media (prefers-reduced-motion:reduce){.dchart .pulse{animation:none}}
-@media (max-width:1180px){.bar nav.desk{display:none}.burger{display:block}.by{grid-column:1;justify-self:start}
+@media (max-width:1180px){.bar nav.desk{display:none}.burger{display:block}.r3{grid-column:1;justify-self:start}
 .menu a{max-width:680px;margin-left:auto;margin-right:auto}}
-@media (max-width:900px){.burger{display:block}.by{display:none}.bar nav.desk{display:none}.hero{grid-template-columns:1fr;gap:20px;padding-top:48px}.asof{position:static;text-align:left;order:-1}
+@media (max-width:900px){.burger{display:block}.by{display:none}.r3 .nl-btn{display:none}.bar nav.desk{display:none}.hero{grid-template-columns:1fr;gap:20px;padding-top:48px}.asof{position:static;text-align:left;order:-1}
 .grid{grid-template-columns:1fr}.kpis{grid-template-columns:1fr 1fr}.kpi:nth-child(2){border-right:0}
 .kpi:nth-child(-n+2){border-bottom:1px solid var(--line)}h1{margin-top:8px}.bar nav.desk{display:none}}
 @media (max-width:520px){.brand small{font-size:11px}.brand{font-size:17px}.pbar{grid-template-columns:110px 1fr 34px;gap:10px;font-size:14px}.pbar .w{display:none}
@@ -2048,6 +2078,41 @@ def _targets_card(res):
                 f'would need to be at least ${nc["guide_min_revenue"] / nc["homes"] * 1000:.0f}K.</div>')
     return ('<div class="card" id="targets"><div class="hd"><div><h2>Path to management\'s targets</h2><p class="sub">What '
             'Opendoor said it would do, and what it has reported</p></div></div><div class="bd">' + parts + '</div>' + foot + '</div>')
+
+
+NEWSLETTER_USER = os.environ.get("BUTTONDOWN_USERNAME", "").strip()  # set as a repository variable to switch the signup on
+
+
+def _subscribe_card():
+    if not NEWSLETTER_USER:
+        return ""
+    u = html.escape(NEWSLETTER_USER)
+    return (
+        '<div class="nl" id="subscribe"><div class="nl-l"><p class="nl-k">Free newsletter</p>'
+        '<h2>Get the score in your inbox</h2>'
+        '<p class="nl-p">The grade, what moved and why, and what is coming up, written from the same numbers as this page. '
+        'Pick how often.</p>'
+        '<ul class="nl-list"><li>Score and grade changes, explained</li><li>New results the evening they land</li>'
+        '<li>No ads, no tips, unsubscribe in one click</li></ul></div>'
+        f'<form class="nl-form" action="https://buttondown.com/api/emails/embed-subscribe/{u}" method="post" target="_blank">'
+        '<fieldset class="freq"><legend>How often?</legend>'
+        '<label><input type="radio" name="tag" value="daily"><span><b>Daily</b><small>Every weekday evening, after the US close</small></span></label>'
+        '<label><input type="radio" name="tag" value="weekly" checked><span><b>Weekly</b><small>A Friday round-up of the week</small></span></label>'
+        '</fieldset>'
+        '<div class="nl-row"><input type="email" name="email" required placeholder="you@example.com" aria-label="Email address" autocomplete="email">'
+        '<button type="submit">Subscribe, free</button></div>'
+        '<input type="hidden" name="metadata__source" value="scorecard"><input type="hidden" name="embed" value="1">'
+        '<p class="nl-ok" hidden>Nearly there: confirm in the tab that just opened, then click the link in the email we sent you.</p>'
+        f'<p class="nl-fine">Sent with Buttondown. Your email is used for this newsletter only. '
+        f'<a href="https://buttondown.com/{u}/archive" target="_blank" rel="noopener">Read past emails</a></p>'
+        '</form></div>')
+
+
+def _subscribe_strip():
+    if not NEWSLETTER_USER:
+        return ""
+    return ('<a class="nl-strip" href="#subscribe"><span><b>Follow the score by email.</b> Daily or weekly, free.</span>'
+            '<span class="nl-go">Subscribe</span></a>')
 
 
 STATUS_BADGE = {"met": ("Met", "green"), "beat": ("Beat", "green"), "close": ("Close", "amber"),
@@ -2476,11 +2541,12 @@ def write_html(res, path):
 <div class="bar"><div class="in">
 <nav class="desk"><a href="#score">Score</a><a href="#pillars">Pillars</a><a href="#deep">Details</a><a href="#contracts">Contracts</a><a href="#history">History</a><a href="#method">Method</a></nav>
 <a class="brand" href="./">Opendoor Scorecard<small>Independent and not affiliated with Opendoor</small></a>
-<a class="by" href="https://thisisfed.xyz" target="_blank" rel="noopener">by Federico R. T. Ferrari</a>
+<div class="r3">{'<a class="nl-btn" href="#subscribe">Subscribe</a>' if NEWSLETTER_USER else ''}<a class="by" href="https://thisisfed.xyz" target="_blank" rel="noopener">by Federico R. T. Ferrari</a></div>
 <button class="burger" type="button" aria-label="Open menu" aria-expanded="false" aria-controls="menu"><span></span><span></span><span></span></button>
 </div>
 </div>
 <nav class="menu" id="menu" hidden>
+{'<a class="menu-nl" href="#subscribe"><span>Get it by email</span><small>Daily or weekly, free</small></a>' if NEWSLETTER_USER else ''}
 <a href="#score"><span>Overall score</span><small>The grade and why</small></a>
 <a href="#pillars"><span>Pillars</span><small>What drives each score</small></a>
 <a href="#deep"><span>Details</span><small>Debt, dilution and Opendoor&#39;s markets</small></a>
@@ -2493,7 +2559,8 @@ def write_html(res, path):
 <section class="hero">
 <div class="asof"><span class="dot"></span>Updated {e(_d(res['generated']))}, {e(res['generated'][11:16])} UK<i>Prices to {e(_d(px['date']))}</i><i>Opendoor tracker as of {e(_d(asof))}, refreshed weekly</i></div>
 <h1>Opendoor,<br>scored.<br>Every weekday.</h1>
-<p class="lede">An independent scorecard that grades Opendoor 0–10 on nine pillars, rebuilt every weekday from SEC filings, the share price, housing data from its markets and Opendoor's own public tracker.</p>
+<div><p class="lede">An independent scorecard that grades Opendoor 0–10 on nine pillars, rebuilt every weekday from SEC filings, the share price, housing data from its markets and Opendoor's own public tracker.</p>
+{'<a class="nl-cta" href="#subscribe">Get it by email, daily or weekly <span>&rarr;</span></a>' if NEWSLETTER_USER else ''}</div>
 </section>
 
 <div class="card" id="score"><div class="hd stack"><div><h2>Overall score</h2><p class="sub">Weighted across nine pillars</p></div>
@@ -2502,6 +2569,8 @@ def write_html(res, path):
 <span class="grade badge {tone}">{e(s['grade'])}</span></div>
 <p class="verdict">{e(s['verdict'])}</p><p class="why">{e(s['why'])}</p></div>
 <div class="kpis">{kpi_html}</div></div>
+
+{_subscribe_card()}
 
 <div class="card"><div class="hd"><div><h2>Score by pillar</h2><p class="sub">Each pillar is the average of its metrics, 0–10</p></div></div>
 <div class="bd">{bars}<p class="decomp">How the {s['overall']:.2f} adds up (pillar score x weight): {decomp}.</p></div></div>
@@ -2534,6 +2603,7 @@ def write_html(res, path):
 {_weights_play_card(s)}
 {_thresholds_card(s)}
 
+{_subscribe_strip()}
 <footer><p><b>Method.</b> Each metric scores 0–10 on a straight line between a "0 points" and a "10 points" value (all of them are listed above).
 Pillars average their metrics, and the overall score weights the pillars as shown. Grades: A 8+, B 6.5+, C 5+, D 3.5+, F below. The colour at the top of the page follows the score, from red to green.
 Debt is split by what backs it: home-backed debt, which lenders can recover only from the homes, is measured against the homes it funds,
@@ -2633,6 +2703,9 @@ a recommendation or investment advice.</p></footer>
 </script>
 <script>
 (function () {{
+  document.querySelectorAll(".nl-form").forEach(function (f) {{
+    f.addEventListener("submit", function () {{ setTimeout(function () {{ f.querySelector(".nl-ok").hidden = false; }}, 300); }});
+  }});
   document.querySelectorAll(".uebox").forEach(function (b) {{ b.scrollLeft = b.scrollWidth; }});
   var out = document.querySelector(".stress-out");
   if (out) {{
@@ -2926,6 +2999,17 @@ def main():
             pass
         elif abs(ch["overall"]) >= 0.05 or ch["grade_from"] != res["score"]["grade"] or os.environ.get("NTFY_ALWAYS"):
             notify(line, "Opendoor scorecard")
+    old_path = os.path.join(a.outdir, "scorecard.json")
+    if os.path.exists(old_path):
+        try:
+            old = json.load(open(old_path))
+            if old.get("generated", "")[:10] != res["generated"][:10]:
+                res["previous"] = {"generated": old.get("generated"),
+                                   "points": {i["key"]: i["score"] for p in old["score"]["pillars"] for i in p["metrics"]}}
+            else:
+                res["previous"] = old.get("previous")
+        except Exception:
+            pass
     with open(os.path.join(a.outdir, "scorecard.json"), "w") as fh:
         json.dump(res, fh, indent=2, default=str)
     write_html(res, os.path.join(a.outdir, "index.html"))

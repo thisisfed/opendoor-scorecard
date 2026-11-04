@@ -4,6 +4,11 @@ on:
   schedule:
     - cron: "30 22 * * 1-5"   # weekdays 22:30 UTC (22:30 UK in winter, 23:30 in summer), after the US close
   workflow_dispatch:           # "Run workflow" button in the Actions tab
+    inputs:
+      send_newsletter:
+        description: "Also email subscribers what is due today (normally only the evening run does)"
+        type: boolean
+        default: false
   push:
     branches: [main]
     paths: ["opendoor_kpis.csv", "opendoor_scorecard.py"]   # rerun when you edit the data or the script
@@ -34,6 +39,7 @@ jobs:
         env:
           SEC_UA: ${{ secrets.SEC_UA }}
           NTFY_TOPIC: ${{ secrets.NTFY_TOPIC }}
+          BUTTONDOWN_USERNAME: ${{ vars.BUTTONDOWN_USERNAME }}
         run: python3 opendoor_scorecard.py --outdir site
 
       - name: Save score history to the repo
@@ -53,3 +59,17 @@ jobs:
           path: site
       - id: deployment
         uses: actions/deploy-pages@v4
+
+      # After the page is live: email subscribers (does nothing until the BUTTONDOWN_API_KEY secret is set)
+      - name: Email subscribers
+        env:
+          BUTTONDOWN_API_KEY: ${{ secrets.BUTTONDOWN_API_KEY }}
+          SEND: ${{ github.event_name == 'schedule' || inputs.send_newsletter == true }}
+        run: |
+          if [ "$SEND" = "true" ]; then python3 newsletter.py --setup --send; else python3 newsletter.py --setup; fi
+          git add newsletter_log.json 2>/dev/null || true
+          if ! git diff --cached --quiet; then
+            git commit -m "Newsletter sent $(date -u +%F)"
+            git pull --rebase
+            git push
+          fi
