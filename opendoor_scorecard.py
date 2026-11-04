@@ -1445,7 +1445,38 @@ def metrics(q, px, acc, macro=None, dil=None, housing=None, today=None):
     done = [g_ for g_ in guidance if any(i["status"] != "pending" for i in g_["items"])][-4:]
     tally = {k: sum(1 for g_ in done for i in g_["items"] if i["status"] == k) for k in ("met", "beat", "close", "missed")}
     hit_rate = dict(tally, quarters=[g_["quarter"] for g_ in done], items=sum(tally.values())) if done else None
-    extra = {"next_results": NEXT_RESULTS, "fallout": fallout_hist, "ue_history": ue_hist, "stress": stress, "hit_rate": hit_rate,
+    # analyst view: (1) how the revenue-estimate method would have done on past quarters, using reported homes sold
+    backtest = []
+    for i in range(2, len(q)):
+        a, b, c = q[i - 2], q[i - 1], q[i]
+        if all(r.get("homes_sold") and r.get("revenue_musd") for r in (a, b, c)) and \
+                80 <= _days(a["quarter_end"], b["quarter_end"]) <= 100 and 80 <= _days(b["quarter_end"], c["quarter_end"]) <= 100:
+            rph_ = (a["revenue_musd"] + b["revenue_musd"]) / (a["homes_sold"] + b["homes_sold"])
+            est = c["homes_sold"] * rph_
+            backtest.append({"quarter": c["quarter_end"], "homes": c["homes_sold"], "rph_k": rph_ * 1000, "estimate": est,
+                             "reported": c["revenue_musd"], "error": est / c["revenue_musd"] - 1})
+    # (2) per-share figures from the pro-forma balance sheet, on today's shares and with potential shares live at today's price
+    inv_ps = bs.get("inventory_musd")
+    per_share = None
+    if shares and pf.get("cash_musd") is not None:
+        diluted = shares + (live or 0)
+        lines_ = [("Cash", pf["cash_musd"]), ("Book value (equity)", pf.get("equity_musd")),
+                  ("Equity in homes (homes less the debt secured on them)",
+                   inv_ps - pf["home_debt_musd"] if inv_ps is not None and pf.get("home_debt_musd") is not None else None),
+                  ("Convertible notes (the company's own debt)", -pf["convert_debt_musd"] if pf.get("convert_debt_musd") is not None else None),
+                  ("Cash less convertible notes", pf["cash_musd"] - pf["convert_debt_musd"] if pf.get("convert_debt_musd") is not None else None)]
+        per_share = {"shares_m": shares, "diluted_m": diluted, "price": px["price"], "as_of": pf.get("as_of"),
+                     "rows": [{"label": l, "musd": v, "basic": v / shares if v is not None else None,
+                               "diluted": v / diluted if v is not None else None} for l, v in lines_]}
+    # (3) calendar-year revenue, for scale next to what the price implies
+    years = {}
+    for r in q:
+        years.setdefault(r["quarter_end"][:4], []).append(r["revenue_musd"])
+    year_rev = {y: sum(v) for y, v in years.items() if len(v) == 4}
+    analyst = {"backtest": backtest, "per_share": per_share, "year_revenue": year_rev, "market_cap_musd": mcap,
+               "ttm_revenue_musd": ttm_rev, "price": px["price"], "price_date": px["date"]}
+
+    extra = {"analyst": analyst, "next_results": NEXT_RESULTS, "fallout": fallout_hist, "ue_history": ue_hist, "stress": stress, "hit_rate": hit_rate,
              "market_cap_musd": mcap, "ttm_revenue_musd": ttm_rev, "shares_m": shares, "pro_forma": pf,
              "capital_events": [e["what"] for e in applied], "q3_revenue_estimate_musd": q3_rev_est,
              "revenue_per_home_k": rph * 1000 if rph else None, "q3_prior_revenue_musd": q3_prior,
@@ -1945,6 +1976,20 @@ border-radius:12px;padding:10px 12px;font-size:14px}.sin small{display:block;fon
 .in-note{margin:8px 0 0;font-size:12.5px}.sc-pil{font-size:13.5px;color:var(--muted2);margin:12px 0 0}
 .spre{font:inherit;font-size:14px;border:1px solid var(--line);background:#fff;border-radius:999px;padding:7px 14px;cursor:pointer}
 .spre.on{background:#1d4ed8;color:#fff;border-color:#1d4ed8}
+table.trk td small,table.psh th small{display:block;font-size:11.5px;color:var(--muted);font-weight:400}
+table.trk td,table.trk th{white-space:nowrap}table.psh td:not(.wtxt){white-space:nowrap}
+.imp-in{display:grid;grid-template-columns:repeat(4,1fr);gap:10px}.imp-in select{width:100%;font:inherit;font-size:16px;padding:7px 9px;
+border:1px solid var(--line);border-radius:8px;background:#fff}.imp-cash{display:flex;gap:8px;align-items:center;font-size:14px;color:var(--muted2);margin-top:12px}
+.imp-out{font-size:17px;line-height:1.5;margin:14px 0 0}.imp-out b{font-weight:600}
+table.imp-grid td,table.imp-grid th{white-space:nowrap;text-align:right}table.imp-grid td:first-child,table.imp-grid th:first-child{text-align:left}
+table.imp-grid td small{display:block;font-size:11.5px;color:var(--muted)}table.imp-grid td.on{background:#eef2ff;border-radius:8px;font-weight:600}
+@media (max-width:900px){.imp-in{grid-template-columns:1fr 1fr}}
+@media (max-width:640px){table.trk tr:first-child,table.psh tr:first-child{display:none}table.trk,table.trk tbody,table.psh,table.psh tbody{display:block}
+table.trk tr,table.psh tr{display:grid;grid-template-columns:1fr 1fr 1fr;gap:4px 8px;padding:10px 0;border-bottom:1px solid #eee}
+table.trk td,table.psh td{border:0;padding:0;text-align:left!important;white-space:normal!important;font-size:13px}
+table.trk td:first-child,table.psh td:first-child{grid-column:1/-1;font-weight:500;min-width:0}
+table.trk td[data-l]::before,table.psh td[data-l]::before{content:attr(data-l);display:block;font-size:11px;color:#8a8a8a}
+table.imp-grid td:first-child,table.imp-grid th:first-child{position:sticky;left:0;background:#fff;z-index:1}}
 .mc{margin:0;padding-left:18px;font-size:14px;color:var(--muted2)}.mc li{margin:4px 0}
 /* wide tables on phones: scroll sideways, keep the first column in view */
 table.dil td:first-child,table.dil th:first-child,table.mk td:first-child,table.mk th:first-child,table.mv td:first-child,
@@ -2631,6 +2676,112 @@ def _method_changes_card():
             f'<div class="bd"><ul class="mc">{items or "<li>None yet.</li>"}</ul></div></div>')
 
 
+# ---------------------------------------------------------------- analyst view
+def _bn(v):
+    sign, v = ("-" if v < 0 else ""), abs(v)
+    return sign + (f"${v / 1000:,.2f}bn" if v >= 1000 else f"${v:,.0f}M")
+
+
+def _track_card(res):
+    """The page's own revenue estimates against what Opendoor then reported, plus a backtest of the same method."""
+    e = html.escape
+    log, bt = res.get("estimates_log") or {}, res["extra"]["analyst"]["backtest"]
+    live = ""
+    for qe, x in sorted(log.items(), reverse=True):
+        if x.get("reported") is not None:
+            f = x["final"]
+            live += (f'<tr><td>{_qlabel(qe)}</td><td data-l="Our estimate">${f["revenue"]:,.0f}M<small>{_d(f["date"])}</small></td>'
+                     f'<td data-l="Guidance">{f"at least ${x['guide_min']:,.0f}M" if x.get("guide_min") else "–"}</td>'
+                     f'<td data-l="Reported">${x["reported"]:,.0f}M</td><td data-l="Error"><b>{x["error"] * 100:+.1f}%</b></td></tr>')
+        elif x.get("estimates"):
+            f = x["estimates"][-1]
+            live += (f'<tr><td>{_qlabel(qe)}</td><td data-l="Our estimate">${f["revenue"]:,.0f}M<small>{_d(f["date"])}, '
+                     f'{len(x["estimates"])} so far</small></td>'
+                     f'<td data-l="Guidance">{f"at least ${x['guide_min']:,.0f}M" if x.get("guide_min") else "–"}</td>'
+                     f'<td data-l="Reported">pending</td><td data-l="Error">–</td></tr>')
+    settled = [x for x in log.values() if x.get("reported") is not None]
+    live_note = (f'Average miss so far: {sum(abs(x["error"]) for x in settled) / len(settled) * 100:.1f}% over {len(settled)} '
+                 f'quarter{"s" if len(settled) != 1 else ""}.' if settled else
+                 "The live record starts with Q3 2026: the estimate is saved on every run until the results are out, "
+                 "and the last one made before them is the one that counts.")
+    btr = "".join(f'<tr><td>{_qlabel(b["quarter"])}</td><td data-l="Homes sold">{b["homes"]:,.0f}</td>'
+                  f'<td data-l="Revenue per home">${b["rph_k"]:,.0f}K</td><td data-l="Estimate">${b["estimate"]:,.0f}M</td>'
+                  f'<td data-l="Reported">${b["reported"]:,.0f}M</td><td data-l="Error"><b>{b["error"] * 100:+.1f}%</b></td></tr>'
+                  for b in reversed(bt))
+    mae = sum(abs(b["error"]) for b in bt) / len(bt) * 100 if bt else None
+    return ('<div class="card" id="track"><div class="hd"><div><h2>Estimate track record</h2><p class="sub">This page\'s revenue '
+            'estimate before each report, against what Opendoor then reported</p></div>'
+            + (f'<div class="right">{_badge(f"{mae:.1f}%", "green" if mae < 3 else "amber")}<p class="sub">average miss, backtest</p></div>' if mae is not None else "")
+            + '</div><div class="bd"><p class="mv-h" style="margin-top:0">Live</p></div>'
+            '<div class="bd scroll" style="padding-top:0"><table class="trk"><tr><th>Quarter</th><th>Our estimate</th><th>Guidance</th>'
+            f'<th>Reported</th><th>Error</th></tr>{live or "<tr><td colspan=5>No estimates yet.</td></tr>"}</table>'
+            f'<p class="dim">{e(live_note)}</p></div>'
+            '<div class="bd"><p class="mv-h" style="margin-top:0">Backtest of the same method</p></div>'
+            '<div class="bd scroll" style="padding-top:0"><table class="trk"><tr><th>Quarter</th><th>Homes sold</th><th>Revenue per home</th>'
+            f'<th>Estimate</th><th>Reported</th><th>Error</th></tr>{btr}</table></div>'
+            '<div class="ft">Method: homes sold in the quarter (from Opendoor\'s tracker, before the report) x revenue per home sold '
+            'over the two quarters before. The backtest uses the homes sold Opendoor later reported, so it tests only the '
+            'revenue-per-home assumption; the live record also carries any gap between the tracker and the reported count. '
+            'Errors are estimate vs reported: positive means the estimate was too high.</div></div>')
+
+
+def _implied_card(res):
+    """What today's market value assumes, worked backwards; every assumption is editable."""
+    e = html.escape
+    an = res["extra"]["analyst"]
+    ps = an.get("per_share") or {}
+    mcap, ttm = an.get("market_cap_musd"), an.get("ttm_revenue_musd")
+    if not mcap or not ttm:
+        return ""
+    net_cash = next((r["musd"] for r in ps.get("rows", []) if r["label"].startswith("Cash less")), None)
+    yr = an["year_revenue"]
+    peak = max(yr.items(), key=lambda kv: kv[1]) if yr else None
+    last_y = max(yr) if yr else None
+    data = {"mcap": mcap, "ttm": ttm, "net": net_cash or 0, "price": an["price"], "date": an["price_date"]}
+    year0 = int(an["price_date"][:4])
+    years = "".join(f'<option value="{y}"{" selected" if y == year0 + 3 else ""}>{y}</option>' for y in range(year0 + 2, year0 + 6))
+    scale = (f'For scale: revenue was {_bn(peak[1])} in {peak[0]}, the highest calendar year in the data, and '
+             f'{_bn(yr[last_y])} in {last_y}.' if peak else "")
+    return ('<div class="card" id="implied"><div class="hd"><div><h2>What today\'s price implies</h2><p class="sub">Worked '
+            'backwards from the share price: the revenue Opendoor would need, on assumptions you can change</p></div></div>'
+            f'<div class="bd" data-imp=\'{html.escape(json.dumps(data))}\'>'
+            '<div class="imp-in">'
+            f'<label class="sin"><span>Year<small>when the business is judged</small></span><span class="in-f"><select data-k="year">{years}</select></span></label>'
+            '<label class="sin"><span>Return wanted<small>a year, from today\'s price</small></span><span class="in-f"><input type="number" step="0.5" value="12" data-k="r">%</span></label>'
+            '<label class="sin"><span>Net margin then<small>net income / revenue</small></span><span class="in-f"><input type="number" step="0.5" value="2" data-k="m">%</span></label>'
+            '<label class="sin"><span>Earnings multiple then<small>price / earnings</small></span><span class="in-f"><input type="number" step="1" value="20" data-k="pe">x</span></label>'
+            '</div>'
+            f'<label class="imp-cash"><input type="checkbox" data-k="cash" checked> Count today\'s cash less the convertible notes '
+            f'({_bn(net_cash) if net_cash is not None else "n/a"}) as still there</label>'
+            '<p class="imp-out"></p>'
+            f'<p class="dim">{e(scale)}</p>'
+            '<p class="mv-h">Revenue needed, by margin and multiple</p></div>'
+            '<div class="bd scroll" style="padding-top:0"><table class="imp-grid"></table></div>'
+            '<div class="ft">Starts from today\'s market value (price x pro-forma shares), grows it at the return you want to the '
+            'end of the year you pick, takes off the cash if you count it, and divides by the multiple and the margin. It leaves '
+            'out further dilution and cash burn before then, both of which would raise the bar. A way of reading the price, '
+            'not a forecast or a price target.</div></div>')
+
+
+def _per_share_card(res):
+    ps = res["extra"]["analyst"].get("per_share")
+    if not ps:
+        return ""
+    e = html.escape
+    money = lambda v: "–" if v is None else ("-" if v < 0 else "") + f"${abs(v):,.2f}"
+    rows = "".join(f'<tr><td class="wtxt">{e(r["label"])}</td><td data-l="Total">{"–" if r["musd"] is None else _bn(r["musd"])}</td>'
+                   f'<td data-l="Per share">{money(r["basic"])}</td><td data-l="Per share, diluted">{money(r["diluted"])}</td></tr>'
+                   for r in ps["rows"])
+    return ('<div class="card" id="per-share"><div class="hd"><div><h2>Per share</h2><p class="sub">The balance sheet, per share, '
+            f'next to the ${ps["price"]:.2f} share price</p></div></div>'
+            '<div class="bd scroll" style="padding-top:4px"><table class="psh"><tr><th>What</th><th>Total</th>'
+            f'<th>Per share<small>{ps["shares_m"]:,.1f}M shares</small></th><th>Diluted<small>{ps["diluted_m"]:,.1f}M shares</small></th></tr>' + rows + '</table></div>'
+            f'<div class="ft">From the {_qlabel(ps["as_of"])} balance sheet, adjusted for the capital deals since (see Details). '
+            'Diluted adds the potential new shares that are live at today\'s price. '
+            'Equity in homes is what they are carried at less the debt secured on them, before selling costs or any fall in '
+            'prices (see the stress table in Details).</div></div>')
+
+
 WEIGHT_WHY = {
     "Growth": "Scale drives operating leverage; uses Opendoor's live tracker as well as reported revenue.",
     "Unit economics": "Whether each home earns money and sells quickly decides everything else.",
@@ -2900,7 +3051,7 @@ def write_html(res, path):
 <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600&display=swap" rel="stylesheet">
 <style>{CSS}:root{{{_glow(s["overall"])}}}</style></head><body>
 <div class="bar"><div class="in">
-<nav class="desk"><a href="#score">Score</a><a href="#pillars">Pillars</a><a href="#deep">Details</a><a href="#contracts">Contracts</a><a href="#history">History</a><a href="#method">Method</a></nav>
+<nav class="desk"><a href="#score">Score</a><a href="#pillars">Pillars</a><a href="#deep">Details</a><a href="#analyst">Analyst</a><a href="#contracts">Contracts</a><a href="#history">History</a><a href="#method">Method</a></nav>
 <a class="brand" href="./">Opendoor Scorecard<small>Independent and not affiliated with Opendoor</small></a>
 <div class="r3">{'<a class="nl-btn" href="#subscribe">Subscribe</a>' if NEWSLETTER_USER else ''}</div>
 <button class="burger" type="button" aria-label="Open menu" aria-expanded="false" aria-controls="menu"><span></span><span></span><span></span></button>
@@ -2911,6 +3062,7 @@ def write_html(res, path):
 <a href="#score"><span>Overall score</span><small>The grade and why</small></a>
 <a href="#pillars"><span>Pillars</span><small>What drives each score</small></a>
 <a href="#deep"><span>Details</span><small>Debt, dilution and Opendoor&#39;s markets</small></a>
+<a href="#analyst"><span>Analyst view</span><small>Estimate record, what the price implies, per share</small></a>
 <a href="#contracts"><span>Contracts</span><small>Opendoor against its own targets</small></a>
 <a href="#history"><span>History</span><small>Score over time and quarterly results</small></a>
 <a href="#method"><span>Method</span><small>Weights, every threshold, and sources</small></a>
@@ -2945,6 +3097,10 @@ def write_html(res, path):
 
 <p class="section" id="deep">Details</p>
 {deep}
+
+<p class="section" id="analyst">Analyst view</p>
+<div class="grid2">{_track_card(res)}{_per_share_card(res)}</div>
+{_implied_card(res)}
 
 <p class="section" id="contracts">Opendoor's own targets</p>
 {contracts_card}
@@ -3099,6 +3255,39 @@ a recommendation or investment advice.</p></footer>
   }}
   // Scenario tool: the page's scoring, re-run in the browser. lin() and the rounding match the Python exactly:
   // metric points on a straight line between its 0 and 10 values, pillar = mean rounded to 0.1, overall = weighted mean.
+  // What today's price implies: future value = market value x (1 + return)^years; less today's net cash if counted;
+  // / multiple = earnings needed; / margin = revenue needed. Growth is measured from the last four quarters' revenue.
+  var im = document.querySelector("[data-imp]");
+  if (im) {{
+    var I = JSON.parse(im.getAttribute("data-imp")), out = im.querySelector(".imp-out"), grid = document.querySelector(".imp-grid");
+    var val = function (k) {{ var el = im.querySelector('[data-k="' + k + '"]'); return el.type === "checkbox" ? el.checked : parseFloat(el.value); }};
+    var bn = function (v) {{ return Math.abs(v) >= 1000 ? "$" + (v / 1000).toFixed(2) + "bn" : "$" + Math.round(v) + "M"; }};
+    function need(y, r, m, pe, cash) {{
+      var t = (Date.UTC(y, 11, 31) - Date.parse(I.date + "T00:00:00Z")) / (365.25 * 864e5);
+      var fut = I.mcap * Math.pow(1 + r / 100, t) - (cash ? I.net : 0);
+      var rev = fut / pe / (m / 100);
+      return {{t: t, fut: fut, rev: rev, g: Math.pow(rev / I.ttm, 1 / t) - 1}};
+    }}
+    function upd() {{
+      var y = val("year"), r = val("r"), m = val("m"), pe = val("pe"), cash = val("cash");
+      if ([y, r, m, pe].some(isNaN) || m <= 0 || pe <= 0) return;
+      var n = need(y, r, m, pe, cash);
+      out.innerHTML = "To return " + r + "% a year from $" + I.price.toFixed(2) + ", Opendoor would need to be worth about <b>" +
+        bn(n.fut + (cash ? I.net : 0)) + "</b> at the end of " + y + ". At " + pe + "x earnings and a " + m + "% net margin, that takes revenue of about <b>" +
+        bn(n.rev) + "</b> in " + y + ": <b>" + (n.g * 100).toFixed(0) + "% a year</b> from the last four quarters' " + bn(I.ttm) + ".";
+      var ms = [1, 2, 3, 4, 5], pes = [10, 15, 20, 25];
+      var h = "<tr><th>Net margin</th>" + pes.map(function (p) {{ return "<th>" + p + "x</th>"; }}).join("") + "</tr>";
+      ms.forEach(function (mm) {{
+        h += "<tr><td>" + mm + "%</td>" + pes.map(function (p) {{
+          var x = need(y, r, mm, p, cash), on = (mm === m && p === pe) ? ' class="on"' : "";
+          return "<td" + on + ">" + bn(x.rev) + "<small>" + (x.g * 100).toFixed(0) + "% a year</small></td>";
+        }}).join("") + "</tr>";
+      }});
+      grid.innerHTML = h;
+    }}
+    im.querySelectorAll("input,select").forEach(function (el) {{ el.addEventListener("input", upd); el.addEventListener("change", upd); }});
+    upd();
+  }}
   var sc = document.querySelector("[data-scen]");
   if (sc) {{
     var D = JSON.parse(sc.getAttribute("data-scen")), ov = {{}};
@@ -3263,6 +3452,29 @@ def update_history(res, path):
     return prev, rows
 
 
+def update_estimates_log(res, path):
+    """Every run before a quarter is reported records this page's revenue estimate for it; once the release is in,
+    the last estimate made before it is settled against the reported figure. Kept in the repo, never rewritten."""
+    log = json.load(open(path)) if os.path.exists(path) else {}
+    nc = res["extra"].get("nowcast")
+    today = res["generated"][:10]
+    if nc and nc.get("estimate"):
+        e = log.setdefault(nc["quarter"], {"estimates": []})
+        if "reported" not in e:
+            e["estimates"] = [x for x in e["estimates"] if x["date"] != today] + [
+                {"date": today, "revenue": round(nc["estimate"], 1), "homes": nc["homes"], "rph_k": round(nc["rph_k"], 1)}]
+            e["guide_min"] = nc.get("guide_min_revenue")
+    for qe, e in log.items():
+        row = next((r for r in res["quarters"] if r["quarter_end"] == qe and r.get("revenue_musd")), None)
+        if row and "reported" not in e and e.get("estimates"):
+            final = e["estimates"][-1]
+            e.update(reported=row["revenue_musd"], reported_on=today, final=final,
+                     error=final["revenue"] / row["revenue_musd"] - 1, homes_reported=row.get("homes_sold"))
+    with open(path, "w") as fh:
+        json.dump(dict(sorted(log.items())), fh, indent=1)
+    return log
+
+
 def update_metric_history(res, path):
     """One row per day with every metric's value, so sparklines can show how a figure has moved between runs."""
     rows = []
@@ -3316,6 +3528,7 @@ def main():
     ap.add_argument("--housing-cache", default=os.path.join(HERE, "housing_cache.json"))
     ap.add_argument("--contracts-cache", default=os.path.join(HERE, "contracts_quarterly.json"))
     ap.add_argument("--short-cache", default=os.path.join(HERE, "short_cache.json"))
+    ap.add_argument("--estimates-log", default=os.path.join(HERE, "estimates_log.json"))
     ap.add_argument("--ua", default=os.environ.get("SEC_UA", "OPEN scorecard research contact@example.com"))
     ap.add_argument("--shares", type=float, help="shares you hold")
     ap.add_argument("--avg-cost", type=float, help="your average cost per share, USD")
@@ -3433,6 +3646,7 @@ def main():
     os.makedirs(a.outdir, exist_ok=True)
     prev, history = update_history(res, os.path.join(a.outdir, "history.csv"))
     res["metric_history"] = update_metric_history(res, os.path.join(a.outdir, "metric_history.csv"))
+    res["estimates_log"] = update_estimates_log(res, a.estimates_log)
     res["change"] = change_summary(res, prev)
     res["history"] = history
     print("\n".join(log))
