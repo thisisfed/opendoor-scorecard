@@ -1,5 +1,5 @@
 {
-  "generated": "2026-11-04T08:33",
+  "generated": "2026-11-04T09:45",
   "ticker": "OPEN",
   "price": {
     "date": "2026-11-03",
@@ -15,13 +15,16 @@
     "ttm_revenue_musd": 3254.0,
     "shares_m": 925.8000000000001,
     "pro_forma": {
-      "cash_musd": 1335.5,
-      "total_debt_musd": 2606.0,
+      "cash_musd": 1200.5,
+      "home_debt_musd": 1762.0,
+      "convert_debt_musd": 709.0,
+      "total_debt_musd": 2471.0,
       "equity_musd": 703.5,
       "shares_m": 925.8000000000001,
       "as_of": "2026-06-30"
     },
     "capital_events": [
+      "$135M of 2026 convertible notes repaid at maturity",
       "$650M 0% convertible notes due 2030, $158M buyback of 45.3M shares, $52.5M capped call"
     ],
     "q3_revenue_estimate_musd": 1026.5220657276996,
@@ -32,8 +35,638 @@
     "reported_rev_yoy": -0.43650287172941926,
     "adj_net_income_musd": -30.0,
     "adj_net_income_quarter": "2026-06-30",
-    "potential_dilution_m": 261.514,
-    "potential_dilution_quarter": "2026-06-30",
+    "balance_sheet": {
+      "quarter_end": "2026-06-30",
+      "cash_musd": 896.0,
+      "home_debt_musd": 1762.0,
+      "convert_debt_musd": 194.0,
+      "total_debt_musd": 1956.0,
+      "inventory_musd": 1845.0,
+      "equity_musd": 914.0
+    },
+    "dilution": {
+      "quarter": "2026-06-30",
+      "source": "10-Q",
+      "price": 1.74,
+      "shares_m": 925.8000000000001,
+      "potential_m": 399.47429,
+      "live_m": 56.50586372413793,
+      "lines": [
+        {
+          "label": "RSUs, options and employee share plan",
+          "n": 32.17,
+          "needs": "Counted in full",
+          "live": 32.17
+        },
+        {
+          "label": "CEO award 1",
+          "n": 40.886344,
+          "needs": "$6.24 average",
+          "live": 0.0
+        },
+        {
+          "label": "CEO award 2",
+          "n": 40.886344,
+          "needs": "$9 to $33 average, in 7 steps",
+          "live": 0.0
+        },
+        {
+          "label": "Other price-target awards",
+          "n": 21.775312,
+          "needs": "Counted in full (targets not itemised)",
+          "live": 21.775312
+        },
+        {
+          "label": "Warrants (Series K, A, Z)",
+          "n": 99.588,
+          "needs": "$9 / $13 / $17, expire Nov 20, 2026",
+          "live": 0.0
+        },
+        {
+          "label": "0% convertible notes due 2030",
+          "n": 137.96029,
+          "needs": "$4.71 to convert, capped call to $6.98",
+          "live": 0.0
+        },
+        {
+          "label": "7% convertible notes due 2030",
+          "n": 26.208,
+          "needs": "$1.57 to convert",
+          "live": 2.5605517241379294
+        }
+      ],
+      "curve": [
+        [
+          1.0,
+          0.05826886152516742
+        ],
+        [
+          1.25,
+          0.05826886152516742
+        ],
+        [
+          1.5,
+          0.05826886152516742
+        ],
+        [
+          1.74,
+          0.06103463353222934
+        ],
+        [
+          1.75,
+          0.06118059192050119
+        ],
+        [
+          2.0,
+          0.0643551868654137
+        ],
+        [
+          2.25,
+          0.06682431626701231
+        ],
+        [
+          2.5,
+          0.0687996197882912
+        ],
+        [
+          2.75,
+          0.07041577721479211
+        ],
+        [
+          3.0,
+          0.07176257507020954
+        ],
+        [
+          3.25,
+          0.07290217325556274
+        ],
+        [
+          3.5,
+          0.07387897170015122
+        ],
+        [
+          3.75,
+          0.0747255303521279
+        ],
+        [
+          4.0,
+          0.07546626917260746
+        ],
+        [
+          4.25,
+          0.07611986224950124
+        ],
+        [
+          4.5,
+          0.07670083387340677
+        ],
+        [
+          4.75,
+          0.0772206505895328
+        ],
+        [
+          5.0,
+          0.07768848563404623
+        ],
+        [
+          5.25,
+          0.07811176496003455
+        ],
+        [
+          5.5,
+          0.07849656434729668
+        ],
+        [
+          5.75,
+          0.07884790291827515
+        ],
+        [
+          6.0,
+          0.07916996327500539
+        ],
+        [
+          6.25,
+          0.12362951652624755
+        ],
+        [
+          6.5,
+          0.12390302009073234
+        ],
+        [
+          6.75,
+          0.12415626413192193
+        ],
+        [
+          7.0,
+          0.12481718325463691
+        ],
+        [
+          7.25,
+          0.13015996965159674
+        ],
+        [
+          7.5,
+          0.13514657028875923
+        ],
+        [
+          7.75,
+          0.13981145475578224
+        ],
+        [
+          8.0,
+          0.1441847839436163
+        ],
+        [
+          8.25,
+          0.14829306287764224
+        ],
+        [
+          8.5,
+          0.15215967834496077
+        ],
+        [
+          8.75,
+          0.15580534435700397
+        ],
+        [
+          9.0,
+          0.16555751018595669
+        ],
+        [
+          9.25,
+          0.16978362023703175
+        ],
+        [
+          9.5,
+          0.1737873034433134
+        ],
+        [
+          9.75,
+          0.1775856695620934
+        ],
+        [
+          10.0,
+          0.1811941173749344
+        ],
+        [
+          10.25,
+          0.18462654334324657
+        ],
+        [
+          10.5,
+          0.18789552045592484
+        ],
+        [
+          10.75,
+          0.1910124521215018
+        ],
+        [
+          11.0,
+          0.19398770507500704
+        ],
+        [
+          11.25,
+          0.19683072456391207
+        ],
+        [
+          11.5,
+          0.19955013450982126
+        ],
+        [
+          11.75,
+          0.2021538248835641
+        ],
+        [
+          12.0,
+          0.20464902815840094
+        ],
+        [
+          12.25,
+          0.2070423864016118
+        ],
+        [
+          12.5,
+          0.20934001031509425
+        ],
+        [
+          12.75,
+          0.21154753133000875
+        ],
+        [
+          13.0,
+          0.21997918450808207
+        ],
+        [
+          13.25,
+          0.22269824093972193
+        ],
+        [
+          13.5,
+          0.2253165915775974
+        ],
+        [
+          13.75,
+          0.2278397294650046
+        ],
+        [
+          14.0,
+          0.23027275528500446
+        ],
+        [
+          14.25,
+          0.23262041177798676
+        ],
+        [
+          14.5,
+          0.23488711459879724
+        ],
+        [
+          14.75,
+          0.23707698003585143
+        ],
+        [
+          15.0,
+          0.23919384995833717
+        ],
+        [
+          15.25,
+          0.24124131430959386
+        ],
+        [
+          15.5,
+          0.24322273142371323
+        ],
+        [
+          15.75,
+          0.24514124640722565
+        ],
+        [
+          16.0,
+          0.2469998077975033
+        ],
+        [
+          16.25,
+          0.24880118268346468
+        ],
+        [
+          16.5,
+          0.2505479704516697
+        ],
+        [
+          16.75,
+          0.25224261530142084
+        ],
+        [
+          17.0,
+          0.2601964544731697
+        ],
+        [
+          17.25,
+          0.2623132416357941
+        ],
+        [
+          17.5,
+          0.2643695491652007
+        ],
+        [
+          17.75,
+          0.2663679325388494
+        ],
+        [
+          18.0,
+          0.26831080526323003
+        ],
+        [
+          18.25,
+          0.27020044859790165
+        ],
+        [
+          18.5,
+          0.27203902049109563
+        ],
+        [
+          18.75,
+          0.2738285638004711
+        ],
+        [
+          19.0,
+          0.27557101386486305
+        ],
+        [
+          19.25,
+          0.277268205486024
+        ],
+        [
+          19.5,
+          0.278921879373309
+        ],
+        [
+          19.75,
+          0.2805336880988907
+        ],
+        [
+          20.0,
+          0.28210520160633273
+        ],
+        [
+          20.25,
+          0.2836379123111219
+        ],
+        [
+          20.5,
+          0.2851332398279894
+        ],
+        [
+          20.75,
+          0.28659253535649865
+        ],
+        [
+          21.0,
+          0.2943261225709553
+        ],
+        [
+          21.25,
+          0.2957171541349657
+        ],
+        [
+          21.5,
+          0.29707583612772
+        ],
+        [
+          21.75,
+          0.2984032840516753
+        ],
+        [
+          22.0,
+          0.2997005627046317
+        ],
+        [
+          22.25,
+          0.30096868902830815
+        ],
+        [
+          22.5,
+          0.302208634767014
+        ],
+        [
+          22.75,
+          0.303421328951023
+        ],
+        [
+          23.0,
+          0.3046076602179884
+        ],
+        [
+          23.25,
+          0.30576847898458887
+        ],
+        [
+          23.5,
+          0.30690459947955956
+        ],
+        [
+          23.75,
+          0.30801680164832035
+        ],
+        [
+          24.0,
+          0.3091058329385653
+        ],
+        [
+          24.25,
+          0.31017240997540313
+        ],
+        [
+          24.5,
+          0.3112172201339382
+        ],
+        [
+          24.75,
+          0.3122409230165432
+        ],
+        [
+          25.0,
+          0.3195531886590747
+        ],
+        [
+          25.25,
+          0.32053655156670185
+        ],
+        [
+          25.5,
+          0.32150063284868924
+        ],
+        [
+          25.75,
+          0.3224459941057837
+        ],
+        [
+          26.0,
+          0.32337317533870313
+        ],
+        [
+          26.25,
+          0.32428269597670994
+        ],
+        [
+          26.5,
+          0.32517505584796186
+        ],
+        [
+          26.75,
+          0.32605073609545204
+        ],
+        [
+          27.0,
+          0.32691020004206284
+        ],
+        [
+          27.25,
+          0.3277538940080018
+        ],
+        [
+          27.5,
+          0.32858224808365105
+        ],
+        [
+          27.75,
+          0.32939567686063986
+        ],
+        [
+          28.0,
+          0.3301945801237539
+        ],
+        [
+          28.25,
+          0.3309793435061049
+        ],
+        [
+          28.5,
+          0.33175033910981816
+        ],
+        [
+          28.75,
+          0.3325079260943364
+        ],
+        [
+          29.0,
+          0.3395614880518726
+        ],
+        [
+          29.25,
+          0.34029328626636074
+        ],
+        [
+          29.5,
+          0.34101268112128136
+        ],
+        [
+          29.75,
+          0.3417199853063714
+        ],
+        [
+          30.0,
+          0.34241550108837654
+        ],
+        [
+          30.25,
+          0.34309952074175354
+        ],
+        [
+          30.5,
+          0.3437723269581899
+        ],
+        [
+          30.75,
+          0.34443419323614766
+        ],
+        [
+          31.0,
+          0.3450853842515577
+        ],
+        [
+          31.25,
+          0.34572615621072117
+        ],
+        [
+          31.5,
+          0.3463567571864059
+        ],
+        [
+          31.75,
+          0.34697742743806403
+        ],
+        [
+          32.0,
+          0.34758839971704003
+        ],
+        [
+          32.25,
+          0.3481898995575823
+        ],
+        [
+          32.5,
+          0.34878214555442394
+        ],
+        [
+          32.75,
+          0.3493653496276496
+        ],
+        [
+          33.0,
+          0.3562487540931021
+        ],
+        [
+          33.25,
+          0.356814484633489
+        ],
+        [
+          33.5,
+          0.3573717714344673
+        ],
+        [
+          33.75,
+          0.35792080213469024
+        ],
+        [
+          34.0,
+          0.35846175885402765
+        ],
+        [
+          34.25,
+          0.3589948183949805
+        ],
+        [
+          34.5,
+          0.35952015243533986
+        ],
+        [
+          34.75,
+          0.36003792771252857
+        ],
+        [
+          35.0,
+          0.3605483062000432
+        ]
+      ]
+    },
+    "housing": null,
+    "asof": {
+      "contrib_margin": "2026-06-30",
+      "gross_margin": "2026-06-30",
+      "aged_inventory": "2026-06-30",
+      "adj_ebitda_m": "2026-06-30",
+      "ani_margin": "2026-06-30",
+      "sbc_pct": "2026-06-30",
+      "home_debt_ltv": "2026-06-30",
+      "dilution_live": "2026-06-30"
+    },
+    "notes": {
+      "aged_inventory": "Whole market: 27%",
+      "dilution_live": "Of 399M potential shares in all",
+      "home_debt_ltv": "Cushion 4.5% if home prices fall"
+    },
+    "latest_quarter": "2026-06-30",
     "mortgage": {
       "date": "2026-10-29",
       "rate": 0.0724,
@@ -55,24 +688,27 @@
     "coe_vs_guide": -0.07021131561008864,
     "contracts_vs_proj": -0.26662696049235657,
     "clearance": 1.115,
-    "cash_to_debt": 0.5124712202609363,
-    "debt_to_equity": 3.7043354655294953,
-    "runway_q": 44.516666666666666,
+    "cash_vs_notes": 1.6932299012693934,
+    "home_debt_ltv": 0.9550135501355014,
+    "runway_q": 40.016666666666666,
     "share_yoy": 0.19995333946832927,
     "sbc_pct": 0.1347678369195923,
-    "dilution_overhang": 0.2692966738749871,
+    "dilution_live": 0.06103463353222934,
     "ps": 0.4950497848801475,
     "pb": 2.289825159914712,
     "ret_1y": -0.7760617760617761,
     "range_pos": 0.0,
     "vs_ma200": -0.5817634439617098,
     "mortgage_rate": 0.0724,
-    "mortgage_13w": 0.0058
+    "mortgage_13w": 0.0058,
+    "dom_yoy": null,
+    "cuts_yoy": null,
+    "list_price_yoy": null
   },
   "score": {
-    "overall": 4.94,
-    "grade": "D",
-    "verdict": "Weak: speculative; size the position accordingly.",
+    "overall": 5.36,
+    "grade": "C",
+    "verdict": "Mixed: the turnaround is plausible but unproven.",
     "pillars": [
       {
         "name": "Growth",
@@ -87,7 +723,10 @@
             "score": 7.5,
             "fmt": "pct",
             "bad": -0.4,
-            "good": 0.3
+            "good": 0.3,
+            "asof": null,
+            "lag": 0,
+            "note": null
           },
           {
             "key": "coe_q4_yoy",
@@ -96,7 +735,10 @@
             "score": 9.1,
             "fmt": "pct",
             "bad": -0.2,
-            "good": 0.5
+            "good": 0.5,
+            "asof": null,
+            "lag": 0,
+            "note": null
           },
           {
             "key": "contracts_qoq",
@@ -105,7 +747,10 @@
             "score": 5.1,
             "fmt": "pct",
             "bad": -0.2,
-            "good": 0.2
+            "good": 0.2,
+            "asof": null,
+            "lag": 0,
+            "note": null
           }
         ]
       },
@@ -122,7 +767,10 @@
             "score": 8.3,
             "fmt": "pct",
             "bad": 0.0,
-            "good": 0.07
+            "good": 0.07,
+            "asof": "2026-06-30",
+            "lag": 0,
+            "note": null
           },
           {
             "key": "gross_margin",
@@ -131,16 +779,22 @@
             "score": 6.8,
             "fmt": "pct",
             "bad": 0.05,
-            "good": 0.12
+            "good": 0.12,
+            "asof": "2026-06-30",
+            "lag": 0,
+            "note": null
           },
           {
             "key": "aged_inventory",
             "label": "Homes listed 120+ days, share of inventory",
             "value": 0.09,
             "score": 8.9,
-            "fmt": "pct",
+            "fmt": "share",
             "bad": 0.4,
-            "good": 0.05
+            "good": 0.05,
+            "asof": "2026-06-30",
+            "lag": 0,
+            "note": "Whole market: 27%"
           }
         ]
       },
@@ -157,7 +811,10 @@
             "score": 0.0,
             "fmt": "pct",
             "bad": -0.2,
-            "good": 0.02
+            "good": 0.02,
+            "asof": null,
+            "lag": 0,
+            "note": null
           },
           {
             "key": "adj_ebitda_m",
@@ -166,7 +823,10 @@
             "score": 5.7,
             "fmt": "pct",
             "bad": -0.05,
-            "good": 0.03
+            "good": 0.03,
+            "asof": "2026-06-30",
+            "lag": 0,
+            "note": null
           },
           {
             "key": "ani_margin",
@@ -175,7 +835,10 @@
             "score": 6.0,
             "fmt": "pct",
             "bad": -0.1,
-            "good": 0.01
+            "good": 0.01,
+            "asof": "2026-06-30",
+            "lag": 0,
+            "note": null
           }
         ]
       },
@@ -192,7 +855,10 @@
             "score": 4.0,
             "fmt": "pct",
             "bad": -0.15,
-            "good": 0.05
+            "good": 0.05,
+            "asof": null,
+            "lag": 0,
+            "note": null
           },
           {
             "key": "contracts_vs_proj",
@@ -201,7 +867,10 @@
             "score": 2.7,
             "fmt": "pct",
             "bad": -0.4,
-            "good": 0.1
+            "good": 0.1,
+            "asof": null,
+            "lag": 0,
+            "note": null
           },
           {
             "key": "clearance",
@@ -210,7 +879,10 @@
             "score": 5.4,
             "fmt": "x",
             "bad": 0.9,
-            "good": 1.3
+            "good": 1.3,
+            "asof": null,
+            "lag": 0,
+            "note": null
           }
         ]
       },
@@ -218,34 +890,43 @@
         "name": "Balance sheet",
         "weight": 15,
         "question": "Can it survive a bad housing year?",
-        "score": 4.9,
+        "score": 6.7,
         "metrics": [
           {
-            "key": "cash_to_debt",
-            "label": "Cash / total debt (pro forma)",
-            "value": 0.5124712202609363,
-            "score": 3.9,
+            "key": "cash_vs_notes",
+            "label": "Cash vs the company's own debt (convertible notes)",
+            "value": 1.6932299012693934,
+            "score": 8.0,
             "fmt": "x",
-            "bad": 0.2,
-            "good": 1.0
+            "bad": 0.5,
+            "good": 2.0,
+            "asof": null,
+            "lag": 0,
+            "note": null
           },
           {
-            "key": "debt_to_equity",
-            "label": "Debt / equity (pro forma)",
-            "value": 3.7043354655294953,
-            "score": 0.8,
-            "fmt": "x",
-            "bad": 4.0,
-            "good": 0.5
+            "key": "home_debt_ltv",
+            "label": "Home-backed debt vs the value of homes held",
+            "value": 0.9550135501355014,
+            "score": 2.2,
+            "fmt": "share",
+            "bad": 1.0,
+            "good": 0.8,
+            "asof": "2026-06-30",
+            "lag": 0,
+            "note": "Cushion 4.5% if home prices fall"
           },
           {
             "key": "runway_q",
             "label": "Cash runway at current adj. net loss (home purchases are debt-funded, excluded)",
-            "value": 44.516666666666666,
+            "value": 40.016666666666666,
             "score": 10.0,
             "fmt": "qtrs",
             "bad": 4.0,
-            "good": 16.0
+            "good": 16.0,
+            "asof": null,
+            "lag": 0,
+            "note": null
           }
         ]
       },
@@ -253,7 +934,7 @@
         "name": "Dilution",
         "weight": 10,
         "question": "Is your slice of the company shrinking?",
-        "score": 2.3,
+        "score": 3.8,
         "metrics": [
           {
             "key": "share_yoy",
@@ -262,25 +943,34 @@
             "score": 3.3,
             "fmt": "pct",
             "bad": 0.3,
-            "good": 0.0
+            "good": 0.0,
+            "asof": null,
+            "lag": 0,
+            "note": null
           },
           {
             "key": "sbc_pct",
             "label": "Stock comp / revenue",
             "value": 0.1347678369195923,
             "score": 0.0,
-            "fmt": "pct",
+            "fmt": "share",
             "bad": 0.1,
-            "good": 0.01
+            "good": 0.01,
+            "asof": "2026-06-30",
+            "lag": 0,
+            "note": null
           },
           {
-            "key": "dilution_overhang",
-            "label": "Potential new shares (awards, convertibles, warrants) / shares",
-            "value": 0.2692966738749871,
-            "score": 3.7,
-            "fmt": "pct",
-            "bad": 0.4,
-            "good": 0.05
+            "key": "dilution_live",
+            "label": "Potential new shares live at today's price",
+            "value": 0.06103463353222934,
+            "score": 8.2,
+            "fmt": "share",
+            "bad": 0.25,
+            "good": 0.02,
+            "asof": "2026-06-30",
+            "lag": 0,
+            "note": "Of 399M potential shares in all"
           }
         ]
       },
@@ -297,7 +987,10 @@
             "score": 9.3,
             "fmt": "x",
             "bad": 3.0,
-            "good": 0.3
+            "good": 0.3,
+            "asof": null,
+            "lag": 0,
+            "note": null
           },
           {
             "key": "pb",
@@ -306,7 +999,10 @@
             "score": 7.4,
             "fmt": "x",
             "bad": 6.0,
-            "good": 1.0
+            "good": 1.0,
+            "asof": null,
+            "lag": 0,
+            "note": null
           }
         ]
       },
@@ -323,16 +1019,22 @@
             "score": 0.0,
             "fmt": "pct",
             "bad": -0.7,
-            "good": 0.3
+            "good": 0.3,
+            "asof": null,
+            "lag": 0,
+            "note": null
           },
           {
             "key": "range_pos",
             "label": "Position in 52-week range",
             "value": 0.0,
             "score": 0.0,
-            "fmt": "pct",
+            "fmt": "share",
             "bad": 0.0,
-            "good": 1.0
+            "good": 1.0,
+            "asof": null,
+            "lag": 0,
+            "note": null
           },
           {
             "key": "vs_ma200",
@@ -341,7 +1043,10 @@
             "score": 0.0,
             "fmt": "pct",
             "bad": -0.4,
-            "good": 0.1
+            "good": 0.1,
+            "asof": null,
+            "lag": 0,
+            "note": null
           }
         ]
       },
@@ -358,7 +1063,10 @@
             "score": 2.5,
             "fmt": "rate",
             "bad": 0.08,
-            "good": 0.05
+            "good": 0.05,
+            "asof": null,
+            "lag": 0,
+            "note": null
           },
           {
             "key": "mortgage_13w",
@@ -367,7 +1075,46 @@
             "score": 1.1,
             "fmt": "pp",
             "bad": 0.0075,
-            "good": -0.0075
+            "good": -0.0075,
+            "asof": null,
+            "lag": 0,
+            "note": null
+          },
+          {
+            "key": "dom_yoy",
+            "label": "Days on market vs a year ago, Opendoor's markets",
+            "value": null,
+            "score": null,
+            "fmt": "pct",
+            "bad": 0.3,
+            "good": -0.1,
+            "asof": null,
+            "lag": 0,
+            "note": null
+          },
+          {
+            "key": "cuts_yoy",
+            "label": "Listings with a price cut vs a year ago, Opendoor's markets",
+            "value": null,
+            "score": null,
+            "fmt": "pp",
+            "bad": 0.06,
+            "good": -0.03,
+            "asof": null,
+            "lag": 0,
+            "note": null
+          },
+          {
+            "key": "list_price_yoy",
+            "label": "Asking prices vs a year ago, Opendoor's markets",
+            "value": null,
+            "score": null,
+            "fmt": "pct",
+            "bad": -0.05,
+            "good": 0.04,
+            "asof": null,
+            "lag": 0,
+            "note": null
           }
         ]
       }
@@ -398,6 +1145,8 @@
       "cash_musd": 405.0,
       "inventory_musd": 1312.369,
       "equity_musd": -733.0,
+      "home_debt_musd": 221.929,
+      "convert_debt_musd": 140.096,
       "total_debt_musd": 362.025,
       "shares_m": 83.748443
     },
@@ -445,6 +1194,8 @@
       "cash_musd": 1413.0,
       "inventory_musd": 466.0,
       "equity_musd": 1553.0,
+      "home_debt_musd": 475.0,
+      "convert_debt_musd": 0.0,
       "total_debt_musd": 475.0,
       "shares_m": 540.714692
     },
@@ -456,7 +1207,9 @@
       "fcf_musd": -409.0,
       "cash_musd": 2040.0,
       "inventory_musd": 840.632,
+      "home_debt_musd": 136.473,
       "total_debt_musd": 136.473,
+      "convert_debt_musd": 0.0,
       "shares_m": 540.714692,
       "potential_dilution_m": 97.877
     },
@@ -469,7 +1222,9 @@
       "cash_musd": 1558.0,
       "inventory_musd": 2723.648,
       "equity_musd": 2418.0,
+      "home_debt_musd": 595.579,
       "total_debt_musd": 595.579,
+      "convert_debt_musd": 0.0,
       "shares_m": 593.838919,
       "potential_dilution_m": 96.263
     },
@@ -483,6 +1238,8 @@
       "cash_musd": 1359.0,
       "inventory_musd": 6268.081,
       "equity_musd": 2363.0,
+      "home_debt_musd": 5417.801,
+      "convert_debt_musd": 952.415,
       "total_debt_musd": 6370.216,
       "shares_m": 607.215233,
       "potential_dilution_m": 74.369
@@ -497,6 +1254,8 @@
       "cash_musd": 1731.0,
       "inventory_musd": 6096.0,
       "equity_musd": 2248.0,
+      "home_debt_musd": 6102.0,
+      "convert_debt_musd": 954.0,
       "total_debt_musd": 7056.0,
       "shares_m": 616.026565
     },
@@ -510,6 +1269,8 @@
       "cash_musd": 2312.0,
       "inventory_musd": 4664.0,
       "equity_musd": 2347.0,
+      "home_debt_musd": 4773.0,
+      "convert_debt_musd": 955.0,
       "total_debt_musd": 5728.0,
       "shares_m": 622.918512,
       "potential_dilution_m": 36.623
@@ -524,6 +1285,8 @@
       "cash_musd": 2239.0,
       "inventory_musd": 6628.0,
       "equity_musd": 2356.0,
+      "home_debt_musd": 6538.0,
+      "convert_debt_musd": 956.0,
       "total_debt_musd": 7494.0,
       "shares_m": 627.033133,
       "potential_dilution_m": 70.778
@@ -538,6 +1301,8 @@
       "cash_musd": 1327.0,
       "inventory_musd": 6093.0,
       "equity_musd": 1488.0,
+      "home_debt_musd": 7071.0,
+      "convert_debt_musd": 957.0,
       "total_debt_musd": 8028.0,
       "shares_m": 632.513135,
       "potential_dilution_m": 74.726
@@ -552,6 +1317,8 @@
       "cash_musd": 1137.0,
       "inventory_musd": 4460.0,
       "equity_musd": 1086.0,
+      "home_debt_musd": 4396.0,
+      "convert_debt_musd": 959.0,
       "total_debt_musd": 5355.0,
       "shares_m": 637.387025
     },
@@ -565,6 +1332,8 @@
       "cash_musd": 1143.0,
       "inventory_musd": 2118.0,
       "equity_musd": 1036.0,
+      "home_debt_musd": 3179.0,
+      "convert_debt_musd": 774.0,
       "total_debt_musd": 3953.0,
       "shares_m": 647.60792,
       "potential_dilution_m": 89.578
@@ -579,6 +1348,8 @@
       "cash_musd": 1120.0,
       "inventory_musd": 1149.0,
       "equity_musd": 1086.0,
+      "home_debt_musd": 2542.0,
+      "convert_debt_musd": 501.0,
       "total_debt_musd": 3043.0,
       "shares_m": 657.337566,
       "potential_dilution_m": 30.577
@@ -593,6 +1364,8 @@
       "cash_musd": 1154.0,
       "inventory_musd": 1311.0,
       "equity_musd": 1020.0,
+      "home_debt_musd": 2330.0,
+      "convert_debt_musd": 502.0,
       "total_debt_musd": 2832.0,
       "shares_m": 668.59258,
       "potential_dilution_m": 70.8
@@ -607,6 +1380,8 @@
       "cash_musd": 999.0,
       "inventory_musd": 1775.0,
       "equity_musd": 967.0,
+      "home_debt_musd": 2134.0,
+      "convert_debt_musd": 376.0,
       "total_debt_musd": 2510.0,
       "shares_m": 677.636163
     },
@@ -620,6 +1395,8 @@
       "cash_musd": 953.0,
       "inventory_musd": 1881.0,
       "equity_musd": 899.0,
+      "home_debt_musd": 2036.0,
+      "convert_debt_musd": 376.0,
       "total_debt_musd": 2412.0,
       "shares_m": 688.560794,
       "potential_dilution_m": 66.754
@@ -634,6 +1411,8 @@
       "cash_musd": 790.0,
       "inventory_musd": 2234.0,
       "equity_musd": 845.0,
+      "home_debt_musd": 2054.0,
+      "convert_debt_musd": 377.0,
       "total_debt_musd": 2431.0,
       "shares_m": 698.843166,
       "potential_dilution_m": 72.687
@@ -648,6 +1427,8 @@
       "cash_musd": 829.0,
       "inventory_musd": 2145.0,
       "equity_musd": 801.0,
+      "home_debt_musd": 2134.0,
+      "convert_debt_musd": 377.0,
       "total_debt_musd": 2511.0,
       "shares_m": 711.660871,
       "potential_dilution_m": 55.711
@@ -662,6 +1443,8 @@
       "cash_musd": 671.0,
       "inventory_musd": 2159.0,
       "equity_musd": 713.0,
+      "home_debt_musd": 1924.0,
+      "convert_debt_musd": 378.0,
       "total_debt_musd": 2302.0,
       "shares_m": 719.990121
     },
@@ -675,15 +1458,17 @@
       "cash_musd": 559.0,
       "inventory_musd": 2362.0,
       "equity_musd": 645.0,
+      "home_debt_musd": 2133.0,
+      "convert_debt_musd": 378.0,
       "total_debt_musd": 2511.0,
       "shares_m": 726.835454,
       "potential_dilution_m": 54.684,
-      "adj_ebitda_musd": -30.0,
-      "adj_net_income_musd": -63.0,
-      "contribution_margin_pct": 4.7,
-      "homes_in_inventory": 7080.0,
+      "homes_sold": 2946.0,
       "homes_purchased": 3609.0,
-      "homes_sold": 2946.0
+      "homes_in_inventory": 7080.0,
+      "contribution_margin_pct": 4.7,
+      "adj_ebitda_musd": -30.0,
+      "adj_net_income_musd": -63.0
     },
     {
       "quarter_end": "2025-06-30",
@@ -695,15 +1480,17 @@
       "cash_musd": 789.0,
       "inventory_musd": 1530.0,
       "equity_musd": 631.0,
+      "home_debt_musd": 1739.0,
+      "convert_debt_musd": 437.0,
       "total_debt_musd": 2176.0,
       "shares_m": 729.0,
       "potential_dilution_m": 56.51,
+      "homes_sold": 4299.0,
+      "homes_purchased": 1757.0,
+      "homes_in_inventory": 4538.0,
+      "contribution_margin_pct": 4.4,
       "adj_ebitda_musd": 23.0,
       "adj_net_income_musd": -9.0,
-      "contribution_margin_pct": 4.4,
-      "homes_in_inventory": 4538.0,
-      "homes_purchased": 1757.0,
-      "homes_sold": 4299.0,
       "aged_120_pct": 36.0
     },
     {
@@ -716,15 +1503,17 @@
       "cash_musd": 962.0,
       "inventory_musd": 1053.0,
       "equity_musd": 811.0,
+      "home_debt_musd": 1340.0,
+      "convert_debt_musd": 439.0,
       "total_debt_musd": 1779.0,
       "shares_m": 771.53,
       "potential_dilution_m": 250.905,
+      "homes_sold": 2568.0,
+      "homes_purchased": 1169.0,
+      "homes_in_inventory": 3139.0,
+      "contribution_margin_pct": 2.2,
       "adj_ebitda_musd": -33.0,
       "adj_net_income_musd": -61.0,
-      "contribution_margin_pct": 2.2,
-      "homes_in_inventory": 3139.0,
-      "homes_purchased": 1169.0,
-      "homes_sold": 2568.0,
       "aged_120_pct": 51.0,
       "note": "shares = basic shares outstanding at 30 Sep 2025 (424B5 prospectus)"
     },
@@ -738,15 +1527,17 @@
       "cash_musd": 962.0,
       "inventory_musd": 925.0,
       "equity_musd": 1005.0,
+      "home_debt_musd": 1120.0,
+      "convert_debt_musd": 193.0,
       "total_debt_musd": 1313.0,
       "shares_m": 957.245487,
+      "aged_120_pct": 33.0,
+      "homes_sold": 1978.0,
+      "homes_purchased": 1706.0,
+      "homes_in_inventory": 2867.0,
+      "contribution_margin_pct": 1.0,
       "adj_ebitda_musd": -43.0,
       "adj_net_income_musd": -62.0,
-      "contribution_margin_pct": 1.0,
-      "homes_in_inventory": 2867.0,
-      "homes_purchased": 1706.0,
-      "homes_sold": 1978.0,
-      "aged_120_pct": 33.0,
       "note": "net loss includes $933M one-off loss on debt extinguishment"
     },
     {
@@ -759,16 +1550,19 @@
       "cash_musd": 999.0,
       "inventory_musd": 1139.0,
       "equity_musd": 954.0,
+      "home_debt_musd": 1138.0,
+      "convert_debt_musd": 193.0,
       "total_debt_musd": 1331.0,
       "shares_m": 959.0,
       "potential_dilution_m": 267.402,
-      "adj_ebitda_musd": -31.0,
-      "adj_net_income_musd": -49.0,
-      "contribution_margin_pct": 4.4,
-      "homes_in_inventory": 3420.0,
-      "homes_purchased": 2474.0,
+      "aged_120_pct": 10.0,
+      "market_aged_120_pct": 33.0,
       "homes_sold": 1921.0,
-      "aged_120_pct": 10.0
+      "homes_purchased": 2474.0,
+      "homes_in_inventory": 3420.0,
+      "contribution_margin_pct": 4.4,
+      "adj_ebitda_musd": -31.0,
+      "adj_net_income_musd": -49.0
     },
     {
       "quarter_end": "2026-06-30",
@@ -780,16 +1574,19 @@
       "cash_musd": 896.0,
       "inventory_musd": 1845.0,
       "equity_musd": 914.0,
+      "home_debt_musd": 1762.0,
+      "convert_debt_musd": 194.0,
       "total_debt_musd": 1956.0,
       "shares_m": 971.1,
       "potential_dilution_m": 261.514,
+      "aged_120_pct": 9.0,
+      "market_aged_120_pct": 27.0,
+      "homes_sold": 2339.0,
+      "homes_purchased": 4378.0,
+      "homes_in_inventory": 5459.0,
+      "contribution_margin_pct": 5.8,
       "adj_ebitda_musd": -4.0,
       "adj_net_income_musd": -30.0,
-      "contribution_margin_pct": 5.8,
-      "homes_in_inventory": 5459.0,
-      "homes_purchased": 4378.0,
-      "homes_sold": 2339.0,
-      "aged_120_pct": 9.0,
       "note": "shares = 971.1M at 28 Jul 2026 (10-Q cover / Aug 13 8-K)"
     }
   ],
@@ -1225,10 +2022,23 @@
     "  cash_musd          <- us-gaap:CashAndCashEquivalentsAtCarryingValue",
     "  inventory_musd     <- us-gaap:InventoryRealEstate",
     "  equity_musd        <- us-gaap:StockholdersEquity",
+    "  home_debt_musd     <- us-gaap:LinesOfCreditCurrent + us-gaap:LongTermLineOfCredit",
+    "  convert_debt_musd  <- us-gaap:ConvertibleDebtCurrent + us-gaap:ConvertibleDebtNoncurrent",
     "  total_debt_musd    <- us-gaap:LinesOfCreditCurrent + us-gaap:LongTermLineOfCredit + us-gaap:ConvertibleDebtCurrent + us-gaap:ConvertibleDebtNoncurrent",
     "  shares_m           <- us-gaap:CommonStockSharesOutstanding",
     "  potential_dilution_m <- us-gaap:AntidilutiveSecuritiesExcludedFromComputationOfEarningsPerShareAmount",
     "Earnings releases (sec.gov 8-K exhibit 99.1):",
+    "  release 2025-05-06 (q12025formxex991earningsre.htm): 10 figures, no 120+ days figure",
+    "  release 2025-08-05 (q22025formxex991earningsre.htm): 10 figures, no 120+ days figure",
+    "  release 2025-11-06 (q32025formxex991earningsre.htm): 10 figures, no 120+ days figure",
+    "  release 2026-02-19 (q42025formxex991earningsre.htm): 11 figures, 120+ days 33%",
+    "  release 2026-05-07 (q12026formxex991earningsre.htm): 12 figures, 120+ days 10%",
+    "  release 2026-08-04 (q22026formxex991earningsre.htm): 12 figures, 120+ days 9%",
+    "Potential shares by type (10-Q / 10-K anti-dilutive table):",
+    "  10-K 2025-12-31: 263.9M potential shares: market_rsus 101.4, warrants 99.6, rsus 32.7, converts 26.1, options 3.3, espp 0.8",
+    "  10-Q 2026-03-31: 267.4M potential shares: market_rsus 104.3, warrants 99.6, rsus 32.2, converts 27.5, options 3.2, espp 0.6",
+    "  10-Q 2026-06-30: 261.5M potential shares: market_rsus 103.5, warrants 99.6, rsus 28.6, converts 26.2, options 3.0, espp 0.6; checked against cached 261.5M",
+    "housing data unavailable (only 0 markets came back; failed: MEDDAYONMAR38060 (The read operation timed out), ACTLISCOU38060 (The read operation timed out), PRIREDCOU38060 (The read operation timed out), MEDLISPRI38060 (The read operation timed out), MEDDAYONMAR12060 (The read operation timed out), ACTLISCOU12060 (The read operation timed out)); using cached copy",
     "mortgage rate 7.24% (week of 2026-10-29)",
     "accountable.opendoor.com: data as of 2026-10-31",
     "price sources that failed: Yahoo Finance: HTTP Error 429: Too Many Requests; Yahoo Finance: HTTP Error 429: Too Many Requests"
@@ -1697,57 +2507,22 @@
       260
     ]
   ],
-  "change": {
-    "overall": -0.1299999999999999,
-    "grade_from": "C",
-    "since": "2026-11-03T20:10",
-    "method_changed": false,
-    "pillars": {
-      "Growth": -0.09999999999999964,
-      "Unit economics": 0.0,
-      "Profitability": 0.0,
-      "Execution": -0.7999999999999998,
-      "Balance sheet": 0.0,
-      "Dilution": 0.0,
-      "Valuation": 0.20000000000000107,
-      "Momentum": 0.0,
-      "Housing market": 0.0
-    }
-  },
+  "change": null,
   "history": [
     {
-      "run_at": "2026-11-03T20:10",
-      "price_date": "2026-11-02",
-      "price": "1.8",
-      "tracker_as_of": "2026-10-24",
-      "latest_quarter": "2026-06-30",
-      "overall": "5.07",
-      "grade": "C",
-      "Growth": "7.3",
-      "Unit economics": "8.0",
-      "Profitability": "3.9",
-      "Execution": "4.8",
-      "Balance sheet": "4.9",
-      "Dilution": "2.3",
-      "Valuation": "8.2",
-      "Momentum": "0.0",
-      "Housing market": "1.8",
-      "method": "1"
-    },
-    {
-      "run_at": "2026-11-04T08:33",
+      "run_at": "2026-11-04T09:45",
       "price_date": "2026-11-03",
       "price": "1.74",
       "tracker_as_of": "2026-10-31",
       "latest_quarter": "2026-06-30",
-      "overall": "4.94",
-      "grade": "D",
+      "overall": "5.36",
+      "grade": "C",
       "Growth": "7.2",
       "Unit economics": "8.0",
       "Profitability": "3.9",
       "Execution": "4.0",
-      "Balance sheet": "4.9",
-      "Dilution": "2.3",
+      "Balance sheet": "6.7",
+      "Dilution": "3.8",
       "Valuation": "8.4",
       "Momentum": "0.0",
       "Housing market": "1.8",

@@ -2,6 +2,7 @@
  "0001801169-25-000037": {
   "file": "q12025formxex991earningsre.htm",
   "filed": "2025-05-06",
+  "parser": 2,
   "quarter_end": "2025-03-31",
   "values": {
    "adj_ebitda_musd": -30.0,
@@ -19,6 +20,7 @@
  "0001801169-25-000073": {
   "file": "q22025formxex991earningsre.htm",
   "filed": "2025-08-05",
+  "parser": 2,
   "quarter_end": "2025-06-30",
   "values": {
    "adj_ebitda_musd": 23.0,
@@ -36,6 +38,7 @@
  "0001801169-25-000090": {
   "file": "q32025formxex991earningsre.htm",
   "filed": "2025-11-06",
+  "parser": 2,
   "quarter_end": "2025-09-30",
   "values": {
    "adj_ebitda_musd": -33.0,
@@ -53,10 +56,12 @@
  "0001801169-26-000009": {
   "file": "q42025formxex991earningsre.htm",
   "filed": "2026-02-19",
+  "parser": 2,
   "quarter_end": "2025-12-31",
   "values": {
    "adj_ebitda_musd": -43.0,
    "adj_net_income_musd": -62.0,
+   "aged_120_pct": 33.0,
    "contribution_margin_pct": 1.0,
    "gross_profit_musd": 57.0,
    "homes_in_inventory": 2867.0,
@@ -70,16 +75,19 @@
  "0001801169-26-000013": {
   "file": "q12026formxex991earningsre.htm",
   "filed": "2026-05-07",
+  "parser": 2,
   "quarter_end": "2026-03-31",
   "values": {
    "adj_ebitda_musd": -31.0,
    "adj_net_income_musd": -49.0,
+   "aged_120_pct": 10.0,
    "contribution_margin_pct": 4.4,
    "gross_profit_musd": 72.0,
    "homes_in_inventory": 3420.0,
    "homes_purchased": 2474.0,
    "homes_sold": 1921.0,
    "inventory_musd": 1139.0,
+   "market_aged_120_pct": 33.0,
    "net_income_musd": -173.0,
    "revenue_musd": 720.0
   }
@@ -87,16 +95,19 @@
  "0001801169-26-000019": {
   "file": "q22026formxex991earningsre.htm",
   "filed": "2026-08-04",
+  "parser": 2,
   "quarter_end": "2026-06-30",
   "values": {
    "adj_ebitda_musd": -4.0,
    "adj_net_income_musd": -30.0,
+   "aged_120_pct": 9.0,
    "contribution_margin_pct": 5.8,
    "gross_profit_musd": 86.0,
    "homes_in_inventory": 5459.0,
    "homes_purchased": 4378.0,
    "homes_sold": 2339.0,
    "inventory_musd": 1845.0,
+   "market_aged_120_pct": 27.0,
    "net_income_musd": -162.0,
    "revenue_musd": 883.0
   }

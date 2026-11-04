@@ -1,4 +1,36 @@
 {
+ "0001801169-26-000010": {
+  "dilution": {
+   "converts": 26.098,
+   "espp": 0.794,
+   "market_rsus": 101.418,
+   "options": 3.327,
+   "rsus": 32.698,
+   "total": 263.925,
+   "warrants": 99.59
+  },
+  "file": "open-20251231.htm",
+  "filed": "2026-02-19",
+  "form": "10-K",
+  "parser": 1,
+  "quarter_end": "2025-12-31"
+ },
+ "0001801169-26-000014": {
+  "dilution": {
+   "converts": 27.456,
+   "espp": 0.583,
+   "market_rsus": 104.317,
+   "options": 3.211,
+   "rsus": 32.246,
+   "total": 267.402,
+   "warrants": 99.589
+  },
+  "file": "open-20260331.htm",
+  "filed": "2026-05-07",
+  "form": "10-Q",
+  "parser": 1,
+  "quarter_end": "2026-03-31"
+ },
  "0001801169-26-000021": {
   "dilution": {
    "converts": 26.208,
@@ -12,8 +44,7 @@
   "file": "open-20260630.htm",
   "filed": "2026-08-04",
   "form": "10-Q",
-  "note": "entered from the 10-Q; re-read by the parser on the next run",
-  "parser": 0,
+  "parser": 1,
   "quarter_end": "2026-06-30"
  }
 }
