@@ -1,5 +1,5 @@
 {
-  "generated": "2026-11-04T11:02",
+  "generated": "2026-11-04T13:17",
   "ticker": "OPEN",
   "price": {
     "date": "2026-11-03",
@@ -841,7 +841,9 @@
       "ani_margin": "2026-06-30",
       "sbc_pct": "2026-06-30",
       "home_debt_ltv": "2026-06-30",
-      "dilution_live": "2026-06-30"
+      "dilution_live": "2026-06-30",
+      "contrib_trend": "2026-06-30",
+      "days_inventory": "2026-06-30"
     },
     "notes": {
       "aged_inventory": "Whole market: 27%",
@@ -849,9 +851,328 @@
       "dom_yoy": "12 markets, Sep 2026",
       "cuts_yoy": "12 markets, Sep 2026",
       "list_price_yoy": "12 markets, Sep 2026",
-      "home_debt_ltv": "Cushion 4.5% if home prices fall"
+      "home_debt_ltv": "Cushion 4.5% if home prices fall",
+      "contrib_trend": "Q1 2026 4.4%, Q2 2026 5.8%",
+      "days_inventory": "About 2.1 turns a year; inventory grew 62% in the quarter, which lengthens this",
+      "rev_nowcast_yoy": "Estimate: 2,728 homes x $376K a home. Homes +6.2% YoY; assumes revenue per home +5.6%. Opendoor guided at least +20%",
+      "coe_q4_yoy": "Q4 to Oct 28, 2026: 858 homes vs 596 a year earlier"
     },
     "latest_quarter": "2026-06-30",
+    "fresh": {
+      "contrib_margin": {
+        "text": "Q2 2026",
+        "date": "2026-06-30",
+        "old": true
+      },
+      "contrib_trend": {
+        "text": "Q2 2026",
+        "date": "2026-06-30",
+        "old": true
+      },
+      "gross_margin": {
+        "text": "Q2 2026",
+        "date": "2026-06-30",
+        "old": true
+      },
+      "aged_inventory": {
+        "text": "Q2 2026",
+        "date": "2026-06-30",
+        "old": true
+      },
+      "days_inventory": {
+        "text": "Q2 2026",
+        "date": "2026-06-30",
+        "old": true
+      },
+      "adj_ebitda_m": {
+        "text": "Q2 2026",
+        "date": "2026-06-30",
+        "old": true
+      },
+      "ani_margin": {
+        "text": "Q2 2026",
+        "date": "2026-06-30",
+        "old": true
+      },
+      "sbc_pct": {
+        "text": "Q2 2026",
+        "date": "2026-06-30",
+        "old": true
+      },
+      "home_debt_ltv": {
+        "text": "Q2 2026",
+        "date": "2026-06-30",
+        "old": true
+      },
+      "net_margin_2q": {
+        "text": "Q2 2026",
+        "date": "2026-06-30",
+        "old": true
+      },
+      "rev_nowcast_yoy": {
+        "text": "Q3 2026 estimate",
+        "date": "2026-09-30",
+        "old": false
+      },
+      "cash_vs_notes": {
+        "text": "Q2 2026, adjusted for later deals",
+        "date": "2026-06-30",
+        "old": true
+      },
+      "runway_q": {
+        "text": "Q2 2026, adjusted for later deals",
+        "date": "2026-06-30",
+        "old": true
+      },
+      "share_yoy": {
+        "text": "Q2 2026, adjusted for later deals",
+        "date": "2026-06-30",
+        "old": true
+      },
+      "dilution_live": {
+        "text": "Q2 2026, adjusted for later deals",
+        "date": "2026-06-30",
+        "old": true
+      },
+      "coe_q4_yoy": {
+        "text": "Tracker Oct 31, 2026",
+        "date": "2026-10-31",
+        "old": false
+      },
+      "contracts_qoq": {
+        "text": "Tracker Oct 31, 2026",
+        "date": "2026-10-31",
+        "old": false
+      },
+      "coe_vs_guide": {
+        "text": "Tracker Oct 31, 2026",
+        "date": "2026-10-31",
+        "old": false
+      },
+      "contracts_vs_proj": {
+        "text": "Tracker Oct 31, 2026",
+        "date": "2026-10-31",
+        "old": false
+      },
+      "clearance": {
+        "text": "Tracker Oct 31, 2026",
+        "date": "2026-10-31",
+        "old": false
+      },
+      "ret_1y": {
+        "text": "Close Nov 3, 2026",
+        "date": "2026-11-03",
+        "old": false
+      },
+      "range_pos": {
+        "text": "Close Nov 3, 2026",
+        "date": "2026-11-03",
+        "old": false
+      },
+      "vs_ma200": {
+        "text": "Close Nov 3, 2026",
+        "date": "2026-11-03",
+        "old": false
+      },
+      "ps": {
+        "text": "Price Nov 3, 2026, sales to Q2 2026",
+        "date": "2026-06-30",
+        "old": true
+      },
+      "pb": {
+        "text": "Price Nov 3, 2026, book at Q2 2026",
+        "date": "2026-06-30",
+        "old": true
+      },
+      "mortgage_rate": {
+        "text": "Week of Oct 29, 2026",
+        "date": "2026-10-29",
+        "old": false
+      },
+      "mortgage_13w": {
+        "text": "Week of Oct 29, 2026",
+        "date": "2026-10-29",
+        "old": false
+      },
+      "dom_yoy": {
+        "text": "Sep 2026",
+        "date": "2026-09-01",
+        "old": false
+      },
+      "cuts_yoy": {
+        "text": "Sep 2026",
+        "date": "2026-09-01",
+        "old": false
+      },
+      "list_price_yoy": {
+        "text": "Sep 2026",
+        "date": "2026-09-01",
+        "old": false
+      }
+    },
+    "nowcast": {
+      "quarter": "2026-09-30",
+      "homes": 2728,
+      "rph_k": 376.29107981220653,
+      "estimate": 1026.5220657276996,
+      "prior_revenue": 915.0,
+      "prior_homes": 2568.0,
+      "homes_yoy": 0.06230529595015577,
+      "prior_rph_k": 356.30841121495325,
+      "rph_change": 0.056082505964750284,
+      "rph_basis": "Q1 2026 and Q2 2026",
+      "guide_min_yoy": 0.2,
+      "guide_min_revenue": 1098.0
+    },
+    "inventory_velocity": {
+      "quarter": "2026-06-30",
+      "avg_inventory": 1492.0,
+      "cogs": 797.0,
+      "turns": 2.1425993577468105,
+      "growth": 0.6198419666374013
+    },
+    "targets": [
+      {
+        "what": "Adjusted net income positive by the end of 2026, measured on a twelve-month go-forward basis",
+        "key": "adj_net_income_musd",
+        "label": "Adj. net income",
+        "by": "2026-12-31",
+        "said": "Q4 2025 release (Feb 19, 2026); repeated in the Q2 2026 release (Aug 4, 2026)",
+        "history": [
+          [
+            "2025-09-30",
+            -61.0
+          ],
+          [
+            "2025-12-31",
+            -62.0
+          ],
+          [
+            "2026-03-31",
+            -49.0
+          ],
+          [
+            "2026-06-30",
+            -30.0
+          ]
+        ],
+        "latest": -30.0,
+        "step": 19.0,
+        "quarters_left": 2,
+        "projection": 8.0
+      },
+      {
+        "what": "Adjusted EBITDA profitable on a twelve-month go-forward basis from Q2 2026",
+        "key": "adj_ebitda_musd",
+        "label": "Adj. EBITDA",
+        "by": "2026-06-30",
+        "said": "Q1 2026 release (May 7, 2026); repeated in the Q2 2026 release (Aug 4, 2026)",
+        "history": [
+          [
+            "2025-09-30",
+            -33.0
+          ],
+          [
+            "2025-12-31",
+            -43.0
+          ],
+          [
+            "2026-03-31",
+            -31.0
+          ],
+          [
+            "2026-06-30",
+            -4.0
+          ]
+        ],
+        "latest": -4.0,
+        "step": 27.0,
+        "quarters_left": 0,
+        "projection": null
+      }
+    ],
+    "guidance": [
+      {
+        "quarter": "2026-06-30",
+        "said": "Q1 2026 release (May 7, 2026)",
+        "items": [
+          {
+            "what": "Revenue up about 25% on the quarter before",
+            "key": "revenue_qoq",
+            "kind": "approx",
+            "target": [
+              0.25,
+              0.02
+            ],
+            "actual": 0.22638888888888897,
+            "status": "close"
+          },
+          {
+            "what": "Contribution margin in the middle of the 5% to 7% range",
+            "key": "contribution_margin",
+            "kind": "range",
+            "target": [
+              5.5,
+              6.5
+            ],
+            "actual": 5.8,
+            "status": "met"
+          },
+          {
+            "what": "Adj. EBITDA breakeven, plus or minus a few million",
+            "key": "adj_ebitda_musd",
+            "kind": "abs_max",
+            "target": 5.0,
+            "actual": -4.0,
+            "status": "met"
+          }
+        ]
+      },
+      {
+        "quarter": "2026-09-30",
+        "said": "Q2 2026 release (Aug 4, 2026)",
+        "items": [
+          {
+            "what": "Revenue up at least 20% year on year",
+            "key": "revenue_yoy",
+            "kind": "min",
+            "target": 0.2,
+            "actual": null,
+            "status": "pending"
+          },
+          {
+            "what": "Contribution margin around 4% to 4.5%",
+            "key": "contribution_margin",
+            "kind": "range",
+            "target": [
+              4.0,
+              4.5
+            ],
+            "actual": null,
+            "status": "pending"
+          },
+          {
+            "what": "Contribution profit more than double year on year",
+            "key": "contribution_profit_mult",
+            "kind": "min",
+            "target": 2.0,
+            "actual": null,
+            "status": "pending"
+          },
+          {
+            "what": "Stock-based compensation about $110M",
+            "key": "sbc_musd",
+            "kind": "approx",
+            "target": [
+              110.0,
+              10.0
+            ],
+            "actual": null,
+            "status": "pending"
+          }
+        ]
+      }
+    ],
     "mortgage": {
       "date": "2026-10-29",
       "rate": 0.0724,
@@ -865,6 +1186,8 @@
     "coe_q4_yoy": 0.4395973154362416,
     "contracts_qoq": 0.004847447961220386,
     "contrib_margin": 0.057999999999999996,
+    "contrib_trend": 0.013999999999999995,
+    "days_inventory": 170.3538268506901,
     "gross_margin": 0.09739524348810873,
     "aged_inventory": 0.09,
     "net_margin_2q": -0.20898315658140987,
@@ -891,7 +1214,7 @@
     "list_price_yoy": -0.025599999999999998
   },
   "score": {
-    "overall": 5.48,
+    "overall": 5.38,
     "grade": "C",
     "verdict": "Mixed: the turnaround is plausible but unproven.",
     "pillars": [
@@ -911,7 +1234,12 @@
             "good": 0.3,
             "asof": null,
             "lag": 0,
-            "note": null
+            "note": "Estimate: 2,728 homes x $376K a home. Homes +6.2% YoY; assumes revenue per home +5.6%. Opendoor guided at least +20%",
+            "fresh": {
+              "text": "Q3 2026 estimate",
+              "date": "2026-09-30",
+              "old": false
+            }
           },
           {
             "key": "coe_q4_yoy",
@@ -923,7 +1251,12 @@
             "good": 0.5,
             "asof": null,
             "lag": 0,
-            "note": null
+            "note": "Q4 to Oct 28, 2026: 858 homes vs 596 a year earlier",
+            "fresh": {
+              "text": "Tracker Oct 31, 2026",
+              "date": "2026-10-31",
+              "old": false
+            }
           },
           {
             "key": "contracts_qoq",
@@ -935,15 +1268,21 @@
             "good": 0.2,
             "asof": null,
             "lag": 0,
-            "note": null
+            "note": null,
+            "fresh": {
+              "text": "Tracker Oct 31, 2026",
+              "date": "2026-10-31",
+              "old": false
+            }
           }
-        ]
+        ],
+        "contribution": 1.08
       },
       {
         "name": "Unit economics",
         "weight": 15,
         "question": "Does each home flip make money, and is stock fresh?",
-        "score": 8.0,
+        "score": 7.3,
         "metrics": [
           {
             "key": "contrib_margin",
@@ -955,7 +1294,29 @@
             "good": 0.07,
             "asof": "2026-06-30",
             "lag": 0,
-            "note": null
+            "note": null,
+            "fresh": {
+              "text": "Q2 2026",
+              "date": "2026-06-30",
+              "old": true
+            }
+          },
+          {
+            "key": "contrib_trend",
+            "label": "Contribution margin, latest qtr vs the one before",
+            "value": 0.013999999999999995,
+            "score": 9.7,
+            "fmt": "pp",
+            "bad": -0.015,
+            "good": 0.015,
+            "asof": "2026-06-30",
+            "lag": 0,
+            "note": "Q1 2026 4.4%, Q2 2026 5.8%",
+            "fresh": {
+              "text": "Q2 2026",
+              "date": "2026-06-30",
+              "old": true
+            }
           },
           {
             "key": "gross_margin",
@@ -967,7 +1328,12 @@
             "good": 0.12,
             "asof": "2026-06-30",
             "lag": 0,
-            "note": null
+            "note": null,
+            "fresh": {
+              "text": "Q2 2026",
+              "date": "2026-06-30",
+              "old": true
+            }
           },
           {
             "key": "aged_inventory",
@@ -979,9 +1345,32 @@
             "good": 0.05,
             "asof": "2026-06-30",
             "lag": 0,
-            "note": "Whole market: 27%"
+            "note": "Whole market: 27%",
+            "fresh": {
+              "text": "Q2 2026",
+              "date": "2026-06-30",
+              "old": true
+            }
+          },
+          {
+            "key": "days_inventory",
+            "label": "Days of inventory (average inventory / cost of homes sold)",
+            "value": 170.3538268506901,
+            "score": 2.7,
+            "fmt": "days",
+            "bad": 200.0,
+            "good": 90.0,
+            "asof": "2026-06-30",
+            "lag": 0,
+            "note": "About 2.1 turns a year; inventory grew 62% in the quarter, which lengthens this",
+            "fresh": {
+              "text": "Q2 2026",
+              "date": "2026-06-30",
+              "old": true
+            }
           }
-        ]
+        ],
+        "contribution": 1.1
       },
       {
         "name": "Profitability",
@@ -999,7 +1388,12 @@
             "good": 0.02,
             "asof": null,
             "lag": 0,
-            "note": null
+            "note": null,
+            "fresh": {
+              "text": "Q2 2026",
+              "date": "2026-06-30",
+              "old": true
+            }
           },
           {
             "key": "adj_ebitda_m",
@@ -1011,7 +1405,12 @@
             "good": 0.03,
             "asof": "2026-06-30",
             "lag": 0,
-            "note": null
+            "note": null,
+            "fresh": {
+              "text": "Q2 2026",
+              "date": "2026-06-30",
+              "old": true
+            }
           },
           {
             "key": "ani_margin",
@@ -1023,9 +1422,15 @@
             "good": 0.01,
             "asof": "2026-06-30",
             "lag": 0,
-            "note": null
+            "note": null,
+            "fresh": {
+              "text": "Q2 2026",
+              "date": "2026-06-30",
+              "old": true
+            }
           }
-        ]
+        ],
+        "contribution": 0.59
       },
       {
         "name": "Execution",
@@ -1043,7 +1448,12 @@
             "good": 0.05,
             "asof": null,
             "lag": 0,
-            "note": null
+            "note": null,
+            "fresh": {
+              "text": "Tracker Oct 31, 2026",
+              "date": "2026-10-31",
+              "old": false
+            }
           },
           {
             "key": "contracts_vs_proj",
@@ -1055,7 +1465,12 @@
             "good": 0.1,
             "asof": null,
             "lag": 0,
-            "note": null
+            "note": null,
+            "fresh": {
+              "text": "Tracker Oct 31, 2026",
+              "date": "2026-10-31",
+              "old": false
+            }
           },
           {
             "key": "clearance",
@@ -1067,9 +1482,15 @@
             "good": 1.3,
             "asof": null,
             "lag": 0,
-            "note": null
+            "note": null,
+            "fresh": {
+              "text": "Tracker Oct 31, 2026",
+              "date": "2026-10-31",
+              "old": false
+            }
           }
-        ]
+        ],
+        "contribution": 0.6
       },
       {
         "name": "Balance sheet",
@@ -1087,7 +1508,12 @@
             "good": 2.0,
             "asof": null,
             "lag": 0,
-            "note": null
+            "note": null,
+            "fresh": {
+              "text": "Q2 2026, adjusted for later deals",
+              "date": "2026-06-30",
+              "old": true
+            }
           },
           {
             "key": "home_debt_ltv",
@@ -1099,7 +1525,12 @@
             "good": 0.8,
             "asof": "2026-06-30",
             "lag": 0,
-            "note": "Cushion 4.5% if home prices fall"
+            "note": "Cushion 4.5% if home prices fall",
+            "fresh": {
+              "text": "Q2 2026",
+              "date": "2026-06-30",
+              "old": true
+            }
           },
           {
             "key": "runway_q",
@@ -1111,9 +1542,15 @@
             "good": 16.0,
             "asof": null,
             "lag": 0,
-            "note": null
+            "note": null,
+            "fresh": {
+              "text": "Q2 2026, adjusted for later deals",
+              "date": "2026-06-30",
+              "old": true
+            }
           }
-        ]
+        ],
+        "contribution": 1.0
       },
       {
         "name": "Dilution",
@@ -1131,7 +1568,12 @@
             "good": 0.0,
             "asof": null,
             "lag": 0,
-            "note": null
+            "note": null,
+            "fresh": {
+              "text": "Q2 2026, adjusted for later deals",
+              "date": "2026-06-30",
+              "old": true
+            }
           },
           {
             "key": "sbc_pct",
@@ -1143,7 +1585,12 @@
             "good": 0.01,
             "asof": "2026-06-30",
             "lag": 0,
-            "note": null
+            "note": null,
+            "fresh": {
+              "text": "Q2 2026",
+              "date": "2026-06-30",
+              "old": true
+            }
           },
           {
             "key": "dilution_live",
@@ -1155,9 +1602,15 @@
             "good": 0.02,
             "asof": "2026-06-30",
             "lag": 0,
-            "note": "Of 399M potential shares in all"
+            "note": "Of 399M potential shares in all",
+            "fresh": {
+              "text": "Q2 2026, adjusted for later deals",
+              "date": "2026-06-30",
+              "old": true
+            }
           }
-        ]
+        ],
+        "contribution": 0.38
       },
       {
         "name": "Valuation",
@@ -1175,7 +1628,12 @@
             "good": 0.3,
             "asof": null,
             "lag": 0,
-            "note": null
+            "note": null,
+            "fresh": {
+              "text": "Price Nov 3, 2026, sales to Q2 2026",
+              "date": "2026-06-30",
+              "old": true
+            }
           },
           {
             "key": "pb",
@@ -1187,9 +1645,15 @@
             "good": 1.0,
             "asof": null,
             "lag": 0,
-            "note": null
+            "note": null,
+            "fresh": {
+              "text": "Price Nov 3, 2026, book at Q2 2026",
+              "date": "2026-06-30",
+              "old": true
+            }
           }
-        ]
+        ],
+        "contribution": 0.42
       },
       {
         "name": "Momentum",
@@ -1207,7 +1671,12 @@
             "good": 0.3,
             "asof": null,
             "lag": 0,
-            "note": null
+            "note": null,
+            "fresh": {
+              "text": "Close Nov 3, 2026",
+              "date": "2026-11-03",
+              "old": false
+            }
           },
           {
             "key": "range_pos",
@@ -1219,7 +1688,12 @@
             "good": 1.0,
             "asof": null,
             "lag": 0,
-            "note": null
+            "note": null,
+            "fresh": {
+              "text": "Close Nov 3, 2026",
+              "date": "2026-11-03",
+              "old": false
+            }
           },
           {
             "key": "vs_ma200",
@@ -1231,9 +1705,15 @@
             "good": 0.1,
             "asof": null,
             "lag": 0,
-            "note": null
+            "note": null,
+            "fresh": {
+              "text": "Close Nov 3, 2026",
+              "date": "2026-11-03",
+              "old": false
+            }
           }
-        ]
+        ],
+        "contribution": 0.0
       },
       {
         "name": "Housing market",
@@ -1251,7 +1731,12 @@
             "good": 0.05,
             "asof": null,
             "lag": 0,
-            "note": null
+            "note": null,
+            "fresh": {
+              "text": "Week of Oct 29, 2026",
+              "date": "2026-10-29",
+              "old": false
+            }
           },
           {
             "key": "mortgage_13w",
@@ -1263,7 +1748,12 @@
             "good": -0.0075,
             "asof": null,
             "lag": 0,
-            "note": null
+            "note": null,
+            "fresh": {
+              "text": "Week of Oct 29, 2026",
+              "date": "2026-10-29",
+              "old": false
+            }
           },
           {
             "key": "dom_yoy",
@@ -1275,7 +1765,12 @@
             "good": -0.1,
             "asof": null,
             "lag": 0,
-            "note": "12 markets, Sep 2026"
+            "note": "12 markets, Sep 2026",
+            "fresh": {
+              "text": "Sep 2026",
+              "date": "2026-09-01",
+              "old": false
+            }
           },
           {
             "key": "cuts_yoy",
@@ -1287,7 +1782,12 @@
             "good": -0.03,
             "asof": null,
             "lag": 0,
-            "note": "12 markets, Sep 2026"
+            "note": "12 markets, Sep 2026",
+            "fresh": {
+              "text": "Sep 2026",
+              "date": "2026-09-01",
+              "old": false
+            }
           },
           {
             "key": "list_price_yoy",
@@ -1299,13 +1799,29 @@
             "good": 0.04,
             "asof": null,
             "lag": 0,
-            "note": "12 markets, Sep 2026"
+            "note": "12 markets, Sep 2026",
+            "fresh": {
+              "text": "Sep 2026",
+              "date": "2026-09-01",
+              "old": false
+            }
           }
-        ]
+        ],
+        "contribution": 0.21
       }
     ],
     "weights_used": 100,
-    "why": "Each home sale earns a healthy margin and sales are growing again, but the company still loses money overall, it's missing its own targets and the share count keeps growing."
+    "why": "Each home sale earns a healthy margin and sales are growing again, but the company still loses money overall, it's missing its own targets and the share count keeps growing.",
+    "what_if": {
+      "key": "contracts_vs_proj",
+      "value": 0.0,
+      "metric_score": 8.0,
+      "pillar": "Execution",
+      "pillar_from": 4.0,
+      "pillar_to": 5.8,
+      "overall_to": 5.64,
+      "overall_change": 0.26
+    }
   },
   "quarters": [
     {
@@ -2686,15 +3202,15 @@
   "change": null,
   "history": [
     {
-      "run_at": "2026-11-04T11:02",
+      "run_at": "2026-11-04T13:17",
       "price_date": "2026-11-03",
       "price": "1.74",
       "tracker_as_of": "2026-10-31",
       "latest_quarter": "2026-06-30",
-      "overall": "5.48",
+      "overall": "5.38",
       "grade": "C",
       "Growth": "7.2",
-      "Unit economics": "8.0",
+      "Unit economics": "7.3",
       "Profitability": "3.9",
       "Execution": "4.0",
       "Balance sheet": "6.7",
