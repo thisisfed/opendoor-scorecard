@@ -892,8 +892,33 @@ a{color:inherit}
 .bar .in{max-width:1280px;margin:0 auto;padding:12px 24px;display:grid;grid-template-columns:1fr auto 1fr;align-items:center;gap:20px}
 .brand{grid-column:2;text-align:center;font-weight:600;font-size:18px;line-height:1.25;letter-spacing:-.02em;text-decoration:none}
 .brand small{display:block;font-weight:400;color:var(--muted);font-size:12.5px;margin-top:2px;letter-spacing:0}
-.bar nav{grid-column:1;justify-self:start;display:flex;gap:22px;font-size:15px;font-weight:500}
-.bar nav a{text-decoration:none}
+.bar nav.desk{grid-column:1;justify-self:start;display:flex;gap:22px;font-size:15px;font-weight:500}
+.bar nav.desk a{text-decoration:none}
+.burger{display:none;grid-column:3;justify-self:end;width:42px;height:42px;border:1px solid var(--line);border-radius:12px;background:#fff;
+padding:0;cursor:pointer;position:relative}
+.burger span{position:absolute;left:12px;right:12px;height:2px;border-radius:2px;background:var(--ink);transition:transform .25s,opacity .2s,top .25s}
+.burger span:nth-child(1){top:14px}.burger span:nth-child(2){top:20px}.burger span:nth-child(3){top:26px}
+.burger[aria-expanded="true"] span:nth-child(1){top:20px;transform:rotate(45deg)}
+.burger[aria-expanded="true"] span:nth-child(2){opacity:0}
+.burger[aria-expanded="true"] span:nth-child(3){top:20px;transform:rotate(-45deg)}
+.menu{position:fixed;left:0;right:0;top:var(--barh,64px);bottom:0;background:rgba(249,248,248,.98);backdrop-filter:blur(10px);
+padding:8px 16px 32px;overflow-y:auto;z-index:4;animation:drop .22s ease-out}
+.menu[hidden]{display:none}
+@keyframes drop{from{opacity:0;transform:translateY(-6px)}to{opacity:1;transform:none}}
+.menu a{display:block;background:#fff;border-radius:16px;padding:14px 18px;margin-top:8px;text-decoration:none}
+.menu a span{display:block;font-size:20px;font-weight:500;letter-spacing:-.02em}
+.menu a small{display:block;font-size:14px;color:var(--muted);margin-top:1px}
+.menu a.menu-by{background:none;text-align:center;font-size:14px;color:var(--muted);margin-top:18px}
+.xgrid{display:grid;grid-template-columns:1.6fr 1fr;gap:24px;align-items:start}
+.xfeed{min-height:200px}.xfeed .twitter-timeline{font-size:14px}
+.xfeed.loaded .xfallback{display:none}
+.xpeople .xh{font-size:13px;font-weight:500;color:var(--muted);text-transform:uppercase;letter-spacing:.06em;margin:0 0 6px}
+.xp{display:grid;grid-template-columns:1fr auto;column-gap:10px;padding:12px 0;border-bottom:1px solid var(--line);text-decoration:none}
+.xp:last-child{border-bottom:0}.xp b{font-weight:500}.xp span{color:var(--blue);font-size:14px;text-align:right}
+.xp small{grid-column:1/-1;color:var(--muted);font-size:13px}
+.xp:hover b{text-decoration:underline}
+.xlink{text-decoration:none;font-size:14px}
+.credit{display:flex;flex-wrap:wrap;gap:6px 22px}
 .by{grid-column:3;justify-self:end;font-size:13px;color:var(--muted);text-decoration:none;white-space:nowrap;padding:6px 12px;border:1px solid var(--line);border-radius:10px;background:#fff}
 .by:hover{color:var(--ink)}
 .credit{font-size:14px;color:var(--ink);padding:14px 0;border-top:1px solid #e3dfda;border-bottom:1px solid #e3dfda}
@@ -901,6 +926,7 @@ a{color:inherit}
 .wrap{max-width:1280px;margin:0 auto;padding:0 24px 120px}
 .hero{display:grid;grid-template-columns:1.3fr 1fr;gap:40px;align-items:end;padding:64px 0 56px;position:relative}
 .asof{position:absolute;top:28px;right:0;text-align:right;font-size:14px;font-weight:500}
+.asof i+i{margin-top:0}
 .asof i{display:block;font-size:12px;font-weight:400;color:var(--muted)}
 .asof .dot{display:inline-block;width:9px;height:9px;border-radius:50%;background:#4cc38a;margin-right:8px;vertical-align:1px;
 box-shadow:0 0 0 0 rgba(76,195,138,.55),0 0 8px 1px rgba(76,195,138,.6);animation:glow 2.4s ease-out infinite}
@@ -967,11 +993,11 @@ details[open] .chev{transform:rotate(180deg)}.chev{display:inline-block;transiti
 .note{color:var(--muted);font-size:13px}
 footer{margin-top:56px;font-size:13px;color:#5d5d6a;line-height:1.6;max-width:900px}
 footer b{color:var(--ink);font-weight:500}
-@media (max-width:900px){.hero{grid-template-columns:1fr;gap:20px;padding-top:48px}.asof{position:static;text-align:left;order:-1}
+@media (max-width:900px){.burger{display:block}.by{display:none}.bar nav.desk{display:none}.xgrid{grid-template-columns:1fr}.hero{grid-template-columns:1fr;gap:20px;padding-top:48px}.asof{position:static;text-align:left;order:-1}
 .grid{grid-template-columns:1fr}.kpis{grid-template-columns:1fr 1fr}.kpi:nth-child(2){border-right:0}
-.kpi:nth-child(-n+2){border-bottom:1px solid var(--line)}h1{margin-top:8px}.bar nav{display:none}}
-@media (max-width:520px){.pbar{grid-template-columns:110px 1fr 34px;gap:10px;font-size:14px}.pbar .w{display:none}
-.card .hd{flex-wrap:nowrap;gap:12px}.card .hd>div:first-child{flex:1 1 auto;min-width:0}.card .hd>.right{flex:0 0 auto}.card .hd.stack{flex-direction:column;gap:10px}.hd.stack .right{text-align:left}.by{display:none}.bar .in{grid-template-columns:1fr;padding:10px 16px}.brand{grid-column:1}.bd,.card .hd,.kpi,.ft{padding-left:18px;padding-right:18px}.wrap{padding:0 14px 80px}}
+.kpi:nth-child(-n+2){border-bottom:1px solid var(--line)}h1{margin-top:8px}.bar nav.desk{display:none}}
+@media (max-width:520px){.brand small{font-size:11px}.brand{font-size:17px}.pbar{grid-template-columns:110px 1fr 34px;gap:10px;font-size:14px}.pbar .w{display:none}
+.card .hd{flex-wrap:nowrap;gap:12px}.card .hd>div:first-child{flex:1 1 auto;min-width:0}.card .hd>.right{flex:0 0 auto}.card .hd.stack{flex-direction:column;gap:10px}.hd.stack .right{text-align:left}.by{display:none}.bar .in{grid-template-columns:42px 1fr 42px;gap:8px;padding:10px 14px}.brand{grid-column:2}.bd,.card .hd,.kpi,.ft{padding-left:18px;padding-right:18px}.wrap{padding:0 14px 80px}}
 """
 
 
@@ -991,7 +1017,7 @@ def write_html(res, path):
         d = ch["overall"]
         change = _badge(f"{d:+.2f}", "green" if d > 0.004 else "red" if d < -0.004 else "grey",
                         "↗ " if d > 0.004 else "↘ " if d < -0.004 else "")
-        change_sub = f"vs {_d(ch['since'])}" + (f" · grade was {ch['grade_from']}" if ch["grade_from"] != s["grade"] else "")
+        change_sub = f"vs {_d(ch['since'])}" + (f", grade was {ch['grade_from']}" if ch["grade_from"] != s["grade"] else "")
     asof = acc.get("as_of") or px["date"]
     mort = ex.get("mortgage") or {}
     q3s, q3e = acc.get("q3_homes_sold"), acc.get("q3_homes_sold_expected")
@@ -1028,7 +1054,7 @@ def write_html(res, path):
             f'<p class="sub">last 4 weeks vs projection midpoint</p></div></div>'
             f'<div class="bd"><div class="legend"><span><i style="background:{BLUE}"></i>Contracts signed</span>'
             f'<span><i style="background:#34d399"></i>Opendoor&#39;s projected range</span></div>'
-            f'<p class="swipe">Swipe for earlier weeks · tap the chart for figures</p>'
+            f'<p class="swipe">Swipe for earlier weeks, tap the chart for figures</p>'
             f'<div class="chartbox">{contracts}<div class="tip" hidden></div></div></div>'
             f'<div class="ft">Last 4 weeks: {a4:,} contracts vs a projected {lo4:,}–{hi4:,}; '
             f'{acc.get("weeks_below_proj_13", 0)} of the last 13 weeks were below the range. Source: accountable.opendoor.com, data as of {e(_d(asof))}.</div></div>'
@@ -1057,17 +1083,29 @@ def write_html(res, path):
 <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600&display=swap" rel="stylesheet">
 <style>{CSS}</style></head><body>
 <div class="bar"><div class="in">
-<nav><a href="#pillars">Pillars</a><a href="#contracts">Contracts</a><a href="#history">History</a><a href="#method">Method</a></nav>
+<nav class="desk"><a href="#score">Score</a><a href="#pillars">Pillars</a><a href="#contracts">Contracts</a><a href="#history">History</a><a href="#x">On X</a><a href="#method">Method</a></nav>
 <a class="brand" href="./">Opendoor Scorecard<small>Independent and not affiliated with Opendoor</small></a>
-<a class="by" href="https://thisisfed.xyz" target="_blank" rel="noopener">by Federico R. T. Ferrari</a></div></div>
+<a class="by" href="https://thisisfed.xyz" target="_blank" rel="noopener">by Federico R. T. Ferrari</a>
+<button class="burger" type="button" aria-label="Open menu" aria-expanded="false" aria-controls="menu"><span></span><span></span><span></span></button>
+</div>
+</div>
+<nav class="menu" id="menu" hidden>
+<a href="#score"><span>Overall score</span><small>The grade and why</small></a>
+<a href="#pillars"><span>Pillars</span><small>What drives each score</small></a>
+<a href="#contracts"><span>Contracts</span><small>Opendoor against its own targets</small></a>
+<a href="#history"><span>History</span><small>Score over time and quarterly results</small></a>
+<a href="#x"><span>On X</span><small>Latest from Opendoor and its leaders</small></a>
+<a href="#method"><span>Method</span><small>How the score works, and sources</small></a>
+<a class="menu-by" href="https://thisisfed.xyz" target="_blank" rel="noopener">by Federico R. T. Ferrari</a>
+</nav>
 <div class="wrap">
 <section class="hero">
-<div class="asof"><span class="dot"></span>Updated {e(_d(res['generated']))}, {e(res['generated'][11:16])} UK<i>Prices to {e(_d(px['date']))} · Opendoor tracker as of {e(_d(asof))} (refreshed weekly)</i></div>
+<div class="asof"><span class="dot"></span>Updated {e(_d(res['generated']))}, {e(res['generated'][11:16])} UK<i>Prices to {e(_d(px['date']))}</i><i>Opendoor tracker as of {e(_d(asof))}, refreshed weekly</i></div>
 <h1>Opendoor,<br>scored.<br>Every weekday.</h1>
 <p class="lede">An independent scorecard that grades Opendoor 0–10 on nine pillars, rebuilt every weekday from SEC filings, the share price, mortgage rates and Opendoor's own public tracker.</p>
 </section>
 
-<div class="card"><div class="hd stack"><div><h2>Overall score</h2><p class="sub">Weighted across nine pillars</p></div>
+<div class="card" id="score"><div class="hd stack"><div><h2>Overall score</h2><p class="sub">Weighted across nine pillars</p></div>
 <div class="right">{change}<p class="sub">{e(change_sub)}</p></div></div>
 <div class="bd"><div class="score"><span class="num">{s['overall']:.2f}</span><span class="of">/ 10</span>
 <span class="grade badge {tone}">{e(s['grade'])}</span></div>
@@ -1094,18 +1132,66 @@ def write_html(res, path):
 <div class="card"><details><summary class="hd" style="border-bottom:0"><div><h2>Run history</h2><p class="sub">Every pillar's score on every day</p></div>
 <span class="chev">▾</span></summary><div class="bd scroll" style="border-top:1px solid var(--line);padding-top:4px"><table><tr><th>Run</th><th>Price</th><th>Overall</th>{heads}</tr>{hrows}</table></div></details></div>
 
+<p class="section" id="x">On X</p>
+<div class="card"><div class="hd"><div><h2>Latest from Opendoor</h2><p class="sub">Opendoor posts its updates on X</p></div>
+<div class="right"><a class="badge grey xlink" href="https://x.com/Opendoor" target="_blank" rel="noopener">Open on X</a></div></div>
+<div class="bd xgrid">
+<div class="xfeed" data-src="https://twitter.com/Opendoor">
+<a class="twitter-timeline" data-height="620" data-dnt="true" data-chrome="noheader nofooter noborders transparent"
+href="https://twitter.com/Opendoor">Posts by @Opendoor</a>
+<p class="note xfallback">If the feed doesn't load here, X may be asking visitors to sign in. <a href="https://x.com/Opendoor" target="_blank" rel="noopener">See @Opendoor on X</a>.</p>
+</div>
+<div class="xpeople">
+<p class="xh">People to follow</p>
+<a class="xp" href="https://x.com/CanadaKaz" target="_blank" rel="noopener"><b>Kaz Nejatian</b><span>@CanadaKaz</span><small>CEO</small></a>
+<a class="xp" href="https://x.com/rabois" target="_blank" rel="noopener"><b>Keith Rabois</b><span>@rabois</span><small>Co-founder and chairman</small></a>
+<a class="xp" href="https://x.com/ericwu01" target="_blank" rel="noopener"><b>Eric Wu</b><span>@ericwu01</span><small>Co-founder, board member</small></a>
+<a class="xp" href="https://x.com/adambain" target="_blank" rel="noopener"><b>Adam Bain</b><span>@adambain</span><small>Board member</small></a>
+<a class="xp" href="https://x.com/ericjackson" target="_blank" rel="noopener"><b>Eric Jackson</b><span>@ericjackson</span><small>EMJ Capital, investor</small></a>
+<a class="xp" href="https://x.com/search?q=%24OPEN&amp;f=live" target="_blank" rel="noopener"><b>$OPEN</b><span>Live posts</span><small>Everything mentioning the ticker</small></a>
+</div></div></div>
+
 <footer id="method"><p><b>Method.</b> Each metric scores 0–10 on a straight line between a "0 points" and a "10 points" value (hover a metric to see them).
 Pillars average their metrics, and the overall score weights the pillars as shown. Grades: A 8+, B 6.5+, C 5+, D 3.5+, F below.
 The thresholds and weights are judgement calls and have not been back-tested against share-price returns. {e(est_note)}{e(pf_note)}</p>
 <p><b>Sources.</b> SEC EDGAR (financial statements and earnings releases), accountable.opendoor.com, {e(str(px.get('source', 'price data')))} (price),
 {e(mort.get('source') or 'Freddie Mac')} (mortgage rate). Download the <a href="history.csv">score history</a> or <a href="scorecard.json">all the data</a>.</p>
-<p class="credit">Made by <a href="https://thisisfed.xyz" target="_blank" rel="noopener">Federico R. T. Ferrari</a> ·
-<a href="https://thisisfed.xyz" target="_blank" rel="noopener">thisisfed.xyz</a> ·
-<a href="https://github.com/thisisfed/opendoor-scorecard" target="_blank" rel="noopener">source code</a></p>
+<p class="credit"><span>Made by <a href="https://thisisfed.xyz" target="_blank" rel="noopener">Federico R. T. Ferrari</a></span>
+<a href="https://thisisfed.xyz" target="_blank" rel="noopener">thisisfed.xyz</a>
+<a href="https://github.com/thisisfed/opendoor-scorecard" target="_blank" rel="noopener">Source code</a></p>
 <p><b>Independent project</b>, not affiliated with or endorsed by Opendoor Technologies Inc. A structured summary of public numbers, not a forecast,
 a recommendation or investment advice.</p></footer>
 </div>
 <script>
+(function () {{
+  var bar = document.querySelector(".bar"), btn = document.querySelector(".burger"), menu = document.getElementById("menu");
+  function setBar() {{ document.documentElement.style.setProperty("--barh", bar.offsetHeight + "px"); }}
+  setBar(); window.addEventListener("resize", setBar);
+  function toggle(open) {{
+    menu.hidden = !open; btn.setAttribute("aria-expanded", open ? "true" : "false");
+    btn.setAttribute("aria-label", open ? "Close menu" : "Open menu");
+    document.body.style.overflow = open ? "hidden" : "";
+  }}
+  btn.addEventListener("click", function () {{ toggle(menu.hidden); }});
+  menu.addEventListener("click", function (ev) {{ if (ev.target.closest("a")) toggle(false); }});
+  document.addEventListener("keydown", function (ev) {{ if (ev.key === "Escape" && !menu.hidden) {{ toggle(false); btn.focus(); }} }});
+  window.addEventListener("resize", function () {{ if (window.innerWidth > 900 && !menu.hidden) toggle(false); }});
+
+  // X feed: load X's widget only when the section comes into view
+  var feed = document.querySelector(".xfeed");
+  if (feed && "IntersectionObserver" in window) {{
+    var io = new IntersectionObserver(function (es) {{
+      if (!es.some(function (e) {{ return e.isIntersecting; }})) return;
+      io.disconnect();
+      var sc = document.createElement("script"); sc.async = true; sc.src = "https://platform.twitter.com/widgets.js"; sc.charset = "utf-8";
+      sc.onload = function () {{
+        if (window.twttr && twttr.events) twttr.events.bind("rendered", function () {{ feed.classList.add("loaded"); }});
+      }};
+      document.body.appendChild(sc);
+    }}, {{ rootMargin: "400px" }});
+    io.observe(feed);
+  }}
+}})();
 (function () {{
   document.querySelectorAll(".chartbox").forEach(function (box) {{
     var svg = box.querySelector("svg.ichart"), tip = box.querySelector(".tip");
