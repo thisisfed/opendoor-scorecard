@@ -1818,11 +1818,11 @@ stroke-linecap="round" stroke-linejoin="round"/>
 """
 
 CSS = """
-:root{--bartop:14px;--ink:#23201d;--muted:#786e64;--muted2:#5d554d;--line:#ebe7e2;--bg:#f3f2f0;--blue:#1d4ed8}
+:root{--bartop:0px;--ink:#23201d;--muted:#786e64;--muted2:#5d554d;--line:#ebe7e2;--bg:#f3f2f0;--blue:#1d4ed8}
 *{box-sizing:border-box}
-html{background:#f9f8f8;scroll-padding-top:104px;scroll-behavior:smooth}
+html{background:#f9f8f8;scroll-padding-top:88px;scroll-behavior:smooth}
 @media (prefers-reduced-motion:reduce){html{scroll-behavior:auto}}
-@media (max-width:520px){html{scroll-padding-top:96px}}
+@media (max-width:520px){html{scroll-padding-top:76px}}
 body{margin:0;color:var(--ink);font:400 15px/1.5 Inter,system-ui,-apple-system,"Segoe UI","Helvetica Neue",Arial,sans-serif;
 letter-spacing:-.011em;-webkit-font-smoothing:antialiased;font-variant-numeric:tabular-nums;
 background:radial-gradient(80% 40% at 10% 0%,var(--g1) 0%,rgba(0,0,0,0) 60%),
@@ -1830,16 +1830,18 @@ radial-gradient(65% 35% at 50% 0%,var(--g2) 0%,rgba(0,0,0,0) 58%),
 radial-gradient(50% 30% at 88% 0%,var(--g3) 0%,rgba(0,0,0,0) 50%),var(--bg);background-repeat:no-repeat;
 padding-top:var(--bartop)}
 a{color:inherit}
-.bar{position:sticky;top:var(--bartop);z-index:5;width:calc(100% - 48px);max-width:1232px;margin:0 auto;
-background:rgba(255,255,255,.78);backdrop-filter:saturate(1.6) blur(14px);-webkit-backdrop-filter:saturate(1.6) blur(14px);
-border:1px solid rgba(35,32,29,.07);border-radius:20px;box-shadow:0 10px 30px rgba(35,32,29,.10),0 1px 2px rgba(35,32,29,.06)}
-.bar .in{margin:0 auto;padding:10px 12px 10px 24px;display:grid;grid-template-columns:1fr auto 1fr;align-items:center;gap:20px}
-.bar .in>*{grid-row:1}
-.brand{grid-column:2;text-align:center;font-weight:600;font-size:18px;line-height:1.25;letter-spacing:-.02em;text-decoration:none}
-.brand small{display:block;font-weight:400;color:var(--muted);font-size:12.5px;margin-top:2px;letter-spacing:0}
-.bar nav.desk{grid-column:1;justify-self:start;display:flex;gap:22px;font-size:15px;font-weight:500}
-.bar nav.desk a{text-decoration:none;white-space:nowrap}
-.burger{display:none;grid-column:3;justify-self:end;width:42px;height:42px;border:1px solid var(--line);border-radius:12px;background:#fff;
+/* Top bar, after accountable.opendoor.com: flat white, full width, sticky, 72px; text links that get a soft grey
+   rounded box on hover; a white raised button on the right. Our own title and disclaimer, no Opendoor branding. */
+.bar{position:sticky;top:0;z-index:5;background:#fff}
+.bar .in{max-width:1280px;height:72px;margin:0 auto;padding:0 24px;display:flex;align-items:center;gap:4px}
+.brand{order:0;text-align:left;font-weight:600;font-size:18px;line-height:1.2;letter-spacing:-.03em;text-decoration:none;white-space:nowrap}
+.brand small{display:block;font-weight:400;color:var(--muted);font-size:12px;margin-top:2px;letter-spacing:0}
+.bar nav.desk{order:1;margin-left:auto;display:flex;gap:0}
+.bar nav.desk a{display:inline-flex;align-items:center;height:44px;padding:0 16px;border-radius:12px;font-size:16px;font-weight:500;
+letter-spacing:-.05em;text-decoration:none;white-space:nowrap;transition:background .15s}
+.bar nav.desk a:hover{background:#efebe8}
+.burger{display:none;order:3;margin-left:8px;width:44px;height:44px;border:0;border-radius:12px;background:#fff;
+box-shadow:0 0 0 1px rgba(88,64,50,.16),0 2px 0 rgba(88,64,50,.10);
 padding:0;cursor:pointer;position:relative}
 .burger span{position:absolute;left:12px;right:12px;height:2px;border-radius:2px;background:var(--ink);transition:transform .25s,opacity .2s,top .25s}
 .burger span:nth-child(1){top:14px}.burger span:nth-child(2){top:20px}.burger span:nth-child(3){top:26px}
@@ -1855,11 +1857,14 @@ padding:calc(var(--barh,64px) + 2 * var(--bartop,14px)) 16px 32px;overflow-y:aut
 .menu a small{display:block;font-size:14px;color:var(--muted);margin-top:1px}
 .menu a.menu-by{background:none;text-align:center;font-size:14px;color:var(--muted);margin-top:18px}
 .credit{display:flex;flex-wrap:wrap;justify-content:center;gap:6px 28px;margin:32px 0 0}
-.r3{grid-column:3;justify-self:end;display:flex;align-items:center;gap:10px}
-.nl-btn{font-size:14px;font-weight:600;color:#fff;background:#1d4ed8;text-decoration:none;padding:7px 14px;border-radius:10px;white-space:nowrap;box-shadow:0 2px 10px rgba(29,78,216,.25)}
-.nl-btn:hover{background:#1e40af}
-.by{font-size:13px;color:var(--muted);text-decoration:none;white-space:nowrap;padding:6px 12px;border:1px solid var(--line);border-radius:10px;background:#fff}
+.r3{order:2;margin-left:20px;display:flex;align-items:center;gap:14px}
+.nl-btn{display:inline-flex;align-items:center;height:44px;padding:0 20px;border-radius:12px;background:rgba(255,255,255,.9);color:var(--ink);
+font-size:16px;font-weight:500;letter-spacing:-.04em;text-decoration:none;white-space:nowrap;
+box-shadow:0 0 0 1px rgba(88,64,50,.16),inset 0 0 0 1px rgba(255,255,255,.3),0 2px 0 rgba(88,64,50,.10)}
+.nl-btn:hover{background:#faf8f6}
+.by{order:-1;font-size:14px;color:var(--muted);text-decoration:none;white-space:nowrap}
 .by:hover{color:var(--ink)}
+@media (max-width:1320px){.r3 .by{display:none}}
 .credit{font-size:14px;color:var(--ink);padding:14px 0;border-top:1px solid #e3dfda;border-bottom:1px solid #e3dfda}
 .credit a{font-weight:500;text-decoration:none;border-bottom:1px solid #cfc8c0}.credit a:hover{border-color:var(--ink)}
 .wrap{max-width:1280px;margin:0 auto;padding:0 24px 120px}
@@ -1934,8 +1939,8 @@ table.mv td small{display:block;font-size:11.5px;color:var(--muted)}table.mv td,
 table.mv2 td,table.mv2 th{white-space:nowrap}
 .tool-h{margin:4px 0 8px;font-weight:500;font-size:15px}.tool-h~.tool-h{margin-top:22px}
 .scen-note{font-size:13.5px;color:var(--muted2);margin:-4px 0 10px}
-.ins{display:grid;grid-template-columns:repeat(3,1fr);gap:10px}.in{display:flex;flex-direction:column;gap:6px;border:1px solid var(--line);
-border-radius:12px;padding:10px 12px;font-size:14px}.in small{display:block;font-size:12px;color:var(--muted)}
+.ins{display:grid;grid-template-columns:repeat(3,1fr);gap:10px}.sin{display:flex;flex-direction:column;gap:6px;border:1px solid var(--line);
+border-radius:12px;padding:10px 12px;font-size:14px}.sin small{display:block;font-size:12px;color:var(--muted)}
 .in-f{display:flex;align-items:center;gap:6px}.in-f input{width:100%;font:inherit;font-size:16px;padding:7px 9px;border:1px solid var(--line);border-radius:8px}
 .in-note{margin:8px 0 0;font-size:12.5px}.sc-pil{font-size:13.5px;color:var(--muted2);margin:12px 0 0}
 .spre{font:inherit;font-size:14px;border:1px solid var(--line);background:#fff;border-radius:999px;padding:7px 14px;cursor:pointer}
@@ -2075,13 +2080,13 @@ background:#fff;border-radius:999px;padding:7px 14px;cursor:pointer}.pre.on{back
 @media (max-width:640px){.chartbox .dchart{min-width:600px}}
 @media (max-width:520px){.pair{grid-template-columns:96px 1fr 70px;gap:8px}.dlab b{font-size:22px}}
 @media (prefers-reduced-motion:reduce){.dchart .pulse{animation:none}}
-@media (max-width:1180px){.bar nav.desk{display:none}.burger{display:block}.r3{grid-column:1;justify-self:start}
+@media (max-width:1180px){.bar nav.desk{display:none}.burger{display:block}.r3{margin-left:auto}
 .menu a{max-width:680px;margin-left:auto;margin-right:auto}}
 @media (max-width:900px){.burger{display:block}.by{display:none}.r3 .nl-btn{display:none}.bar nav.desk{display:none}.hero{grid-template-columns:1fr;gap:20px;padding-top:48px}.asof{position:static;text-align:left;order:-1}
 .grid{grid-template-columns:1fr}.kpis{grid-template-columns:1fr 1fr}.kpi:nth-child(2){border-right:0}
 .kpi:nth-child(-n+2){border-bottom:1px solid var(--line)}h1{margin-top:8px}.bar nav.desk{display:none}}
 @media (max-width:520px){.brand small{font-size:11px}.brand{font-size:17px}.pbar{grid-template-columns:110px 1fr 34px;gap:10px;font-size:14px}.pbar .w{display:none}
-.card .hd{flex-wrap:nowrap;gap:12px}.card .hd>div:first-child{flex:1 1 auto;min-width:0}.card .hd>.right{flex:0 0 auto}.card .hd.stack{flex-direction:column;gap:10px}.hd.stack .right{text-align:left}.by{display:none}.bar .in{grid-template-columns:42px 1fr 42px;gap:8px;padding:6px 6px 6px 6px}.bar{width:calc(100% - 20px)}:root{--bartop:10px}.brand{grid-column:2}.bd,.card .hd,.kpi,.ft{padding-left:18px;padding-right:18px}.wrap{padding:0 14px 80px}}
+.card .hd{flex-wrap:nowrap;gap:12px}.card .hd>div:first-child{flex:1 1 auto;min-width:0}.card .hd>.right{flex:0 0 auto}.card .hd.stack{flex-direction:column;gap:10px}.hd.stack .right{text-align:left}.by{display:none}.bar .in{height:60px;padding:0 14px}.burger{margin-left:auto}.brand{grid-column:2}.bd,.card .hd,.kpi,.ft{padding-left:18px;padding-right:18px}.wrap{padding:0 14px 80px}}
 """
 
 
@@ -2424,7 +2429,7 @@ def _scenario_card(res):
         if not i or i["score"] is None:
             continue
         pub = i["value"] * 100
-        ins += (f'<label class="in"><span>{e(label)}<small>published {e(fmt(i["value"], i["fmt"]))}'
+        ins += (f'<label class="sin"><span>{e(label)}<small>published {e(fmt(i["value"], i["fmt"]))}'
                 f'{" (estimate)" if k == "rev_nowcast_yoy" and ex.get("nowcast") else ""}</small></span>'
                 f'<span class="in-f"><input type="number" step="0.1" value="{pub:.1f}" data-k="{k}" data-pub="{pub:.4f}">%</span></label>')
     scen = [{"name": "Base", "note": "Today's published inputs", "values": {}}] + (SCENARIOS["presets"] if pending else [])
