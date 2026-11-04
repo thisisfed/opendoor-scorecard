@@ -139,7 +139,7 @@ PILLAR_WORDS = {
 
 
 def explain(sc):
-    """'Why' sentence: the two pillars lifting the score most and the three dragging it most (score x weight)."""
+    """Reason sentence: the two pillars lifting the score most and the three dragging it most (score x weight)."""
     ps = [p for p in sc["pillars"] if p["score"] is not None]
     ups = sorted((p for p in ps if p["score"] >= 6.5), key=lambda p: -p["score"] * p["weight"])[:2]
     downs = sorted((p for p in ps if p["score"] < 5.0), key=lambda p: -(10 - p["score"]) * p["weight"])[:3]
@@ -152,7 +152,7 @@ def explain(sc):
         text = join(good or bad) + "."
     else:
         text = "no pillar stands out either way."
-    return "Why: " + text[0].upper() + text[1:]
+    return text[0].upper() + text[1:]
 
 
 GRADES = [(8.0, "A", "Strong: the numbers back the story."),
@@ -1348,7 +1348,7 @@ padding:8px 16px 32px;overflow-y:auto;z-index:4;animation:drop .22s ease-out}
 .menu a span{display:block;font-size:20px;font-weight:500;letter-spacing:-.02em}
 .menu a small{display:block;font-size:14px;color:var(--muted);margin-top:1px}
 .menu a.menu-by{background:none;text-align:center;font-size:14px;color:var(--muted);margin-top:18px}
-.credit{display:flex;flex-wrap:wrap;gap:6px 22px}
+.credit{display:flex;flex-wrap:wrap;justify-content:center;gap:6px 28px;margin:32px 0 0}
 .by{grid-column:3;justify-self:end;font-size:13px;color:var(--muted);text-decoration:none;white-space:nowrap;padding:6px 12px;border:1px solid var(--line);border-radius:10px;background:#fff}
 .by:hover{color:var(--ink)}
 .credit{font-size:14px;color:var(--ink);padding:14px 0;border-top:1px solid #e3dfda;border-bottom:1px solid #e3dfda}
@@ -1739,11 +1739,10 @@ A quarterly figure one quarter old is labelled; older than that, it stops counti
 The thresholds and weights are judgement calls and have not been back-tested against share-price returns. {e(est_note)}{e(pf_note)}</p>
 <p><b>Sources.</b> SEC EDGAR (financial statements and earnings releases), accountable.opendoor.com, {e(str(px.get('source', 'price data')))} (price),
 {e(mort.get('source') or 'Freddie Mac')} (mortgage rate), Realtor.com (housing in Opendoor's markets). Download the <a href="history.csv">score history</a> or <a href="scorecard.json">all the data</a>.</p>
-<p class="credit"><span>Made by <a href="https://thisisfed.xyz" target="_blank" rel="noopener">Federico R. T. Ferrari</a></span>
-<a href="https://thisisfed.xyz" target="_blank" rel="noopener">thisisfed.xyz</a>
-<a href="https://github.com/thisisfed/opendoor-scorecard" target="_blank" rel="noopener">Source code</a></p>
 <p><b>Independent project</b>, not affiliated with or endorsed by Opendoor Technologies Inc. A structured summary of public numbers, not a forecast,
 a recommendation or investment advice.</p></footer>
+<p class="credit"><a href="https://thisisfed.xyz" target="_blank" rel="noopener">thisisfed.xyz</a>
+<a href="https://github.com/thisisfed/opendoor-scorecard" target="_blank" rel="noopener">Source code</a></p>
 </div>
 <script>
 (function () {{
