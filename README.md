@@ -69,9 +69,9 @@ Nine pillars, each 0–10 (the average of its metrics), weighted into the overal
 | Pillar | Weight | Metrics |
 |---|---|---|
 | Growth | 15% | revenue YoY (estimated from homes sold until reported), quarter-to-date homes sold YoY, contracts vs prior quarter |
-| Unit economics | 15% | contribution margin, gross margin, share of homes listed 120+ days |
+| Unit economics | 15% | contribution margin and its change on the quarter before, gross margin, share of homes listed 120+ days, days of inventory |
 | Profitability | 15% | GAAP net margin (last 2 quarters), adjusted EBITDA margin, adjusted net income margin (the end-2026 target) |
-| Execution | 15% | homes sold vs management's expectation, contracts vs Opendoor's projected range, sale speed vs the market |
+| Execution | 15% | homes sold vs management's expectation, contracts vs Opendoor's projected range, sale speed vs the market, signed contracts that fell through |
 | Balance sheet | 15% | cash vs the company's own debt (convertible notes), home-backed debt vs the homes it funds, cash runway (adjusted for deals after the last quarter) |
 | Dilution | 10% | share count change, stock pay / revenue, potential new shares that are live at today's price |
 | Valuation | 5% | price / sales, price / book |
@@ -86,6 +86,16 @@ convertible notes, the company's own debt, are measured against its cash.
 ($6.24, then $9 to $33). Warrants count only their value above the exercise price ($9, $13, $17; they expire on
 20 November 2026). Convertible notes count only their value above the cash they repay, net of the capped call on
 the 2030 0% notes. The page shows every line, and how dilution would grow at higher share prices.
+
+**Contracts that fell through.** Contracts open at the start of a quarter, plus those signed in it (the tracker,
+which Opendoor says isn't reduced for cancellations), less homes bought, less contracts still open at the end
+(both from the earnings release). Finished quarters are kept in `contracts_quarterly.json` once the tracker's
+window moves on.
+
+**Also on the page, not scored:** management's targets and a guidance track record (met, beaten, close or missed,
+item by item), unit economics quarter by quarter (including selling and holding costs and write-downs per home),
+stress tests (rates +0.5 points, home prices -5%, contracts another 20% short) that re-run the same scoring, and
+sliders to try your own pillar weights. Every metric's thresholds and data date are listed under "How the score works".
 
 Grades: A 8+, B 6.5+, C 5+, D 3.5+, F below. The thresholds and weights are judgement calls and have not been
 back-tested against share-price returns. They live in `RULES` and `PILLARS` at the top of the script.

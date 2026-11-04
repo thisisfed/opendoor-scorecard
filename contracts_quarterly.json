@@ -1,0 +1,42 @@
+{
+ "2024-12-31": {
+  "signed": 4205,
+  "weeks": 13,
+  "source": "tracker, year-earlier column"
+ },
+ "2025-03-31": {
+  "signed": 3625,
+  "weeks": 13,
+  "source": "tracker, year-earlier column"
+ },
+ "2025-06-30": {
+  "signed": 1368,
+  "weeks": 13,
+  "source": "tracker, year-earlier column"
+ },
+ "2025-09-30": {
+  "signed": 1581,
+  "weeks": 13,
+  "source": "tracker, year-earlier column"
+ },
+ "2025-12-31": {
+  "signed": 2533,
+  "weeks": 13,
+  "source": "tracker"
+ },
+ "2026-03-31": {
+  "signed": 4924,
+  "weeks": 13,
+  "source": "tracker"
+ },
+ "2026-06-30": {
+  "signed": 7014,
+  "weeks": 13,
+  "source": "tracker"
+ },
+ "2026-09-30": {
+  "signed": 7048,
+  "weeks": 13,
+  "source": "tracker"
+ }
+}

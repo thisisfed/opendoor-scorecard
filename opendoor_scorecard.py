@@ -36,7 +36,7 @@ Not investment advice: the thresholds in RULES are opinions, tune them.
 import argparse, csv, datetime as dt, html, json, os, re, sys, urllib.request
 
 TICKER, CIK = "OPEN", "0001801169"
-METHOD = "1"  # bump when metrics, thresholds or weights change, so the history marks the break
+METHOD = "2"  # bump when metrics, thresholds or weights change, so the history marks the break
 HERE = os.path.dirname(os.path.abspath(__file__))
 
 # Used by --offline or when the price feed fails. Source: daily closes (S&P Global via stockanalysis.com).
@@ -89,17 +89,37 @@ TARGETS = [
      "key": "adj_ebitda_musd", "label": "Adj. EBITDA", "by": "2026-06-30",
      "said": "Q1 2026 release (May 7, 2026); repeated in the Q2 2026 release (Aug 4, 2026)"},
 ]
-GUIDANCE = [  # kind: min (at least), range, approx (target, tolerance), abs_max (within +/- of zero)
+# Quarterly guidance as Opendoor worded it, newest last. Each item: (wording, what to check, kind, target, better)
+# kind: min (at least), max (at most), range (lo, hi), approx (target, tolerance), abs_max (within +/- of zero).
+# better: +1 when a higher figure is better (so landing above counts as "beat"), -1 when lower is better, 0 when only
+# accuracy matters. Guidance that can't be checked from reported quarterly figures (a monthly exit rate, say) is left out.
+GUIDANCE = [
+    {"quarter": "2025-09-30", "said": "Q2 2025 release (Aug 5, 2025)", "items": [
+        ("Revenue of $800M to $875M", "revenue_musd", "range", (800.0, 875.0), 1),
+        ("Contribution profit of $22M to $29M", "contribution_profit_musd", "range", (22.0, 29.0), 1),
+        ("Adj. EBITDA of -$28M to -$21M", "adj_ebitda_musd", "range", (-28.0, -21.0), 1)]},
+    {"quarter": "2025-12-31", "said": "Q3 2025 release (Nov 6, 2025)", "items": [
+        ("Homes purchased up at least 35% on the quarter", "homes_purchased_qoq", "min", 0.35, 1),
+        ("Revenue down about 35% on the quarter", "revenue_qoq", "approx", (-0.35, 0.02), 1),
+        ("Contribution margin below Q3 2025's 2.2%", "contribution_margin", "max", 2.2, 0),
+        ("Adj. EBITDA loss in the high $40Ms to mid $50Ms", "adj_ebitda_musd", "range", (-56.0, -46.0), 1)]},
+    {"quarter": "2026-03-31", "said": "Q4 2025 release (Feb 19, 2026)", "items": [
+        ("Revenue down about 10% on the quarter", "revenue_qoq", "approx", (-0.10, 0.02), 1),
+        ("Adj. EBITDA loss in the low to mid $30Ms", "adj_ebitda_musd", "range", (-36.0, -30.0), 1)]},
     {"quarter": "2026-06-30", "said": "Q1 2026 release (May 7, 2026)", "items": [
-        ("Revenue up about 25% on the quarter before", "revenue_qoq", "approx", (0.25, 0.02)),
-        ("Contribution margin in the middle of the 5% to 7% range", "contribution_margin", "range", (5.5, 6.5)),
-        ("Adj. EBITDA breakeven, plus or minus a few million", "adj_ebitda_musd", "abs_max", 5.0)]},
+        ("Revenue up about 25% on the quarter before", "revenue_qoq", "approx", (0.25, 0.02), 1),
+        ("Contribution margin in the middle of the 5% to 7% range", "contribution_margin", "range", (5.5, 6.5), 1),
+        ("Adj. EBITDA breakeven, plus or minus a few million", "adj_ebitda_musd", "abs_max", 5.0, 1)]},
     {"quarter": "2026-09-30", "said": "Q2 2026 release (Aug 4, 2026)", "items": [
-        ("Revenue up at least 20% year on year", "revenue_yoy", "min", 0.20),
-        ("Contribution margin around 4% to 4.5%", "contribution_margin", "range", (4.0, 4.5)),
-        ("Contribution profit more than double year on year", "contribution_profit_mult", "min", 2.0),
-        ("Stock-based compensation about $110M", "sbc_musd", "approx", (110.0, 10.0))]},
+        ("Revenue up at least 20% year on year", "revenue_yoy", "min", 0.20, 1),
+        ("Contribution margin around 4% to 4.5%", "contribution_margin", "range", (4.0, 4.5), 1),
+        ("Contribution profit more than double year on year", "contribution_profit_mult", "min", 2.0, 1),
+        ("Stock-based compensation about $110M", "sbc_musd", "approx", (110.0, 10.0), -1)]},
 ]
+# Homes under contract to purchase at quarter end, as printed in Opendoor's releases (current and year-earlier
+# columns). Newer releases are parsed automatically and take priority; these cover quarters before the parser.
+UNDER_CONTRACT_SEED = {"2024-09-30": 1006, "2024-12-31": 1705, "2025-03-31": 1051, "2025-06-30": 393,
+                       "2025-09-30": 526, "2025-12-31": 710, "2026-03-31": 1939, "2026-06-30": 2310}
 NEXT_RESULTS = {"date": "2026-11-05", "what": "Q3 2026 results, after the US close"}  # Opendoor press release, Oct 19, 2026
 
 # ---------------------------------------------------------------- scoring rules
@@ -119,6 +139,7 @@ RULES = {
     "coe_vs_guide":    ("Last qtr homes sold vs mgmt expectation",  -0.15, 0.05, "pct"),
     "contracts_vs_proj": ("Contracts, last 4 wks vs projection midpoint", -0.40, 0.10, "pct"),
     "clearance":       ("Relative clearance vs MLS, 4-wk avg", 0.90, 1.30, "x"),
+    "fallout":         ("Signed purchase contracts that fell through, last qtr (est.)", 0.35, 0.10, "share"),
     "cash_vs_notes":   ("Cash vs the company's own debt (convertible notes)", 0.50, 2.00, "x"),
     "home_debt_ltv":   ("Home-backed debt vs the value of homes held", 1.00, 0.80, "share"),
     "runway_q":        ("Cash runway at current adj. net loss (home purchases are debt-funded, excluded)", 4.0, 16.0, "qtrs"),
@@ -141,7 +162,8 @@ PILLARS = [  # (name, weight %, metrics, the question it answers)
     ("Unit economics", 15, ["contrib_margin", "contrib_trend", "gross_margin", "aged_inventory", "days_inventory"],
                                                                              "Does each home flip make money, and is stock fresh?"),
     ("Profitability",  15, ["net_margin_2q", "adj_ebitda_m", "ani_margin"],  "Does the whole company make money?"),
-    ("Execution",      15, ["coe_vs_guide", "contracts_vs_proj", "clearance"], "Is management hitting its own targets?"),
+    ("Execution",      15, ["coe_vs_guide", "contracts_vs_proj", "clearance", "fallout"],
+                                                                             "Is management hitting its own targets?"),
     ("Balance sheet",  15, ["cash_vs_notes", "home_debt_ltv", "runway_q"],   "Can it survive a bad housing year?"),
     ("Dilution",       10, ["share_yoy", "sbc_pct", "dilution_live"],        "Is your slice of the company shrinking?"),
     ("Valuation",       5, ["ps", "pb"],                                     "Are you overpaying for what exists today?"),
@@ -371,6 +393,46 @@ def accountable_from_snapshot(path):
     return {"as_of": s["as_of"], "contracts": contracts, "clearance": pairs(s["relative_clearance_weekly"]), "coe": coe}
 
 
+def _qend(d):
+    """Calendar quarter end for a date."""
+    m = 3 * ((d.month - 1) // 3) + 3
+    return (dt.date(d.year + (m == 12), 1 if m == 12 else m + 1, 1) - dt.timedelta(days=1)).isoformat()
+
+
+def contract_quarters(rows):
+    """Acquisition contracts signed per complete calendar quarter, by the week-ending date. Uses the tracker's
+    own weeks, and its 'a year earlier' column (shifted back 52 weeks) for the quarters before that."""
+    wk = {}
+    for d, a, lo, hi, py in rows:
+        if a is not None:
+            wk[dt.date.fromisoformat(d)] = (a, "tracker")
+    last = max(wk) if wk else None
+    for d, a, lo, hi, py in rows:
+        if py:
+            wk.setdefault(dt.date.fromisoformat(d) - dt.timedelta(days=364), (py, "tracker, year-earlier column"))
+    out = {}
+    for day, (v, src) in wk.items():
+        q = out.setdefault(_qend(day), {"signed": 0, "weeks": 0, "sources": set()})
+        q["signed"] += v
+        q["weeks"] += 1
+        q["sources"].add(src)
+    return {qe: {"signed": q["signed"], "weeks": q["weeks"], "source": " + ".join(sorted(q["sources"]))}
+            for qe, q in out.items() if q["weeks"] >= 13 and last and qe <= last.isoformat()}
+
+
+def merge_contract_quarters(new, path):
+    """Keep finished quarters once the tracker's window moves on; the tracker's own weeks beat the year-earlier column."""
+    cache = json.load(open(path)) if path and os.path.exists(path) else {}
+    for qe, v in new.items():
+        old = cache.get(qe)
+        if not old or "year-earlier" in old["source"] or "year-earlier" not in v["source"]:
+            cache[qe] = v
+    if path:
+        with open(path, "w") as fh:
+            json.dump(dict(sorted(cache.items())), fh, indent=1)
+    return cache
+
+
 def accountable_metrics(acc):
     c = [r for r in acc["contracts"] if r[1] is not None]
     def total(lo, hi):
@@ -409,6 +471,7 @@ def accountable_metrics(acc):
         "weeks_below_proj_13": sum(1 for r in c[-13:] if r[1] < r[2]),
         "clearance": sum(cl[-4:]) / len(cl[-4:]) if cl else None,
         "weekly": c,
+        "quarters": contract_quarters(acc["contracts"]),
     }
 
 
@@ -517,13 +580,21 @@ RELEASE_ROWS = [
     ("contribution_margin_pct", r"contribution margin"),
     ("adj_ebitda_musd", r"adjusted ebitda"),
     ("adj_net_income_musd", r"adjusted net (loss|income)|adjusted net income \(loss\)"),
+    ("homes_under_contract", r"homes under contract to purchase( \(at period end\))?"),
+    # contribution profit reconciliation: costs on homes sold in the quarter
+    ("direct_selling_musd", r"direct selling costs.*"),
+    ("holding_cur_musd", r"holding costs on sales\W+current period.*"),
+    ("holding_prior_musd", r"holding costs on sales\W+prior periods?.*"),
+    ("writedown_cur_musd", r"inventory valuation adjustment\W+current period.*"),
 ]
+SECOND_NUMBER = {"homes_under_contract": "homes_under_contract_py"}  # rows whose year-earlier column is also kept
 _NUM = re.compile(r"\(\s*\$?\s*[\d,]+(?:\.\d+)?\s*\)|-?\$?\s*[\d,]*\d(?:\.\d+)?")
 
 
-def _first_number(cells):
+def _numbers(cells):
     text = " | ".join(cells[1:])
     text = re.sub(r"\(\s*\|\s*", "(", re.sub(r"\s*\|\s*\)", ")", text)).replace("$", "")
+    out = []
     for m in _NUM.finditer(text):
         tok = m.group(0).replace(" ", "").replace(",", "")
         neg = tok.startswith("(")
@@ -532,11 +603,16 @@ def _first_number(cells):
             v = float(tok)
         except ValueError:
             continue
-        return -v if neg else v
-    return None
+        out.append(-v if neg else v)
+    return out
 
 
-RELEASE_PARSER = 2  # bump to re-read cached releases with a newer parser
+def _first_number(cells):
+    n = _numbers(cells)
+    return n[0] if n else None
+
+
+RELEASE_PARSER = 3  # bump to re-read cached releases with a newer parser
 # "% of homes on the market over 120 Days declined from 10% to 9% quarter-over-quarter, compared to 27% for
 # the overall market." The table header that names the same metric has no figure, so it never matches.
 AGED_RE = re.compile(r"homes on the market (?:for )?(?:over|more than|greater than) 120 days[^.%]{0,60}?"
@@ -562,13 +638,16 @@ def parse_release(page):
         if mk:
             out["market_aged_120_pct"] = float(mk.group(1))
     for cells in p.rows:
-        label = re.sub(r"\s*\(\d+\)$|\s*\d$", "", cells[0].strip().rstrip(":")).strip().lower()
+        label = re.sub(r"\s+", " ", cells[0]).strip().rstrip(":")
+        label = re.sub(r"(\s*\(\d+\))+$|\s*\d$", "", label).strip().lower()
         label = label.replace("\u2019", "'")
         for col, pat in RELEASE_ROWS:
             if col not in out and re.fullmatch(pat, label):
-                v = _first_number(cells)
-                if v is not None:
-                    out[col] = v
+                nums = _numbers(cells)
+                if nums:
+                    out[col] = nums[0]
+                    if col in SECOND_NUMBER and len(nums) > 1:
+                        out[SECOND_NUMBER[col]] = nums[1]
     return out
 
 
@@ -1069,7 +1148,7 @@ def metrics(q, px, acc, macro=None, dil=None, housing=None, today=None):
         pe = acc["prev_quarter_end"]
         prior_row = next((r for r in q if r["quarter_end"] == str(int(pe[:4]) - 1) + pe[4:]), {})
         ph = prior_row.get("homes_sold")
-        guide = next((v for gd in GUIDANCE if gd["quarter"] == pe for _, k, kind, v in gd["items"] if k == "revenue_yoy"), None)
+        guide = next((it[3] for gd in GUIDANCE if gd["quarter"] == pe for it in gd["items"] if it[1] == "revenue_yoy"), None)
         nowcast = {"quarter": pe, "homes": acc["q3_homes_sold"], "rph_k": rph * 1000, "estimate": q3_rev_est,
                    "prior_revenue": q3_prior, "prior_homes": ph,
                    "homes_yoy": acc["q3_homes_sold"] / ph - 1 if ph else None,
@@ -1146,6 +1225,84 @@ def metrics(q, px, acc, macro=None, dil=None, housing=None, today=None):
         notes["coe_q4_yoy"] = (f"{acc.get('curr_quarter')} to {_d(acc.get('q4_qtd_date'))}: {acc['q4_homes_sold_qtd']:,.0f} homes vs "
                                f"{acc['q4_homes_sold_qtd'] / (1 + acc['coe_q4_yoy']):,.0f} a year earlier")
 
+    # contracts that fell through, from an identity on Opendoor's own figures:
+    # open at the start of the quarter + signed in it - homes purchased - open at the end = cancelled or lapsed
+    uc = dict(UNDER_CONTRACT_SEED)
+    for r in q:
+        if r.get("homes_under_contract_py") is not None:
+            uc[str(int(r["quarter_end"][:4]) - 1) + r["quarter_end"][4:]] = r["homes_under_contract_py"]
+    for r in q:
+        if r.get("homes_under_contract") is not None:
+            uc[r["quarter_end"]] = r["homes_under_contract"]
+    cq = (acc or {}).get("quarters") or {}
+    fallout_hist = []
+    for r in q:
+        qe, pq = r["quarter_end"], _prev_qend(r["quarter_end"])
+        if r.get("homes_purchased") and pq in uc and qe in uc and qe in cq:
+            opened = uc[pq] + cq[qe]["signed"]
+            lost = opened - r["homes_purchased"] - uc[qe]
+            fallout_hist.append({"quarter": qe, "open_start": uc[pq], "signed": cq[qe]["signed"], "weeks": cq[qe]["weeks"],
+                                 "purchased": r["homes_purchased"], "open_end": uc[qe], "lost": lost,
+                                 "rate": max(0.0, lost / opened) if opened else None, "source": cq[qe]["source"]})
+    fallout_hist = [f for f in fallout_hist if f["rate"] is not None and f["lost"] > -0.02 * (f["open_start"] + f["signed"])]
+    if fallout_hist:
+        f = fallout_hist[-1]
+        m["fallout"] = f["rate"]
+        asof["fallout"] = f["quarter"]
+        notes["fallout"] = (f"{f['lost']:,.0f} of {f['open_start'] + f['signed']:,.0f} contracts ({f['open_start']:,.0f} open at the "
+                            f"start + {f['signed']:,.0f} signed)"
+                            + (f"; {_qlabel(fallout_hist[-2]['quarter'])} {fallout_hist[-2]['rate'] * 100:.0f}%" if len(fallout_hist) > 1 else ""))
+
+    # unit economics quarter by quarter
+    ue_hist = []
+    for i, r in enumerate(q):
+        if r.get("contribution_margin_pct") is None or not r.get("revenue_musd"):
+            continue
+        rv, hs_, gp = r["revenue_musd"], r.get("homes_sold"), r.get("gross_profit_musd")
+        prev = q[i - 1] if i and 80 <= _days(q[i - 1]["quarter_end"], r["quarter_end"]) <= 100 else None
+        cogs = rv - gp if gp is not None else None
+        d_inv = None
+        if prev and prev.get("inventory_musd") and r.get("inventory_musd") and cogs and cogs > 0:
+            d_inv = (prev["inventory_musd"] + r["inventory_musd"]) / 2 / cogs * _days(prev["quarter_end"], r["quarter_end"])
+        holding = r.get("holding_musd")
+        if holding is None and r.get("holding_cur_musd") is not None:
+            holding = abs(r["holding_cur_musd"]) + abs(r.get("holding_prior_musd") or 0)
+        wd = r.get("writedown_cur_musd")
+        per = lambda v: abs(v) / hs_ * 1000 if v is not None and hs_ else None
+        ue_hist.append({"quarter": r["quarter_end"], "cm": r["contribution_margin_pct"], "gm": gp / rv * 100 if gp is not None else None,
+                        "homes_sold": hs_, "revenue_per_home_k": rv / hs_ * 1000 if hs_ else None,
+                        "cp_per_home_k": rv * r["contribution_margin_pct"] / 100 / hs_ * 1000 if hs_ else None,
+                        "days_inv": d_inv, "aged": r.get("aged_120_pct"), "selling_k": per(r.get("direct_selling_musd")),
+                        "holding_k": per(holding), "writedown_k": per(wd)})
+    ue_hist = ue_hist[-8:]
+
+    # stress tests: which inputs each one moves, and to what
+    stress = {}
+    if m["mortgage_rate"] is not None:
+        ch_ = [("mortgage_rate", m["mortgage_rate"] + 0.005)]
+        if m["mortgage_13w"] is not None:
+            ch_.append(("mortgage_13w", m["mortgage_13w"] + 0.005))
+        stress["r"] = {"name": "Mortgage rates 0.5 points higher", "changes": ch_,
+                       "note": "Moves the mortgage rate and its 13-week change."}
+    ch_ = []
+    if home_ltv is not None:
+        ch_.append(("home_debt_ltv", home_ltv / 0.95))
+    if m["list_price_yoy"] is not None:
+        ch_.append(("list_price_yoy", m["list_price_yoy"] - 0.05))
+    inv_now = bs.get("inventory_musd")
+    if mcap and pf.get("equity_musd") and inv_now:
+        book = pf["equity_musd"] - 0.05 * inv_now
+        ch_.append(("pb", mcap / book if book > 0 else 99.0))
+    if ch_:
+        stress["h"] = {"name": "Home prices 5% lower", "changes": ch_,
+                       "note": ("Homes are marked 5% lower against the debt on them and against book value, and asking prices "
+                                "fall 5 points. Margins are left as reported: how much reaches them depends on how fast "
+                                "Opendoor reprices, which this page can't know.")}
+    ch_ = [(k, (1 + m[k]) * 0.8 - 1) for k in ("contracts_vs_proj", "contracts_qoq") if m.get(k) is not None]
+    if ch_:
+        stress["c"] = {"name": "Contracts another 20% short", "changes": ch_,
+                       "note": "Contracts signed 20% below today's level, against the projection and the quarter before."}
+
     # how old each metric's data is; flagged when more than a quarter old
     last_qe = _quarter_end_before(today)
     def qf(qe, adjusted=False):
@@ -1154,7 +1311,7 @@ def metrics(q, px, acc, macro=None, dil=None, housing=None, today=None):
         return {"text": f"{label} {_d(d)}", "date": str(d)[:10], "old": _days(str(d)[:10], today) > max_days} if d else None
     fresh = {}
     for k in ("contrib_margin", "contrib_trend", "gross_margin", "aged_inventory", "days_inventory", "adj_ebitda_m",
-              "ani_margin", "sbc_pct", "home_debt_ltv"):
+              "ani_margin", "sbc_pct", "home_debt_ltv", "fallout"):
         fresh[k] = qf(asof.get(k))
     fresh["net_margin_2q"] = qf(last["quarter_end"])
     fresh["rev_nowcast_yoy"] = ({"text": f"{_qlabel(acc['prev_quarter_end'])} estimate", "date": acc["prev_quarter_end"], "old": False}
@@ -1198,7 +1355,7 @@ def metrics(q, px, acc, macro=None, dil=None, housing=None, today=None):
         prev_q = next((r for r in q if 80 <= _days(r["quarter_end"], gd["quarter"]) <= 100), None)
         prev_y = next((r for r in q if abs(_days(r["quarter_end"], gd["quarter"]) - 365) <= 10), None)
         items = []
-        for what, key, kind, target in gd["items"]:
+        for what, key, kind, target, better in gd["items"]:
             actual = None
             if row and row.get("revenue_musd") is not None:
                 rv = row["revenue_musd"]
@@ -1206,28 +1363,25 @@ def metrics(q, px, acc, macro=None, dil=None, housing=None, today=None):
                     actual = rv / prev_q["revenue_musd"] - 1
                 elif key == "revenue_yoy" and prev_y:
                     actual = rv / prev_y["revenue_musd"] - 1
+                elif key == "homes_purchased_qoq" and prev_q and prev_q.get("homes_purchased") and row.get("homes_purchased"):
+                    actual = row["homes_purchased"] / prev_q["homes_purchased"] - 1
                 elif key == "contribution_margin":
                     actual = row.get("contribution_margin_pct")
+                elif key == "contribution_profit_musd" and row.get("contribution_margin_pct") is not None:
+                    actual = rv * row["contribution_margin_pct"] / 100
                 elif key == "contribution_profit_mult" and prev_y and row.get("contribution_margin_pct") is not None \
                         and prev_y.get("contribution_margin_pct"):
                     actual = (rv * row["contribution_margin_pct"]) / (prev_y["revenue_musd"] * prev_y["contribution_margin_pct"])
-                else:
+                elif key in ("revenue_musd", "adj_ebitda_musd", "sbc_musd"):
                     actual = row.get(key)
-            status = "pending"
-            if actual is not None:
-                if kind == "min":
-                    status = "met" if actual >= target else "missed"
-                elif kind == "range":
-                    status = "met" if target[0] - 0.05 <= actual <= target[1] + 0.05 else (
-                        "close" if target[0] - 0.5 <= actual <= target[1] + 0.5 else "missed")
-                elif kind == "approx":
-                    status = "met" if abs(actual - target[0]) <= target[1] else (
-                        "close" if abs(actual - target[0]) <= 2 * target[1] else "missed")
-                elif kind == "abs_max":
-                    status = "met" if abs(actual) <= target else "missed"
-            items.append({"what": what, "key": key, "kind": kind, "target": target, "actual": actual, "status": status})
+            items.append({"what": what, "key": key, "kind": kind, "target": target, "better": better, "actual": actual,
+                          "status": _guide_status(actual, kind, target, better, key)})
         guidance.append({"quarter": gd["quarter"], "said": gd["said"], "items": items})
-    extra = {"market_cap_musd": mcap, "ttm_revenue_musd": ttm_rev, "shares_m": shares, "pro_forma": pf,
+    done = [g_ for g_ in guidance if any(i["status"] != "pending" for i in g_["items"])][-4:]
+    tally = {k: sum(1 for g_ in done for i in g_["items"] if i["status"] == k) for k in ("met", "beat", "close", "missed")}
+    hit_rate = dict(tally, quarters=[g_["quarter"] for g_ in done], items=sum(tally.values())) if done else None
+    extra = {"fallout": fallout_hist, "ue_history": ue_hist, "stress": stress, "hit_rate": hit_rate,
+             "market_cap_musd": mcap, "ttm_revenue_musd": ttm_rev, "shares_m": shares, "pro_forma": pf,
              "capital_events": [e["what"] for e in applied], "q3_revenue_estimate_musd": q3_rev_est,
              "revenue_per_home_k": rph * 1000 if rph else None, "q3_prior_revenue_musd": q3_prior,
              "shares_year_ago": (year_ago or {}).get("shares_m"), "shares_year_ago_date": (year_ago or {}).get("quarter_end"),
@@ -1239,6 +1393,44 @@ def metrics(q, px, acc, macro=None, dil=None, housing=None, today=None):
              "fresh": fresh, "nowcast": nowcast, "inventory_velocity": inv_detail, "targets": targets, "guidance": guidance,
              "mortgage": macro}
     return m, extra
+
+
+def _prev_qend(qe):
+    d = dt.date.fromisoformat(qe)
+    first = dt.date(d.year, d.month - 2, 1)
+    return (first - dt.timedelta(days=1)).isoformat()
+
+
+def _guide_status(a, kind, target, better, key=""):
+    """met / beat / close / missed / pending for one guided item. 'beat' needs a direction: landing on the better side
+    of the guidance by more than its tolerance. Rounding slack: 0.05 points for margins, $0.5M for dollar figures."""
+    if a is None:
+        return "pending"
+    eps = 0.05 if "margin" in key else (0.0 if key.endswith(("_qoq", "_yoy", "_mult")) else 0.5)
+    if kind == "min":
+        return "met" if a >= target - eps else ("close" if a >= target * 0.9 else "missed")
+    if kind == "max":
+        return "met" if a <= target + eps else "missed"
+    if kind == "range":
+        lo, hi = target
+        if lo - eps <= a <= hi + eps:
+            return "met"
+        if (better > 0 and a > hi) or (better < 0 and a < lo):
+            return "beat"
+        band = (hi - lo) / 2
+        return "close" if lo - band <= a <= hi + band else "missed"
+    if kind == "approx":
+        t, tol = target
+        if abs(a - t) <= tol + eps:
+            return "met"
+        if better and (a - t) * better > 0:
+            return "beat"
+        return "close" if abs(a - t) <= 2 * tol else "missed"
+    if kind == "abs_max":
+        if abs(a) <= target + eps:
+            return "met"
+        return "beat" if better and a * better > 0 else "missed"
+    return "pending"
 
 
 def _quarters_between(a, b):
@@ -1287,7 +1479,36 @@ def score(m, extra=None):
     out = {"overall": overall, "grade": grade, "verdict": verdict, "pillars": pillars, "weights_used": wsum}
     out["why"] = explain(out)
     out["what_if"] = what_if(pillars, "contracts_vs_proj", 0.0, overall)
+    # stress tests, alone and combined: the same scoring run on the changed inputs
+    base = extra.get("stress") or {}
+    out["stress"] = {}
+    keys = sorted(base, key="rhc".index)
+    for n in range(1, 1 << len(keys)):
+        combo = "".join(k for b, k in enumerate(keys) if n >> b & 1)
+        over = {k: v for c in combo for k, v in base[c]["changes"]}
+        ov, ps = _rescore(pillars, over)
+        out["stress"][combo] = {"overall": ov, "change": round(ov - overall, 2) if ov is not None else None,
+                                "pillars": [[p["name"], p["score"], ps[p["name"]]] for p in pillars
+                                            if ps.get(p["name"]) is not None and ps[p["name"]] != p["score"]]}
     return out
+
+
+def _rescore(pillars, overrides):
+    """Overall and pillar scores with some metric values replaced (only metrics that are scored today)."""
+    total, wsum, ps = 0.0, 0, {}
+    for p in pillars:
+        got = []
+        for i in p["metrics"]:
+            sc = i["score"]
+            if sc is not None and i["key"] in overrides:
+                sc = lin(overrides[i["key"]], i["bad"], i["good"])
+            if sc is not None:
+                got.append(sc)
+        ps[p["name"]] = round(sum(got) / len(got), 1) if got else None
+        if got:
+            total += ps[p["name"]] * p["weight"]
+            wsum += p["weight"]
+    return (round(total / wsum, 2) if wsum else None), ps
 
 
 def what_if(pillars, key, value, overall):
@@ -1647,14 +1868,19 @@ table.fresh tr{display:grid;grid-template-columns:1fr 1fr 1fr;gap:2px 8px;paddin
 table.fresh td{border:0;padding:0;text-align:left!important;white-space:normal!important;font-size:13px}
 table.fresh td:first-child{grid-column:1/-1;font-weight:500}table.fresh td:last-child{grid-column:1/-1}table.fresh td:last-child:empty{display:none}
 table.fresh td[data-l]::before{content:attr(data-l);display:block;font-size:11px;color:#8a8a8a}
-table.guide td,table.guide th{padding:7px 4px}}
-td.wrap{white-space:normal;text-align:left;min-width:220px}table.thr td.old{color:#c27c0e}
+table.guide td,table.guide th{padding:7px 4px}
+table.sx tr:first-child{display:none}table.sx,table.sx tbody{display:block}
+table.sx tr{display:grid;grid-template-columns:1fr 1fr;gap:2px 8px;padding:8px 0;border-bottom:1px solid #eee}
+table.sx td{border:0;padding:0;text-align:left!important;white-space:normal!important;font-size:13px}
+table.sx td:first-child{grid-column:1/-1;font-weight:500}table.sx tr.grp td,table.sx td[colspan]{grid-column:1/-1;padding:4px 0}
+table.sx td[data-l]::before{content:attr(data-l);display:block;font-size:11px;color:#8a8a8a}}
+td.wtxt{white-space:normal;text-align:left;min-width:220px}table.thr td.old{color:#c27c0e}
 tr.grp td{font-weight:600;color:var(--ink);background:#faf9f7;text-align:left}
 table.thr td:nth-child(6),table.fresh td:nth-child(2){white-space:nowrap}
 @media (max-width:640px){table.thr tr:first-child{display:none}table.thr,table.thr tbody{display:block}
 table.thr tr{display:grid;grid-template-columns:repeat(4,1fr);gap:2px 8px;padding:10px 0;border-bottom:1px solid #eee}
 table.thr td{border:0;padding:0;text-align:left!important;white-space:normal!important;font-size:13px}
-table.thr td.wrap{grid-column:1/-1;min-width:0;font-weight:500;padding-bottom:4px;text-align:left!important}
+table.thr td.wtxt{grid-column:1/-1;min-width:0;font-weight:500;padding-bottom:4px;text-align:left!important}
 table.thr td[data-l]::before{content:attr(data-l);display:block;font-size:11px;color:#8a8a8a}
 table.thr td:nth-child(6){grid-column:1/-1;padding-top:4px}table.thr td:nth-child(6)::before{display:inline;content:"Data: "}
 table.thr tr.grp{display:block}table.thr tr.grp td{padding:6px 0}}
@@ -1662,6 +1888,21 @@ table.thr tr.grp{display:block}table.thr tr.grp td{padding:6px 0}}
 .tgt-hd{display:flex;justify-content:space-between;align-items:baseline;gap:12px;flex-wrap:wrap}.tgt-hd b{font-weight:500;font-size:16px}
 .tgt p{margin:6px 0 0;font-size:14px;color:var(--muted2);max-width:900px}.tgt p.dim{font-size:13px;color:var(--muted)}
 table.guide{margin-top:8px}table.guide td:first-child{white-space:normal}
+.hit{font-size:15px!important;color:var(--ink,#23201d)!important;margin:8px 0 4px!important}.hit b{font-weight:600}
+table.guide tr.grp td,table.sx tr.grp td{background:#faf8f5;font-weight:500;padding-top:10px}table.guide .dim{color:var(--muted);font-weight:400;font-size:13px}
+td.dim{color:var(--muted);font-size:13px}
+.uechart .val{font-size:13px;fill:#23201d;font-weight:500}.uebox{overflow-x:auto}@media (max-width:640px){.uechart{min-width:560px}}.uechart .tick{font-size:12px;fill:#786e64}
+table.ue td,table.fall td{white-space:nowrap}table.ue th,table.fall th{white-space:normal;vertical-align:bottom;min-width:64px}
+.togs{display:flex;flex-wrap:wrap;gap:10px}.tog{display:flex;align-items:center;gap:8px;border:1px solid var(--line);border-radius:10px;
+padding:9px 12px;font-size:15px;cursor:pointer;background:#fff}.tog input{width:17px;height:17px;accent-color:#1d4ed8}
+.stress-out{margin-top:14px;padding:12px 14px;border-radius:10px;background:#f6f4f1}.stress-out p{margin:0}.so-main{font-size:17px}
+.so-pil{font-size:14px;color:var(--muted2);margin-top:4px!important}.stress-out.down{background:#fdeceb}.stress-out.up{background:#e6f4ea}
+.presets{display:flex;flex-wrap:wrap;gap:8px;margin-bottom:14px}.pre{font:inherit;font-size:14px;border:1px solid var(--line);
+background:#fff;border-radius:999px;padding:7px 14px;cursor:pointer}.pre.on{background:#23201d;color:#fff;border-color:#23201d}
+.sliders{display:grid;grid-template-columns:1fr 1fr;gap:6px 32px}.sl{display:grid;grid-template-columns:150px 1fr 44px;align-items:center;gap:10px;font-size:14px}
+.sl-n i{font-style:normal;color:var(--muted);margin-left:6px}.sl-v{text-align:right;font-variant-numeric:tabular-nums}
+.sl input{width:100%;accent-color:#1d4ed8}.wp-score{font-size:34px;font-weight:500;letter-spacing:-.02em}
+@media (max-width:800px){.sliders{grid-template-columns:1fr}.sl{grid-template-columns:120px 1fr 40px}}
 .dchart{touch-action:pan-y;cursor:crosshair}
 .dchart .pulse{transform-box:fill-box;transform-origin:center;opacity:.45;animation:pulse 2.4s ease-out infinite}
 @media (max-width:900px){.grid2{grid-template-columns:1fr}}
@@ -1797,26 +2038,7 @@ def _targets_card(res):
                   f'<p>{e(t["label"])} by quarter: {e(hist)}. {e(line)}</p>'
                   f'<p class="dim">Said in the {e(t["said"])}. "Twelve-month go-forward basis" is management\'s own measure and '
                   'isn\'t reported, so the page tracks the reported quarterly figure.</p></div>')
-    for g in gd:
-        rows = ""
-        for i in g["items"]:
-            a = i["actual"]
-            if a is None:
-                val = "–"
-            elif i["key"] in ("revenue_qoq", "revenue_yoy"):
-                val = f"{a * 100:+.1f}%"
-            elif i["key"] == "contribution_margin":
-                val = f"{a:.1f}%"
-            elif i["key"] == "contribution_profit_mult":
-                val = f"{a:.1f}x"
-            else:
-                val = ("-" if a < 0 else "") + f"${abs(a):,.0f}M"
-            st = {"met": ("Met", "green"), "close": ("Close", "amber"), "missed": ("Missed", "red"),
-                  "pending": ("Pending", "grey")}[i["status"]]
-            rows += f'<tr><td>{e(i["what"])}</td><td>{val}</td><td>{_badge(*st)}</td></tr>'
-        parts += (f'<div class="tgt"><div class="tgt-hd"><b>{_qlabel(g["quarter"])} guidance</b><span class="dim">'
-                  f'{e(g["said"])}</span></div><table class="guide"><tr><th>What Opendoor said</th><th>Reported</th><th></th></tr>'
-                  f'{rows}</table></div>')
+    parts += _guidance_html(ex)
     nc = ex.get("nowcast")
     foot = ""
     if nc and nc.get("guide_min_revenue"):
@@ -1826,6 +2048,178 @@ def _targets_card(res):
                 f'would need to be at least ${nc["guide_min_revenue"] / nc["homes"] * 1000:.0f}K.</div>')
     return ('<div class="card" id="targets"><div class="hd"><div><h2>Path to management\'s targets</h2><p class="sub">What '
             'Opendoor said it would do, and what it has reported</p></div></div><div class="bd">' + parts + '</div>' + foot + '</div>')
+
+
+STATUS_BADGE = {"met": ("Met", "green"), "beat": ("Beat", "green"), "close": ("Close", "amber"),
+                "missed": ("Missed", "red"), "pending": ("Pending", "grey")}
+
+
+def _guide_value(i):
+    a = i["actual"]
+    if a is None:
+        return "–"
+    if i["key"].endswith(("_qoq", "_yoy")):
+        return f"{a * 100:+.1f}%"
+    if i["key"] == "contribution_margin":
+        return f"{a:.1f}%"
+    if i["key"] == "contribution_profit_mult":
+        return f"{a:.1f}x"
+    return ("-" if a < 0 else "") + f"${abs(a):,.0f}M"
+
+
+def _guidance_html(ex):
+    gd, hr = ex.get("guidance") or [], ex.get("hit_rate")
+    if not gd:
+        return ""
+    e = html.escape
+    rows = ""
+    for g in reversed(gd):
+        rows += (f'<tr class="grp"><td colspan="3">{_qlabel(g["quarter"])} guidance <span class="dim">from the '
+                 f'{e(g["said"])}</span></td></tr>')
+        rows += "".join(f'<tr><td>{e(i["what"])}</td><td>{_guide_value(i)}</td><td>{_badge(*STATUS_BADGE[i["status"]])}</td></tr>'
+                        for i in g["items"])
+    head = ""
+    if hr and hr["items"]:
+        ok = hr["met"] + hr["beat"]
+        head = (f'<p class="hit"><b>{ok} of {hr["items"]}</b> guided items met or beaten over the last {len(hr["quarters"])} '
+                f'reported quarters ({_qlabel(hr["quarters"][0])} to {_qlabel(hr["quarters"][-1])}): {hr["beat"]} beaten, '
+                f'{hr["met"]} met, {hr["close"]} close, {hr["missed"]} missed.</p>')
+    return (f'<div class="tgt"><div class="tgt-hd"><b>Guidance track record</b></div>{head}'
+            f'<table class="guide"><tr><th>What Opendoor said</th><th>Reported</th><th></th></tr>{rows}</table>'
+            '<p class="dim">Met: inside the guided range (allowing for rounding). Beat: better than the range. Close: within half '
+            'the range width (or twice the tolerance) on the wrong side. Guidance that reported quarterly figures can\'t check, '
+            'such as a monthly exit rate, is left out.</p></div>')
+
+
+def _fallout_card(res):
+    fh = res["extra"].get("fallout") or []
+    if not fh:
+        return ""
+    e = html.escape
+    last = fh[-1]
+    tone = "green" if last["rate"] <= 0.15 else ("amber" if last["rate"] <= 0.25 else "red")
+    rows = "".join(f'<tr><td>{_qlabel(f["quarter"])}</td><td>{f["open_start"]:,.0f}</td><td>{f["signed"]:,.0f}</td>'
+                   f'<td>{f["purchased"]:,.0f}</td><td>{f["open_end"]:,.0f}</td><td>{f["lost"]:,.0f}</td>'
+                   f'<td><b>{f["rate"] * 100:.0f}%</b></td></tr>' for f in reversed(fh))
+    py = [f for f in fh if "year-earlier" in f["source"]]
+    return ('<div class="card" id="fallout"><div class="hd stack"><div><h2>Contracts that fell through</h2><p class="sub">Signed '
+            'purchase contracts that never became a home bought</p></div>'
+            f'<div class="right">{_badge(f"{last["rate"] * 100:.0f}%", tone)}<p class="sub">{_qlabel(last["quarter"])}, estimate</p></div></div>'
+            '<div class="bd scroll" style="padding-top:4px"><table class="fall"><tr><th>Quarter</th><th>Open at start</th>'
+            '<th>Signed</th><th>Bought</th><th>Open at end</th><th>Fell through</th><th>Rate</th></tr>' + rows + '</table></div>'
+            '<div class="ft">Worked out from Opendoor\'s own numbers: contracts open at the start of the quarter, plus contracts '
+            'signed in it, less homes bought, less contracts still open at the end. What is left was cancelled or lapsed. "Open" '
+            'counts are the homes under contract to purchase that each earnings release reports; "Signed" is the weekly tracker '
+            'summed by the week-ending date, which Opendoor says is not reduced for later cancellations. The rate divides by '
+            'everything open during the quarter. Week boundaries don\'t match quarter ends exactly, so treat each figure as '
+            '+/- 1 to 2 points.'
+            + (f' Quarters up to {_qlabel(py[-1]["quarter"])} use the tracker\'s "a year earlier" column.' if py else "")
+            + '</div></div>')
+
+
+def _ue_svg(h):
+    W, H, L, R, T, B = 760, 200, 40, 10, 22, 30
+    vals = [r["cm"] for r in h]
+    top = max(7.0, max(vals) + 1)
+    n = len(h)
+    bw = (W - L - R) / n
+    y = lambda v: T + (1 - v / top) * (H - T - B)
+    out = [f'<svg viewBox="0 0 {W} {H}" width="100%" role="img" aria-label="Contribution margin by quarter" class="uechart">']
+    for t in range(0, int(top) + 1, 2):
+        out.append(f'<line x1="{L}" x2="{W - R}" y1="{y(t):.1f}" y2="{y(t):.1f}" stroke="{LINE}" '
+                   f'stroke-dasharray="{"0" if t == 0 else "2 4"}"/><text x="{L - 8}" y="{y(t) + 4:.1f}" text-anchor="end" class="tick">{t}%</text>')
+    for k, r in enumerate(h):
+        x = L + k * bw + bw * 0.22
+        w = bw * 0.56
+        v = r["cm"]
+        out.append(f'<rect x="{x:.1f}" y="{y(max(v, 0)):.1f}" width="{w:.1f}" height="{abs(y(v) - y(0)):.1f}" rx="4" '
+                   f'fill="{BLUE}" opacity="{1 if k == n - 1 else 0.55}"/>'
+                   f'<text x="{x + w / 2:.1f}" y="{y(max(v, 0)) - 6:.1f}" text-anchor="middle" class="val">{v:.1f}%</text>'
+                   f'<text x="{x + w / 2:.1f}" y="{H - 10}" text-anchor="middle" class="tick">{_qlabel(r["quarter"])}</text>')
+    out.append("</svg>")
+    return "".join(out)
+
+
+def _ue_card(res):
+    h = res["extra"].get("ue_history") or []
+    if len(h) < 2:
+        return ""
+    n = lambda v, f="{:,.0f}", pre="": "–" if v is None else pre + f.format(v)
+    rows = ""
+    for k in range(len(h) - 1, -1, -1):
+        r = h[k]
+        prev = h[k - 1]["cm"] if k else None
+        chg = "–" if prev is None else f"{r['cm'] - prev:+.1f}pp"
+        rows += (f'<tr><td>{_qlabel(r["quarter"])}</td><td><b>{r["cm"]:.1f}%</b></td><td>{chg}</td><td>{n(r["gm"], "{:.1f}%")}</td>'
+                 f'<td>{n(r["cp_per_home_k"], "{:.1f}K", "$")}</td><td>{n(r["revenue_per_home_k"], "{:.0f}K", "$")}</td>'
+                 f'<td>{n(r["days_inv"], "{:.0f}")}</td><td>{n(r["aged"], "{:.0f}%")}</td>'
+                 f'<td>{n(r["selling_k"], "{:.1f}K", "$")}</td><td>{n(r["holding_k"], "{:.1f}K", "$")}</td>'
+                 f'<td>{n(r["writedown_k"], "{:.1f}K", "$")}</td></tr>')
+    return ('<div class="card" id="unit-history"><div class="hd"><div><h2>Unit economics, quarter by quarter</h2>'
+            '<p class="sub">Contribution margin and what sits behind it</p></div></div>'
+            f'<div class="bd"><div class="uebox">{_ue_svg(h)}</div></div>'
+            '<div class="bd scroll" style="padding-top:0"><table class="ue"><tr><th>Quarter</th><th>Contrib. margin</th><th>Change</th>'
+            '<th>Gross margin</th><th>Contrib. / home</th><th>Revenue / home</th><th>Days of inventory</th><th>120+ days</th>'
+            '<th>Selling costs / home</th><th>Holding costs / home</th><th>Write-downs / home</th></tr>' + rows + '</table></div>'
+            '<div class="ft">Per home means per home sold in the quarter. Selling and holding costs and write-downs are the lines '
+            'Opendoor itemises between gross profit and contribution profit (holding costs include those from earlier quarters on '
+            'homes sold now; write-downs are this quarter\'s inventory valuation adjustment). Opendoor doesn\'t report renovation '
+            'spend on its own: it is part of what each home costs, so it shows up in gross margin. Days of inventory: average '
+            'inventory over the quarter divided by the cost of the homes sold, times the days in the quarter. A dash means the '
+            'release for that quarter isn\'t parsed yet.</div></div>')
+
+
+def _stress_card(res):
+    s, ex = res["score"], res["extra"]
+    base, combos = ex.get("stress") or {}, s.get("stress") or {}
+    if not base:
+        return ""
+    e = html.escape
+    rules = {i["key"]: i for p in s["pillars"] for i in p["metrics"]}
+    boxes = "".join(f'<label class="tog"><input type="checkbox" value="{k}"> {e(base[k]["name"])}</label>'
+                    for k in sorted(base, key="rhc".index))
+    detail = ""
+    for k in sorted(base, key="rhc".index):
+        b = base[k]
+        lines = "".join(f'<tr><td>{e(rules[key]["label"])}</td><td data-l="Today">{e(fmt(rules[key]["value"], rules[key]["fmt"]))}</td>'
+                        f'<td data-l="Stressed">{e(fmt(v, rules[key]["fmt"]))}</td></tr>' for key, v in b["changes"] if key in rules)
+        detail += (f'<tr class="grp"><td colspan="3">{e(b["name"])}</td></tr>{lines}'
+                   f'<tr><td colspan="3" class="wtxt dim">{e(b["note"])}</td></tr>')
+    data = json.dumps(combos, separators=(",", ":"))
+    return ('<div class="card" id="stress"><div class="hd"><div><h2>Stress tests</h2><p class="sub">Tick one or more to see '
+            'which way the score would move</p></div></div>'
+            f'<div class="bd"><div class="togs">{boxes}</div>'
+            f'<div class="stress-out" data-base="{s["overall"]:.2f}" data-combos=\'{html.escape(data)}\'>'
+            '<p class="so-main">Nothing ticked: the score is as published.</p><p class="so-pil"></p></div></div>'
+            '<div class="bd scroll" style="padding-top:0"><table class="sx"><tr><th>What changes</th><th>Today</th><th>Stressed</th></tr>'
+            + detail + '</table></div>'
+            '<div class="ft">Each test re-runs the same scoring on the changed inputs and leaves everything else as it is. It shows '
+            'direction and rough size, not a forecast.</div></div>')
+
+
+PRESETS = [("This page", None),
+           ("Equal", {n: 10 for n, *_ in PILLARS}),
+           ("Business only", {"Growth": 20, "Unit economics": 20, "Profitability": 20, "Execution": 20, "Balance sheet": 20,
+                              "Dilution": 0, "Valuation": 0, "Momentum": 0, "Housing market": 0}),
+           ("Housing 10%", {"Growth": 15, "Unit economics": 12.5, "Profitability": 15, "Execution": 12.5, "Balance sheet": 15,
+                            "Dilution": 10, "Valuation": 5, "Momentum": 5, "Housing market": 10})]
+
+
+def _weights_play_card(s):
+    e = html.escape
+    pil = [{"n": p["name"], "s": p["score"], "w": p["weight"]} for p in s["pillars"]]
+    sliders = "".join(f'<div class="sl"><span class="sl-n">{e(p["name"])}<i>{_num(p["score"])}</i></span>'
+                      f'<input type="range" min="0" max="30" step="0.5" value="{p["weight"]}" data-i="{k}" aria-label="{e(p["name"])} weight">'
+                      f'<span class="sl-v">{p["weight"]:g}%</span></div>' for k, p in enumerate(s["pillars"]))
+    presets = "".join(f'<button type="button" class="pre{" on" if w is None else ""}" data-w=\'{json.dumps(w) if w else ""}\'>{e(name)}</button>'
+                      for name, w in PRESETS)
+    data = json.dumps({"pillars": pil, "grades": GRADES}, separators=(",", ":"))
+    return ('<div class="card" id="weights-play"><div class="hd stack"><div><h2>Try your own weights</h2><p class="sub">Same pillar '
+            'scores, your weighting. The published score doesn\'t change.</p></div>'
+            f'<div class="right"><span class="wp-score">{s["overall"]:.2f}</span><p class="sub wp-grade">grade {e(s["grade"])}, as published</p></div></div>'
+            f'<div class="bd"><div class="presets">{presets}</div><div class="sliders" data-play=\'{html.escape(data)}\'>{sliders}</div></div>'
+            '<div class="ft">Weights are scaled to add up to 100%, so only their sizes relative to each other matter. A pillar with no '
+            'score is left out, as on the rest of the page.</div></div>')
 
 
 WEIGHT_WHY = {
@@ -1844,7 +2238,7 @@ WEIGHT_WHY = {
 
 def _weights_card(s):
     rows = "".join(f'<tr><td>{html.escape(p["name"])}</td><td>{p["weight"]}%</td><td>{_num(p["score"])}</td>'
-                   f'<td class="wrap">{html.escape(WEIGHT_WHY.get(p["name"], ""))}</td></tr>' for p in s["pillars"])
+                   f'<td class="wtxt">{html.escape(WEIGHT_WHY.get(p["name"], ""))}</td></tr>' for p in s["pillars"])
     return ('<div class="card"><div class="hd"><div><h2>Pillar weights, and why</h2><p class="sub">The overall score is the '
             'weighted average of the pillar scores</p></div></div><div class="bd scroll" style="padding-top:4px"><table class="wt">'
             '<tr><th>Pillar</th><th>Weight</th><th>Score</th><th>Why this weight</th></tr>' + rows + '</table></div></div>')
@@ -1856,7 +2250,7 @@ def _thresholds_card(s):
         body += f'<tr class="grp"><td colspan="6">{html.escape(p["name"])} ({p["weight"]}%), scoring {_num(p["score"])}</td></tr>'
         for i in p["metrics"]:
             f_ = i.get("fresh") or {}
-            body += (f'<tr><td class="wrap">{html.escape(i["label"])}</td><td data-l="Now">{html.escape(fmt(i["value"], i["fmt"]))}</td>'
+            body += (f'<tr><td class="wtxt">{html.escape(i["label"])}</td><td data-l="Now">{html.escape(fmt(i["value"], i["fmt"]))}</td>'
                      f'<td data-l="0 pts at">{html.escape(fmt(i["bad"], i["fmt"]))}</td><td data-l="10 pts at">{html.escape(fmt(i["good"], i["fmt"]))}</td>'
                      f'<td data-l="Points">{_num(i["score"], "", "–")}</td>'
                      f'<td data-l="Data" class="{"old" if f_.get("old") else ""}">{html.escape(f_.get("text", ""))}</td></tr>')
@@ -2031,7 +2425,7 @@ def write_html(res, path):
     pil = {p["name"]: p for p in s["pillars"]}
     dil_metric = next(i for i in pil["Dilution"]["metrics"] if i["key"] == "dilution_live")
     deep = (f'<div class="grid2">{_debt_card(res, pil["Balance sheet"])}{_dilution_card(res, dil_metric)}</div>'
-            f'{_markets_card(res, pil["Housing market"])}')
+            f'{_markets_card(res, pil["Housing market"])}{_ue_card(res)}{_stress_card(res)}')
     contracts = _contracts_svg(res.get("contracts_all") or [])
     lo4, hi4, a4 = acc.get("contracts_last4_proj_low"), acc.get("contracts_last4_proj_high"), acc.get("contracts_last4")
     vs_mid = acc.get("contracts_vs_proj")
@@ -2121,6 +2515,7 @@ def write_html(res, path):
 
 <p class="section" id="contracts">Opendoor's own targets</p>
 {contracts_card}
+{_fallout_card(res)}
 {_targets_card(res)}
 
 <p class="section" id="history">Over time</p>
@@ -2136,9 +2531,10 @@ def write_html(res, path):
 
 <p class="section" id="method">How the score works</p>
 {_weights_card(s)}
+{_weights_play_card(s)}
 {_thresholds_card(s)}
 
-<footer><p><b>Method.</b> Each metric scores 0–10 on a straight line between a "0 points" and a "10 points" value (hover a metric to see them).
+<footer><p><b>Method.</b> Each metric scores 0–10 on a straight line between a "0 points" and a "10 points" value (all of them are listed above).
 Pillars average their metrics, and the overall score weights the pillars as shown. Grades: A 8+, B 6.5+, C 5+, D 3.5+, F below. The colour at the top of the page follows the score, from red to green.
 Debt is split by what backs it: home-backed debt, which lenders can recover only from the homes, is measured against the homes it funds,
 and the company's own convertible notes against its cash. Potential new shares count only once they are live at today's price (see Details).
@@ -2233,6 +2629,63 @@ a recommendation or investment advice.</p></footer>
     svg.addEventListener("pointerleave", function (ev) {{ if (ev.pointerType === "mouse") hide(); }});
     box.addEventListener("scroll", hide);
   }});
+}})();
+</script>
+<script>
+(function () {{
+  document.querySelectorAll(".uebox").forEach(function (b) {{ b.scrollLeft = b.scrollWidth; }});
+  var out = document.querySelector(".stress-out");
+  if (out) {{
+    var combos = JSON.parse(out.getAttribute("data-combos")), base = parseFloat(out.getAttribute("data-base"));
+    var boxes = document.querySelectorAll("#stress input[type=checkbox]");
+    var main = out.querySelector(".so-main"), pil = out.querySelector(".so-pil");
+    function upd() {{
+      var key = "";
+      ["r", "h", "c"].forEach(function (k) {{
+        boxes.forEach(function (b) {{ if (b.value === k && b.checked) key += k; }});
+      }});
+      var c = combos[key];
+      if (!key || !c) {{ main.textContent = "Nothing ticked: the score is as published."; pil.textContent = ""; out.className = "stress-out"; return; }}
+      var d = c.change;
+      main.innerHTML = "Overall <b>" + base.toFixed(2) + " \u2192 " + c.overall.toFixed(2) + "</b> (" + (d >= 0 ? "+" : "\u2212") + Math.abs(d).toFixed(2) + ")";
+      pil.textContent = c.pillars.length ? c.pillars.map(function (p) {{ return p[0] + " " + p[1].toFixed(1) + " \u2192 " + p[2].toFixed(1); }}).join(";  ") : "No pillar moves: the inputs it changes are already at 0 or 10 points.";
+      out.className = "stress-out " + (d < -0.005 ? "down" : d > 0.005 ? "up" : "");
+    }}
+    boxes.forEach(function (b) {{ b.addEventListener("change", upd); }});
+  }}
+  var box = document.querySelector(".sliders");
+  if (box) {{
+    var play = JSON.parse(box.getAttribute("data-play")), inputs = box.querySelectorAll("input[type=range]");
+    var scoreEl = document.querySelector(".wp-score"), gradeEl = document.querySelector(".wp-grade");
+    var page = play.pillars.map(function (p) {{ return p.w; }});
+    function calc() {{
+      var t = 0, ws = 0, w = [];
+      inputs.forEach(function (inp, k) {{ w[k] = parseFloat(inp.value); }});
+      var sum = w.reduce(function (a, b) {{ return a + b; }}, 0);
+      inputs.forEach(function (inp, k) {{
+        inp.parentNode.querySelector(".sl-v").textContent = (sum ? (w[k] / sum * 100) : 0).toFixed(0) + "%";
+        var p = play.pillars[k];
+        if (p.s !== null && w[k] > 0) {{ t += p.s * w[k]; ws += w[k]; }}
+      }});
+      if (!ws) {{ scoreEl.textContent = "n/a"; gradeEl.textContent = "set at least one weight"; return; }}
+      var v = Math.round(t / ws * 100) / 100, g = "F";
+      for (var i = 0; i < play.grades.length; i++) {{ if (v >= play.grades[i][0]) {{ g = play.grades[i][1]; break; }} }}
+      var same = w.every(function (x, k) {{ return x === page[k]; }});
+      scoreEl.textContent = v.toFixed(2);
+      gradeEl.textContent = "grade " + g + (same ? ", as published" : ", with your weights");
+    }}
+    inputs.forEach(function (inp) {{ inp.addEventListener("input", function () {{
+      document.querySelectorAll(".pre").forEach(function (b) {{ b.classList.remove("on"); }}); calc(); }}); }});
+    document.querySelectorAll(".pre").forEach(function (b) {{
+      b.addEventListener("click", function () {{
+        var w = b.getAttribute("data-w") ? JSON.parse(b.getAttribute("data-w")) : null;
+        inputs.forEach(function (inp, k) {{ inp.value = w ? w[play.pillars[k].n] : page[k]; }});
+        document.querySelectorAll(".pre").forEach(function (x) {{ x.classList.remove("on"); }});
+        b.classList.add("on"); calc();
+      }});
+    }});
+    calc();
+  }}
 }})();
 </script>
 </body></html>"""
@@ -2352,6 +2805,7 @@ def main():
     ap.add_argument("--macro-cache", default=os.path.join(HERE, "macro_cache.json"))
     ap.add_argument("--dilution-cache", default=os.path.join(HERE, "dilution_cache.json"))
     ap.add_argument("--housing-cache", default=os.path.join(HERE, "housing_cache.json"))
+    ap.add_argument("--contracts-cache", default=os.path.join(HERE, "contracts_quarterly.json"))
     ap.add_argument("--ua", default=os.environ.get("SEC_UA", "OPEN scorecard research contact@example.com"))
     ap.add_argument("--shares", type=float, help="shares you hold")
     ap.add_argument("--avg-cost", type=float, help="your average cost per share, USD")
@@ -2418,6 +2872,8 @@ def main():
     if acc_raw is None and os.path.exists(a.snapshot):
         acc_raw = accountable_from_snapshot(a.snapshot)
     acc = accountable_metrics(acc_raw) if acc_raw else None
+    if acc:
+        acc["quarters"] = merge_contract_quarters(acc.get("quarters") or {}, a.contracts_cache)
     if not releases and os.path.exists(a.releases_cache):
         releases = releases_to_rows(json.load(open(a.releases_cache)))
     if macro is None and os.path.exists(a.macro_cache):
