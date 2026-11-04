@@ -6,7 +6,7 @@ on:
   workflow_dispatch:           # "Run workflow" button in the Actions tab
     inputs:
       send_newsletter:
-        description: "Also email subscribers what is due today (normally only the evening run does)"
+        description: "Also email subscribers anything due today (normally only the evening run does)"
         type: boolean
         default: false
   push:
@@ -66,7 +66,7 @@ jobs:
           BUTTONDOWN_API_KEY: ${{ secrets.BUTTONDOWN_API_KEY }}
           SEND: ${{ github.event_name == 'schedule' || inputs.send_newsletter == true }}
         run: |
-          if [ "$SEND" = "true" ]; then python3 newsletter.py --setup --send; else python3 newsletter.py --setup; fi
+          if [ "$SEND" = "true" ]; then python3 newsletter.py --send; fi
           git add newsletter_log.json 2>/dev/null || true
           if ! git diff --cached --quiet; then
             git commit -m "Newsletter sent $(date -u +%F)"

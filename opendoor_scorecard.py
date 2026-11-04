@@ -1908,6 +1908,7 @@ color:#fff;display:grid;grid-template-columns:1.05fr 1fr;gap:40px;align-items:ce
 .nl-list{margin:16px 0 0;padding:0;list-style:none;font-size:15px;color:#e8edff}.nl-list li{padding:4px 0 4px 26px;position:relative}
 .nl-list li:before{content:"";position:absolute;left:0;top:9px;width:14px;height:8px;border-left:2px solid #7ee2b8;border-bottom:2px solid #7ee2b8;transform:rotate(-45deg)}
 .nl-form{position:relative;z-index:1;background:rgba(255,255,255,.08);border:1px solid rgba(255,255,255,.14);border-radius:16px;padding:20px}
+.nl-what{margin:0 0 14px}.nl-what b{display:block;font-size:19px;font-weight:600;color:#fff}.nl-what span{display:block;font-size:14px;color:#c9d4ff;margin-top:2px}
 .freq{border:0;margin:0 0 14px;padding:0;display:grid;grid-template-columns:1fr 1fr;gap:10px}.freq legend{font-size:14px;color:#c9d4ff;margin-bottom:8px;padding:0}
 .freq label{display:block;cursor:pointer}.freq input{position:absolute;opacity:0;pointer-events:none}
 .freq span{display:block;border:1.5px solid rgba(255,255,255,.22);border-radius:12px;padding:12px 14px;transition:.15s}
@@ -2112,18 +2113,14 @@ def _subscribe_card():
     return (
         '<div class="nl" id="subscribe"><div class="nl-l"><p class="nl-k">Free newsletter</p>'
         '<h2>Get the score in your inbox</h2>'
-        '<p class="nl-p">The grade, what moved and why, and what is coming up, written from the same numbers as this page. '
-        'Pick how often.</p>'
-        '<ul class="nl-list"><li>Score and grade changes, explained</li><li>New results the evening they land</li>'
+        '<p class="nl-p">The grade, what moved and why, and what is coming up, written from the same numbers as this page.</p>'
+        '<ul class="nl-list"><li>A round-up every Friday evening</li><li>An extra email the evening new results land</li>'
         '<li>No ads, no tips, unsubscribe in one click</li></ul></div>'
         f'<form class="nl-form" action="https://buttondown.com/api/emails/embed-subscribe/{u}" method="post" target="_blank">'
-        '<fieldset class="freq"><legend>How often?</legend>'
-        '<label><input type="radio" name="tag" value="daily"><span><b>Daily</b><small>Every weekday evening, after the US close</small></span></label>'
-        '<label><input type="radio" name="tag" value="weekly" checked><span><b>Weekly</b><small>A Friday round-up of the week</small></span></label>'
-        '</fieldset>'
+        '<p class="nl-what"><b>Weekly, on Fridays</b><span>Plus results nights, about four times a year</span></p>'
         '<div class="nl-row"><input type="email" name="email" required placeholder="you@example.com" aria-label="Email address" autocomplete="email">'
         '<button type="submit">Subscribe, free</button></div>'
-        '<input type="hidden" name="metadata__source" value="scorecard"><input type="hidden" name="embed" value="1">'
+        '<input type="hidden" name="embed" value="1">'
         '<p class="nl-ok" hidden>Nearly there: confirm in the tab that just opened, then click the link in the email we sent you.</p>'
         f'<p class="nl-fine">Sent with Buttondown. Your email is used for this newsletter only. '
         f'<a href="https://buttondown.com/{u}/archive" target="_blank" rel="noopener">Read past emails</a></p>'
@@ -2133,7 +2130,7 @@ def _subscribe_card():
 def _subscribe_strip():
     if not NEWSLETTER_USER:
         return ""
-    return ('<a class="nl-strip" href="#subscribe"><span><b>Follow the score by email.</b> Daily or weekly, free.</span>'
+    return ('<a class="nl-strip" href="#subscribe"><span><b>Follow the score by email.</b> Weekly, free.</span>'
             '<span class="nl-go">Subscribe</span></a>')
 
 
@@ -2582,7 +2579,7 @@ def write_html(res, path):
 </div>
 </div>
 <nav class="menu" id="menu" hidden>
-{'<a class="menu-nl" href="#subscribe"><span>Get it by email</span><small>Daily or weekly, free</small></a>' if NEWSLETTER_USER else ''}
+{'<a class="menu-nl" href="#subscribe"><span>Get it by email</span><small>Weekly round-up, free</small></a>' if NEWSLETTER_USER else ''}
 <a href="#score"><span>Overall score</span><small>The grade and why</small></a>
 <a href="#pillars"><span>Pillars</span><small>What drives each score</small></a>
 <a href="#deep"><span>Details</span><small>Debt, dilution and Opendoor&#39;s markets</small></a>
@@ -2596,7 +2593,7 @@ def write_html(res, path):
 <div class="asof"><span class="dot"></span>Updated {e(_d(res['generated']))}, {e(res['generated'][11:16])} UK<i>Prices to {e(_d(px['date']))}</i><i>Opendoor tracker as of {e(_d(asof))}, refreshed weekly</i></div>
 <h1>Opendoor,<br>scored.<br>Every weekday.</h1>
 <div><p class="lede">An independent scorecard that grades Opendoor 0–10 on nine pillars, rebuilt every weekday from SEC filings, the share price, housing data from its markets and Opendoor's own public tracker.</p>
-{'<a class="nl-cta" href="#subscribe">Get it by email, daily or weekly <span>&rarr;</span></a>' if NEWSLETTER_USER else ''}</div>
+{'<a class="nl-cta" href="#subscribe">Get the weekly email, free <span>&rarr;</span></a>' if NEWSLETTER_USER else ''}</div>
 </section>
 
 <div class="card" id="score"><div class="hd stack"><div><h2>Overall score</h2><p class="sub">Weighted across nine pillars</p></div>

@@ -102,20 +102,20 @@ back-tested against share-price returns. They live in `RULES` and `PILLARS` at t
 
 ## Newsletter (optional, free)
 
-Readers can sign up on the page for a **daily** email (every weekday evening, after the run) or a **weekly** round-up
-(Fridays). Emails go out through Buttondown, free up to 100 subscribers. Until it is set up, the page shows no signup.
+Readers sign up on the page. Everyone gets the same emails, through Buttondown (free up to 100 subscribers):
+a **round-up every Friday evening**, and an **extra email the evening new quarterly results reach the score**
+(on a Friday, the round-up carries the results instead, so nobody gets two). Until it is set up, the page shows no signup.
 
 1. Create a free account at buttondown.com. Your newsletter's username is the last part of `buttondown.com/<username>`.
 2. In this repo: **Settings → Secrets and variables → Actions → Variables → New repository variable**:
    `BUTTONDOWN_USERNAME` = your username. The next run shows the signup on the page.
 3. In Buttondown, copy your API key (Settings → API). In the same GitHub page, under **Secrets**:
-   `BUTTONDOWN_API_KEY` = the key. The next run creates the `daily` and `weekly` tags; from then on the evening run
-   sends the emails.
+   `BUTTONDOWN_API_KEY` = the key. From then on the evening run sends whatever is due.
 
-To check before anyone receives one: `python3 newsletter.py --preview daily` (or `weekly`) prints the email.
-To send today's email by hand: **Actions → Update Opendoor scorecard → Run workflow**, tick "Also email subscribers".
-`newsletter_log.json` records what was sent, so nothing goes out twice. A reader who wants to switch between daily
-and weekly can reply to an email; change their tag in Buttondown.
+To read an email before anyone receives one: `python3 newsletter.py --preview weekly` (or `results`).
+To send what is due today by hand: **Actions → Update Opendoor scorecard → Run workflow**, tick "Also email subscribers".
+`newsletter_log.json` records what was sent, so nothing goes out twice. (Buttondown's free plan has no tags, which is
+why there is one list rather than a daily/weekly choice; its $9 Basic plan would allow one.)
 
 ## Good to know
 
