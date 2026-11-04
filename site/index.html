@@ -39,7 +39,7 @@ padding:8px 16px 32px;overflow-y:auto;z-index:4;animation:drop .22s ease-out}
 .menu a span{display:block;font-size:20px;font-weight:500;letter-spacing:-.02em}
 .menu a small{display:block;font-size:14px;color:var(--muted);margin-top:1px}
 .menu a.menu-by{background:none;text-align:center;font-size:14px;color:var(--muted);margin-top:18px}
-.credit{display:flex;flex-wrap:wrap;gap:6px 22px}
+.credit{display:flex;flex-wrap:wrap;justify-content:center;gap:6px 28px;margin:32px 0 0}
 .by{grid-column:3;justify-self:end;font-size:13px;color:var(--muted);text-decoration:none;white-space:nowrap;padding:6px 12px;border:1px solid var(--line);border-radius:10px;background:#fff}
 .by:hover{color:var(--ink)}
 .credit{font-size:14px;color:var(--ink);padding:14px 0;border-top:1px solid #e3dfda;border-bottom:1px solid #e3dfda}
@@ -166,7 +166,7 @@ td.up{color:#10b981}td.down{color:#e5484d}
 </nav>
 <div class="wrap">
 <section class="hero">
-<div class="asof"><span class="dot"></span>Updated Nov 4, 2026, 09:52 UK<i>Prices to Nov 3, 2026</i><i>Opendoor tracker as of Oct 31, 2026, refreshed weekly</i></div>
+<div class="asof"><span class="dot"></span>Updated Nov 4, 2026, 09:59 UK<i>Prices to Nov 3, 2026</i><i>Opendoor tracker as of Oct 31, 2026, refreshed weekly</i></div>
 <h1>Opendoor,<br>scored.<br>Every weekday.</h1>
 <p class="lede">An independent scorecard that grades Opendoor 0–10 on nine pillars, rebuilt every weekday from SEC filings, the share price, housing data from its markets and Opendoor's own public tracker.</p>
 </section>
@@ -175,7 +175,7 @@ td.up{color:#10b981}td.down{color:#e5484d}
 <div class="right"><span class="badge grey">First score</span><p class="sub">Changes show from the next run</p></div></div>
 <div class="bd"><div class="score"><span class="num">5.48</span><span class="of">/ 10</span>
 <span class="grade badge amber">C</span></div>
-<p class="verdict">Mixed: the turnaround is plausible but unproven.</p><p class="why">Why: Each home sale earns a healthy margin and sales are growing again, but the company still loses money overall, it&#x27;s missing its own targets and the share count keeps growing.</p></div>
+<p class="verdict">Mixed: the turnaround is plausible but unproven.</p><p class="why">Each home sale earns a healthy margin and sales are growing again, but the company still loses money overall, it&#x27;s missing its own targets and the share count keeps growing.</p></div>
 <div class="kpis"><div class="kpi"><div class="l">Share price</div><div class="v">$1.74</div><div class="s">close Nov 3, 2026</div></div><div class="kpi"><div class="l">Market cap</div><div class="v">$1.61bn</div><div class="s">pro forma shares</div></div><div class="kpi"><div class="l">Q3 homes sold</div><div class="v">2,728</div><div class="s">vs 2,934 expected</div></div><div class="kpi"><div class="l">30-yr mortgage rate</div><div class="v">7.24%</div><div class="s">week of Oct 29, 2026</div></div></div></div>
 
 <div class="card"><div class="hd"><div><h2>Score by pillar</h2><p class="sub">Each pillar is the average of its metrics, 0–10</p></div></div>
@@ -209,11 +209,10 @@ A quarterly figure one quarter old is labelled; older than that, it stops counti
 The thresholds and weights are judgement calls and have not been back-tested against share-price returns. Q3 revenue is estimated at $1,027M (+12.2% YoY): homes sold × $376.3K average revenue per home, until Opendoor reports. Cash, notes, book value and share count include: $135M of 2026 convertible notes repaid at maturity; $650M 0% convertible notes due 2030, $158M buyback of 45.3M shares, $52.5M capped call. </p>
 <p><b>Sources.</b> SEC EDGAR (financial statements and earnings releases), accountable.opendoor.com, Nasdaq (price),
 Freddie Mac PMMS (mortgage rate), Realtor.com (housing in Opendoor's markets). Download the <a href="history.csv">score history</a> or <a href="scorecard.json">all the data</a>.</p>
-<p class="credit"><span>Made by <a href="https://thisisfed.xyz" target="_blank" rel="noopener">Federico R. T. Ferrari</a></span>
-<a href="https://thisisfed.xyz" target="_blank" rel="noopener">thisisfed.xyz</a>
-<a href="https://github.com/thisisfed/opendoor-scorecard" target="_blank" rel="noopener">Source code</a></p>
 <p><b>Independent project</b>, not affiliated with or endorsed by Opendoor Technologies Inc. A structured summary of public numbers, not a forecast,
 a recommendation or investment advice.</p></footer>
+<p class="credit"><a href="https://thisisfed.xyz" target="_blank" rel="noopener">thisisfed.xyz</a>
+<a href="https://github.com/thisisfed/opendoor-scorecard" target="_blank" rel="noopener">Source code</a></p>
 </div>
 <script>
 (function () {
