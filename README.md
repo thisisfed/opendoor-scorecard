@@ -9,7 +9,9 @@ Each run pulls:
 - reported financials and earnings releases from the SEC;
 - Opendoor's weekly tracker from accountable.opendoor.com;
 - the share price (Yahoo Finance, then Nasdaq, then Stooq);
-- the 30-year US mortgage rate (Freddie Mac, via the St. Louis Fed).
+- the 30-year US mortgage rate (Freddie Mac, via the St. Louis Fed);
+- days on market, price cuts, asking prices and listings in 12 of Opendoor's markets (Realtor.com, via the St. Louis Fed);
+- the table of potential new shares (awards, warrants, convertible notes) from each 10-Q.
 
 It rescores the company, records the day's score in the history and republishes the page. The page shows the change
 since the last run, a chart of the score over time, and every pillar and metric.
@@ -47,16 +49,18 @@ From then on it runs by itself every weekday at 22:30 UTC: 22:30 UK time in wint
 
 When Opendoor files its earnings release with the SEC (next: Q3 2026 on Thursday 5 November, after the US close),
 the next run reads it automatically: revenue, profit, homes bought and sold, contribution margin, adjusted
-EBITDA and adjusted net income. It was checked against six past releases (Q1 2025 to Q2 2026) with no differences.
-The reported balance sheet arrives with the 10-Q, usually within days.
+EBITDA, adjusted net income and the share of homes listed for more than 120 days (with the whole-market figure
+it's compared to). It was checked against six past releases (Q1 2025 to Q2 2026) with no differences.
+The reported balance sheet and the table of potential new shares arrive with the 10-Q, usually within days.
+Until then, figures from the previous quarter are labelled on the page; a figure two quarters old stops counting.
 
-`opendoor_kpis.csv` is only for corrections, and for one figure the release table doesn't carry: the share of
-homes listed for more than 120 days (`aged_120_pct`, from the letter's text). Any value in the CSV overrides the
-automatic sources. Saving the file on GitHub starts a run.
+`opendoor_kpis.csv` is only for corrections. Any value in it overrides the automatic sources. Saving the file on
+GitHub starts a run.
 
 If Opendoor announces a financing deal, buyback or share issue **after** the last quarter end, add it to
 `CAPITAL_EVENTS` near the top of `opendoor_scorecard.py` (copy the August 2026 entry's format). Old entries
-switch off by themselves once a reported quarter includes them.
+switch off by themselves once a reported quarter includes them. A new award, warrant or convertible with a price
+condition goes in `PRICE_TRIGGERED` next to it; until then it counts in full, which errs on the cautious side.
 
 ## What's scored
 
@@ -68,11 +72,20 @@ Nine pillars, each 0–10 (the average of its metrics), weighted into the overal
 | Unit economics | 15% | contribution margin, gross margin, share of homes listed 120+ days |
 | Profitability | 15% | GAAP net margin (last 2 quarters), adjusted EBITDA margin, adjusted net income margin (the end-2026 target) |
 | Execution | 15% | homes sold vs management's expectation, contracts vs Opendoor's projected range, sale speed vs the market |
-| Balance sheet | 15% | cash / debt, debt / equity, cash runway (all adjusted for deals after the last quarter) |
-| Dilution | 10% | share count change, stock pay / revenue, potential new shares from awards, convertibles and warrants |
+| Balance sheet | 15% | cash vs the company's own debt (convertible notes), home-backed debt vs the homes it funds, cash runway (adjusted for deals after the last quarter) |
+| Dilution | 10% | share count change, stock pay / revenue, potential new shares that are live at today's price |
 | Valuation | 5% | price / sales, price / book |
 | Momentum | 5% | 1-year return, place in 52-week range, price vs 200-day average |
-| Housing market | 5% | 30-year mortgage rate and its 13-week change |
+| Housing market | 5% | 30-year mortgage rate and its 13-week change; days on market, price cuts and asking prices vs a year ago in Opendoor's markets |
+
+**Debt, split by what backs it.** Most of Opendoor's debt is secured by the homes it holds and can't be claimed from
+the company itself, except in limited cases. So it's measured against the value of those homes (the cushion if prices fall), while the
+convertible notes, the company's own debt, are measured against its cash.
+
+**Live dilution.** RSUs and options count in full. The CEO's awards count once the stock reaches their price targets
+($6.24, then $9 to $33). Warrants count only their value above the exercise price ($9, $13, $17; they expire on
+20 November 2026). Convertible notes count only their value above the cash they repay, net of the capped call on
+the 2030 0% notes. The page shows every line, and how dilution would grow at higher share prices.
 
 Grades: A 8+, B 6.5+, C 5+, D 3.5+, F below. The thresholds and weights are judgement calls and have not been
 back-tested against share-price returns. They live in `RULES` and `PILLARS` at the top of the script.

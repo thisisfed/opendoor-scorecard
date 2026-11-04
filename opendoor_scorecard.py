@@ -11,8 +11,11 @@ Data sources (all free, pulled live unless --offline):
                            range, resale closings (COEs) vs management's expectation, relative clearance vs MLS
   4. Prices              - Yahoo Finance, then Nasdaq, then Stooq
   5. Freddie Mac 30-year mortgage rate via FRED (St. Louis Fed)
-  6. opendoor_kpis.csv   - hand-entered figures; any value here overrides the automatic sources
-  7. CAPITAL_EVENTS      - financing deals announced after the last reported quarter, applied pro forma.
+  6. 10-Q / 10-K table of anti-dilutive securities - potential new shares by type (awards, warrants, notes)
+  7. Realtor.com via FRED - days on market, price cuts, asking prices and listings in 12 Opendoor markets
+  8. opendoor_kpis.csv   - hand-entered figures; any value here overrides the automatic sources
+  9. CAPITAL_EVENTS / PRICE_TRIGGERED - deals after the last balance sheet, and the price terms of awards,
+                           warrants and convertible notes (from Opendoor's 8-Ks)
 
 Rates the company 0-10 on nine pillars and gives an overall grade.
 
@@ -25,7 +28,7 @@ Output goes to www/ : index.html (the report), scorecard.json, history.csv (one 
 Optional phone alerts: set NTFY_TOPIC=<private topic> (ntfy.sh app) - sent when the score moves.
 
 Quarterly figures are read automatically from Opendoor's earnings release on sec.gov. The csv is only
-for corrections and for figures the release doesn't give (e.g. share of homes listed 120+ days).
+for corrections and for anything the release stops giving.
 Standard library only. SEC asks for a contact User-Agent: set SEC_UA="Your Name you@email.com".
 Not investment advice: the thresholds in RULES are opinions, tune them.
 """
@@ -39,12 +42,42 @@ HERE = os.path.dirname(os.path.abspath(__file__))
 PRICE_SNAPSHOT = {"date": "2026-10-30", "price": 1.80, "high_52w": 9.15, "low_52w": 1.76,
                   "return_1y": -0.7548, "ma200": 4.19}
 
-# Deals announced after the last reported quarter (30 Jun 2026). Applied when the event date is later
-# than the latest quarter in the data. Source: Opendoor 8-K, 13 Aug 2026 (settled 19 Aug 2026).
+# Deals after the last reported balance sheet. Each is applied until a balance sheet dated after it is filed.
 CAPITAL_EVENTS = [
+    # 0.25% notes due 15 Aug 2026: $135M left (10-Q, 30 Jun 2026); conversion price $19.23, so repaid in cash
+    {"date": "2026-08-15", "what": "$135M of 2026 convertible notes repaid at maturity",
+     "convert_debt_musd": -135.0, "cash_musd": -135.0},
+    # Opendoor 8-K, 13 Aug 2026 (settled 19 Aug 2026)
     {"date": "2026-08-19", "what": "$650M 0% convertible notes due 2030, $158M buyback of 45.3M shares, $52.5M capped call",
-     "total_debt_musd": +650.0, "cash_musd": +650.0 - 158.0 - 52.5, "equity_musd": -158.0 - 52.5, "shares_m": -45.3},
+     "convert_debt_musd": +650.0, "cash_musd": +650.0 - 158.0 - 52.5, "equity_musd": -158.0 - 52.5, "shares_m": -45.3},
 ]
+
+# Potential shares that only appear above a share price. The counts come from the latest 10-Q table of
+# anti-dilutive securities; the prices from Opendoor's 8-Ks. How each kind turns into shares at price p:
+#   hurdle   vests in full once the stock holds the price (CEO awards, 60-day average close)
+#   warrant  worth (p - strike) per warrant, i.e. n x (1 - strike / p) shares; nothing after expiry
+#   convert  principal is repaid, so only the value above it: n x (1 - conversion price / p)
+#   capped   same, but the capped call covers everything up to the cap: n x (p - cap) / p
+PRICE_TRIGGERED = [
+    # 8-K and Form 4, 15 Sep 2025: two awards of 40,886,344 units, the second in seven equal tranches
+    {"group": "market_rsus", "line": "CEO award 1", "n": 40.886344, "price": 6.24, "kind": "hurdle"},
+    *[{"group": "market_rsus", "line": "CEO award 2", "n": 40.886344 / 7, "price": float(h), "kind": "hurdle"}
+      for h in (9, 13, 17, 21, 25, 29, 33)],
+    # warrant dividend, 21 Nov 2025: one of each series per 30 shares, all expiring 20 Nov 2026
+    *[{"group": "warrants", "line": "Warrants (Series K, A, Z)", "part": 1 / 3, "price": k, "kind": "warrant",
+       "expires": "2026-11-20"} for k in (9.0, 13.0, 17.0)],
+    # 8-K, 19 Aug 2026: 212.2466 shares per $1,000, capped call to $6.98
+    {"group": "converts", "line": "0% convertible notes due 2030", "n": 137.960290, "price": 4.71, "cap": 6.98,
+     "kind": "capped", "issued": "2026-08-19"},
+    # whatever else the 10-Q lists as convertible: the 7% notes due 2030 (conversion price $1.57)
+    {"group": "converts", "line": "7% convertible notes due 2030", "rest": True, "price": 1.57, "kind": "convert"},
+]
+
+# Housing in Opendoor's markets: Realtor.com monthly data via FRED, equal-weighted, by CBSA code
+HOUSING_METROS = [("Phoenix", "38060"), ("Atlanta", "12060"), ("Dallas", "19100"), ("Houston", "26420"),
+                  ("Charlotte", "16740"), ("Raleigh", "39580"), ("Tampa", "45300"), ("Orlando", "36740"),
+                  ("Las Vegas", "29820"), ("Denver", "19740"), ("Nashville", "34980"), ("San Antonio", "41700")]
+HOUSING_SERIES = {"dom": "MEDDAYONMAR", "listings": "ACTLISCOU", "cuts": "PRIREDCOU", "price": "MEDLISPRI"}
 
 # ---------------------------------------------------------------- scoring rules
 # metric: (label, value scoring 0, value scoring 10, format). Linear in between, clipped.
@@ -54,37 +87,41 @@ RULES = {
     "contracts_qoq":   ("Acquisition contracts, last qtr vs prior",    -0.20, 0.20, "pct"),
     "contrib_margin":  ("Contribution margin",                 0.00, 0.07, "pct"),
     "gross_margin":    ("Gross margin",                        0.05, 0.12, "pct"),
-    "aged_inventory":  ("Homes listed 120+ days, share of inventory", 0.40, 0.05, "pct"),
+    "aged_inventory":  ("Homes listed 120+ days, share of inventory", 0.40, 0.05, "share"),
     "net_margin_2q":   ("GAAP net margin, last 2 qtrs",       -0.20, 0.02, "pct"),
     "adj_ebitda_m":    ("Adj. EBITDA margin",                 -0.05, 0.03, "pct"),
     "ani_margin":      ("Adj. net income margin (target: positive by end-2026)", -0.10, 0.01, "pct"),
     "coe_vs_guide":    ("Last qtr homes sold vs mgmt expectation",  -0.15, 0.05, "pct"),
     "contracts_vs_proj": ("Contracts, last 4 wks vs projection midpoint", -0.40, 0.10, "pct"),
     "clearance":       ("Relative clearance vs MLS, 4-wk avg", 0.90, 1.30, "x"),
-    "cash_to_debt":    ("Cash / total debt (pro forma)",       0.20, 1.00, "x"),
-    "debt_to_equity":  ("Debt / equity (pro forma)",           4.00, 0.50, "x"),
+    "cash_vs_notes":   ("Cash vs the company's own debt (convertible notes)", 0.50, 2.00, "x"),
+    "home_debt_ltv":   ("Home-backed debt vs the value of homes held", 1.00, 0.80, "share"),
     "runway_q":        ("Cash runway at current adj. net loss (home purchases are debt-funded, excluded)", 4.0, 16.0, "qtrs"),
     "share_yoy":       ("Share count change YoY",              0.30, 0.00, "pct"),
-    "sbc_pct":         ("Stock comp / revenue",                0.10, 0.01, "pct"),
-    "dilution_overhang": ("Potential new shares (awards, convertibles, warrants) / shares", 0.40, 0.05, "pct"),
+    "sbc_pct":         ("Stock comp / revenue",                0.10, 0.01, "share"),
+    "dilution_live":   ("Potential new shares live at today's price", 0.25, 0.02, "share"),
     "ps":              ("Price / sales (TTM)",                 3.00, 0.30, "x"),
     "pb":              ("Price / book (pro forma)",            6.00, 1.00, "x"),
     "ret_1y":          ("Share price, 1 year",                -0.70, 0.30, "pct"),
-    "range_pos":       ("Position in 52-week range",           0.00, 1.00, "pct"),
+    "range_pos":       ("Position in 52-week range",           0.00, 1.00, "share"),
     "vs_ma200":        ("Price vs 200-day average",           -0.40, 0.10, "pct"),
     "mortgage_rate":   ("30-year US mortgage rate",            0.08, 0.05, "rate"),
     "mortgage_13w":    ("Mortgage rate change, last 13 weeks", 0.0075, -0.0075, "pp"),
+    "dom_yoy":         ("Days on market vs a year ago, Opendoor's markets", 0.30, -0.10, "pct"),
+    "cuts_yoy":        ("Listings with a price cut vs a year ago, Opendoor's markets", 0.06, -0.03, "pp"),
+    "list_price_yoy":  ("Asking prices vs a year ago, Opendoor's markets", -0.05, 0.04, "pct"),
 }
 PILLARS = [  # (name, weight %, metrics, the question it answers)
     ("Growth",         15, ["rev_nowcast_yoy", "coe_q4_yoy", "contracts_qoq"], "Is the business getting bigger right now?"),
     ("Unit economics", 15, ["contrib_margin", "gross_margin", "aged_inventory"], "Does each home flip make money, and is stock fresh?"),
     ("Profitability",  15, ["net_margin_2q", "adj_ebitda_m", "ani_margin"],  "Does the whole company make money?"),
     ("Execution",      15, ["coe_vs_guide", "contracts_vs_proj", "clearance"], "Is management hitting its own targets?"),
-    ("Balance sheet",  15, ["cash_to_debt", "debt_to_equity", "runway_q"],   "Can it survive a bad housing year?"),
-    ("Dilution",       10, ["share_yoy", "sbc_pct", "dilution_overhang"],    "Is your slice of the company shrinking?"),
+    ("Balance sheet",  15, ["cash_vs_notes", "home_debt_ltv", "runway_q"],   "Can it survive a bad housing year?"),
+    ("Dilution",       10, ["share_yoy", "sbc_pct", "dilution_live"],        "Is your slice of the company shrinking?"),
     ("Valuation",       5, ["ps", "pb"],                                     "Are you overpaying for what exists today?"),
     ("Momentum",        5, ["ret_1y", "range_pos", "vs_ma200"],              "What is the market saying?"),
-    ("Housing market",  5, ["mortgage_rate", "mortgage_13w"],                "Is the market helping or hurting?"),
+    ("Housing market",  5, ["mortgage_rate", "mortgage_13w", "dom_yoy", "cuts_yoy", "list_price_yoy"],
+                                                                             "Is the market helping or hurting?"),
 ]
 # Plain-English reason for each pillar: (when it's a strength, when it's a weakness)
 PILLAR_WORDS = {
@@ -92,11 +129,11 @@ PILLAR_WORDS = {
     "Unit economics": ("each home sale earns a healthy margin", "margins on each home are thin"),
     "Profitability": ("the company is profitable", "the company still loses money overall"),
     "Execution": ("management is hitting its own targets", "it's missing its own targets"),
-    "Balance sheet": ("the balance sheet is solid", "debt is high against equity"),
+    "Balance sheet": ("the balance sheet is solid", "the cushion behind its debt is thin"),
     "Dilution": ("the share count is stable", "the share count keeps growing"),
     "Valuation": ("the stock is cheap against its sales", "the stock looks expensive"),
     "Momentum": ("the share price is trending up", "the share price is in a downtrend"),
-    "Housing market": ("mortgage rates are helping", "high mortgage rates are a headwind"),
+    "Housing market": ("housing in its markets is helping", "housing in its markets is a headwind"),
 }
 
 
@@ -206,17 +243,30 @@ def from_edgar(ua, log):
     s, t = instant(f, ["CashAndCashEquivalentsAtCarryingValue"]); put("cash_musd", s, t)
     s, t = instant(f, ["InventoryRealEstate", "RealEstateInventory", "InventoryNet"]); put("inventory_musd", s, t)
     s, t = instant(f, ["StockholdersEquity"]); put("equity_musd", s, t)
-    # Opendoor files its asset-backed (non-recourse) debt as lines of credit. Sum every tag that is present;
-    # 30 Jun 2026 check: 691 + 1,071 + 194 = 1,956 ($M), matching the 10-Q.
+    # Two very different kinds of debt. Opendoor files its asset-backed debt, secured by the homes and
+    # non-recourse to the company, as lines of credit; its own (corporate) debt is the convertible notes.
+    # 30 Jun 2026 check: 691 + 1,071 = 1,762 home-backed, 194 convertible, 1,956 in all ($M), as in the 10-Q.
     total, used = {}, []
-    for tag in ("LinesOfCreditCurrent", "LongTermLineOfCredit", "ConvertibleDebtCurrent", "ConvertibleDebtNoncurrent"):
-        vals, t = instant(f, [tag])
-        if t:
-            used.append(t)
-            for k, v in vals.items():
+    for name, tags in (("home_debt_musd", ("LinesOfCreditCurrent", "LongTermLineOfCredit")),
+                       ("convert_debt_musd", ("ConvertibleDebtCurrent", "ConvertibleDebtNoncurrent"))):
+        part, part_used = {}, []
+        for tag in tags:
+            vals, t = instant(f, [tag])
+            if t:
+                part_used.append(t)
+                for k, v in vals.items():
+                    part[k] = part.get(k, 0) + v
+        if part:
+            put(name, part, " + ".join(part_used))
+            used += part_used
+            for k, v in part.items():
                 total[k] = total.get(k, 0) + v
     if total:
         put("total_debt_musd", total, " + ".join(used))
+    for end, row in fields.items():  # a quarter with only one kind filed has none of the other
+        if "total_debt_musd" in row:
+            row.setdefault("home_debt_musd", 0.0)
+            row.setdefault("convert_debt_musd", 0.0)
     s, t = instant(f, ["EntityCommonStockSharesOutstanding", "CommonStockSharesOutstanding"], unit="shares")
     put("shares_m", {_quarter_end_before(k): v for k, v in sorted(s.items())}, t)
     # shares that could be issued (stock awards, convertibles, warrants), excluded from diluted EPS while loss-making
@@ -399,13 +449,15 @@ from html.parser import HTMLParser
 
 
 class _Rows(HTMLParser):
-    """Collects table rows as lists of cell texts."""
+    """Collects table rows as lists of cell texts (all rows, and grouped by table)."""
     def __init__(self):
         super().__init__()
-        self.rows, self._row, self._cell, self._in = [], None, [], False
+        self.rows, self.tables, self._row, self._cell, self._in = [], [], None, [], False
 
     def handle_starttag(self, tag, attrs):
-        if tag == "tr":
+        if tag == "table":
+            self.tables.append([])
+        elif tag == "tr":
             self._row = []
         elif tag in ("td", "th") and self._row is not None:
             self._in, self._cell = True, []
@@ -418,6 +470,8 @@ class _Rows(HTMLParser):
             cells = [c for c in self._row if c]
             if cells:
                 self.rows.append(cells)
+                if self.tables:
+                    self.tables[-1].append(cells)
             self._row = None
 
     def handle_data(self, d):
@@ -456,11 +510,31 @@ def _first_number(cells):
     return None
 
 
+RELEASE_PARSER = 2  # bump to re-read cached releases with a newer parser
+# "% of homes on the market over 120 Days declined from 10% to 9% quarter-over-quarter, compared to 27% for
+# the overall market." The table header that names the same metric has no figure, so it never matches.
+AGED_RE = re.compile(r"homes on the market (?:for )?(?:over|more than|greater than) 120 days[^.%]{0,60}?"
+                     r"(?:from \d+(?:\.\d+)?% )?(?:to|at|was|of)\s+(\d+(?:\.\d+)?)\s?%", re.I)
+MARKET_AGED_RE = re.compile(r"compared (?:to|with) (\d+(?:\.\d+)?)\s?% for the (?:overall|broader|wider) market", re.I)
+
+
+def _page_text(page):
+    return re.sub(r"\s+", " ", html.unescape(re.sub(r"<[^>]+>", " ", page)))
+
+
 def parse_release(page):
-    """Current-quarter figures from an earnings release: the first matching row, first number in it."""
+    """Current-quarter figures from an earnings release: the first matching row, first number in it,
+    plus the share of homes listed 120+ days, which Opendoor reports in a sentence."""
     p = _Rows()
     p.feed(page)
     out = {}
+    text = _page_text(page)
+    m = AGED_RE.search(text)
+    if m:
+        out["aged_120_pct"] = float(m.group(1))
+        mk = MARKET_AGED_RE.search(text, m.end(), m.end() + 200)
+        if mk:
+            out["market_aged_120_pct"] = float(mk.group(1))
     for cells in p.rows:
         label = re.sub(r"\s*\(\d+\)$|\s*\d$", "", cells[0].strip().rstrip(":")).strip().lower()
         label = label.replace("\u2019", "'")
@@ -472,25 +546,32 @@ def parse_release(page):
     return out
 
 
-def releases_from_sec(ua, cache_path, log, keep=6):
+def sec_submissions(ua):
+    return json.loads(get(f"https://data.sec.gov/submissions/CIK{CIK}.json", ua))
+
+
+def releases_from_sec(ua, cache_path, log, keep=6, sub=None):
     """Find Opendoor's earnings 8-Ks (item 2.02), parse exhibit 99.1, cache results by accession number."""
     cache = json.load(open(cache_path)) if os.path.exists(cache_path) else {}
-    sub = json.loads(get(f"https://data.sec.gov/submissions/CIK{CIK}.json", ua))
-    r = sub["filings"]["recent"]
+    r = (sub or sec_submissions(ua))["filings"]["recent"]
     found = [(r["filingDate"][i], r["accessionNumber"][i]) for i in range(len(r["form"]))
              if r["form"][i] == "8-K" and "2.02" in (r.get("items", [""] * len(r["form"]))[i] or "")]
     for fdate, acc in sorted(found)[-keep:]:
-        if acc in cache:
+        if cache.get(acc, {}).get("parser") == RELEASE_PARSER:
             continue
         folder = f"https://www.sec.gov/Archives/edgar/data/{int(CIK)}/{acc.replace('-', '')}"
-        files = [x["name"] for x in json.loads(get(folder + "/index.json", ua))["directory"]["item"]]
-        ex = [n for n in files if n.lower().endswith((".htm", ".html")) and re.search(r"ex-?99[-_.]?0?1|ex991|991", n.lower())]
+        ex = [cache[acc]["file"]] if cache.get(acc, {}).get("file") else []
+        if not ex:
+            files = [x["name"] for x in json.loads(get(folder + "/index.json", ua))["directory"]["item"]]
+            ex = [n for n in files if n.lower().endswith((".htm", ".html")) and re.search(r"ex-?99[-_.]?0?1|ex991|991", n.lower())]
         if not ex:
             log.append(f"  release {acc}: no exhibit 99.1 found")
             continue
         vals = parse_release(get(f"{folder}/{ex[0]}", ua))
-        cache[acc] = {"filed": fdate, "quarter_end": _quarter_end_before(fdate), "file": ex[0], "values": vals}
-        log.append(f"  release {fdate} ({ex[0]}): {len(vals)} figures")
+        cache[acc] = {"filed": fdate, "quarter_end": _quarter_end_before(fdate), "file": ex[0], "values": vals,
+                      "parser": RELEASE_PARSER}
+        log.append(f"  release {fdate} ({ex[0]}): {len(vals)} figures"
+                   + (f", 120+ days {vals['aged_120_pct']:g}%" if "aged_120_pct" in vals else ", no 120+ days figure"))
     with open(cache_path, "w") as fh:
         json.dump(cache, fh, indent=1, sort_keys=True)
     return cache
@@ -501,6 +582,150 @@ def releases_to_rows(cache):
     for item in sorted(cache.values(), key=lambda x: x["filed"]):
         rows.setdefault(item["quarter_end"], {}).update(item["values"])
     return rows
+
+
+# ---------------------------------------------------------------- 3d. 10-Q / 10-K: potential shares by type
+DILUTION_PARSER = 1
+# row label in the table of anti-dilutive securities -> group (whole first cell, case-insensitive)
+DILUTION_ROWS = [
+    ("total", r"total (potentially )?(anti-?dilutive|dilutive) (securities|shares)"),
+    ("warrants", r"(common )?(stock )?warrants"),
+    ("market_rsus", r"(market[- ]condition|performance[- ]based|market[- ]based) (rsus?|restricted stock units|psus?)|psus?"),
+    ("rsus", r"(time[- ]based )?(rsus?|restricted stock units)"),
+    ("converts", r"convertible (senior )?notes"),
+    ("options", r"(stock )?options"),
+    ("espp", r"employee stock purchase plan|espp"),
+]
+
+
+def _first_cell_number(cells):
+    """First figure in the row (the current period); a dash there means zero, not 'look further right'."""
+    for c in cells[1:]:
+        c = c.replace("$", "").replace(" ", " ").strip()
+        if not c or re.fullmatch(r"\(\d\)", c):
+            continue
+        if c in ("—", "–", "-"):
+            return 0.0
+        m = re.fullmatch(r"\(?\s*([\d,]+(?:\.\d+)?)\s*\)?", c)
+        if m:
+            return float(m.group(1).replace(",", ""))
+    return None
+
+
+def parse_dilution(page):
+    """The 'anti-dilutive securities' table of a 10-Q or 10-K, in millions of shares by group."""
+    p = _Rows()
+    p.feed(page)
+    norm = lambda c: re.sub(r"\s*\(\d\)$|\s*\d$", "", c.strip().rstrip(":")).strip().lower().replace("’", "'")
+    for table in p.tables:
+        if not any(re.fullmatch(DILUTION_ROWS[0][1], norm(r[0])) for r in table):
+            continue
+        out = {}
+        for cells in table:
+            label, v = norm(cells[0]), _first_cell_number(cells)
+            if v is None or not re.search(r"[a-z]", label):  # header rows of years, blank labels
+                continue
+            group = next((g for g, pat in DILUTION_ROWS if re.fullmatch(pat, label)), "other")
+            out[group] = out.get(group, 0.0) + v / 1000  # the table is in thousands
+            if group == "other":
+                out.setdefault("other_labels", []).append(cells[0])
+        if out.get("total"):
+            return out
+    return {}
+
+
+def dilution_from_sec(ua, cache_path, log, sub=None, keep=3):
+    """Parse the anti-dilutive table of the latest 10-Qs / 10-K; cached by accession number."""
+    cache = json.load(open(cache_path)) if os.path.exists(cache_path) else {}
+    r = (sub or sec_submissions(ua))["filings"]["recent"]
+    found = sorted((r["filingDate"][i], r["accessionNumber"][i], r["reportDate"][i], r["primaryDocument"][i], r["form"][i])
+                   for i in range(len(r["form"])) if r["form"][i] in ("10-Q", "10-K"))
+    for fdate, acc, rdate, doc, form in found[-keep:]:
+        if cache.get(acc, {}).get("parser") == DILUTION_PARSER:
+            continue
+        url = f"https://www.sec.gov/Archives/edgar/data/{int(CIK)}/{acc.replace('-', '')}/{doc}"
+        d = parse_dilution(get(url, ua, timeout=90))
+        before = cache.get(acc, {}).get("dilution")
+        if not d and before:  # never replace good figures with a failed read
+            cache[acc]["parser"] = DILUTION_PARSER
+            log.append(f"  {form} {rdate}: no anti-dilutive table found; kept the cached figures")
+            continue
+        cache[acc] = {"filed": fdate, "quarter_end": rdate, "form": form, "file": doc, "parser": DILUTION_PARSER, "dilution": d}
+        parts = sum(v for k, v in d.items() if k not in ("total", "other_labels"))
+        log.append(f"  {form} {rdate}: " + (f"{d['total']:.1f}M potential shares: "
+                                             + ", ".join(f"{k} {v:.1f}" for k, v in d.items() if k not in ("total", "other_labels"))
+                                             + ("" if abs(parts - d["total"]) < 0.5 else f" (groups sum to {parts:.1f}M)")
+                                             + (f"; checked against cached {before['total']:.1f}M" if before else "")
+                                             if d else "no anti-dilutive table found"))
+    with open(cache_path, "w") as fh:
+        json.dump(cache, fh, indent=1, sort_keys=True)
+    return cache
+
+
+def latest_dilution(cache):
+    """(quarter_end, breakdown) from the most recent filing that had the table."""
+    ok = [v for v in cache.values() if v.get("dilution", {}).get("total")]
+    if not ok:
+        return None, None
+    best = max(ok, key=lambda v: (v["quarter_end"], v["filed"]))
+    return best["quarter_end"], best["dilution"]
+
+
+def live_shares(item, p, n, today):
+    """Shares (or their value, in shares) an instrument hands out at share price p."""
+    if item.get("expires") and today > item["expires"]:
+        return 0.0
+    k = item["price"]
+    if item["kind"] == "hurdle":
+        return n if p >= k else 0.0
+    if item["kind"] in ("warrant", "convert"):
+        return n * max(0.0, 1 - k / p)
+    if item["kind"] == "capped":
+        return n * max(0.0, p - item["cap"]) / p
+    return n
+
+
+def dilution_lines(breakdown, quarter_end, today):
+    """Potential new shares as lines: (label, millions, 'needs', [(instrument, n)]), from the 10-Q groups plus
+    instruments issued after that quarter. Anything not described in PRICE_TRIGGERED counts in full."""
+    b = dict(breakdown)
+    full = {"kind": "full", "price": 0.0}
+    lines = []
+    plain = sum(b.get(k, 0.0) for k in ("rsus", "options", "espp", "other"))
+    lines.append(("RSUs, options and employee share plan", plain, "Counted in full", [(full, plain)]))
+    # price-target awards: the CEO's are itemised; any others count in full
+    ceo = [i for i in PRICE_TRIGGERED if i["group"] == "market_rsus"]
+    for name in dict.fromkeys(i["line"] for i in ceo):
+        items = [i for i in ceo if i["line"] == name]
+        prices = sorted({i["price"] for i in items})
+        needs = f"${prices[0]:g} average" if len(prices) == 1 else f"${prices[0]:g} to ${prices[-1]:g} average, in {len(items)} steps"
+        lines.append((name, sum(i["n"] for i in items), needs, [(i, i["n"]) for i in items]))
+    other_mkt = max(0.0, b.get("market_rsus", 0.0) - sum(i["n"] for i in ceo))
+    if other_mkt > 0.05:
+        lines.append(("Other price-target awards", other_mkt, "Counted in full (targets not itemised)", [(full, other_mkt)]))
+    war = [i for i in PRICE_TRIGGERED if i["group"] == "warrants"]
+    if b.get("warrants"):
+        n = b["warrants"]
+        expired = all(today > i["expires"] for i in war)
+        needs = ("Expired " + _d(war[0]["expires"])) if expired else \
+            " / ".join(f"${i['price']:g}" for i in war) + f", expire {_d(war[0]['expires'])}"
+        lines.append((war[0]["line"], n, needs, [(i, n * i["part"]) for i in war]))
+    conv = [i for i in PRICE_TRIGGERED if i["group"] == "converts"]
+    known = [i for i in conv if not i.get("rest")]
+    listed = b.get("converts", 0.0)
+    for i in known:
+        if i["issued"] <= today:
+            lines.append((i["line"], i["n"], f"${i['price']:g} to convert, capped call to ${i['cap']:g}", [(i, i["n"])]))
+            if i["issued"] <= quarter_end:  # already inside the 10-Q's convertible line
+                listed -= i["n"]
+    rest = next(i for i in conv if i.get("rest"))
+    if listed > 0.05:
+        lines.append((rest["line"], listed, f"${rest['price']:g} to convert", [(rest, listed)]))
+    return lines
+
+
+def dilution_at(lines, p, today):
+    return sum(live_shares(i, p, n, today) for _, _, _, parts in lines for i, n in parts)
 
 
 # ---------------------------------------------------------------- 3c. mortgage rates (FRED, no key needed)
@@ -526,6 +751,66 @@ def _freddie():
             m, d, y = c[di].strip().split("/")
             pts.append((f"{y}-{int(m):02d}-{int(d):02d}", float(c[vi]) / 100))
     return sorted(pts), "Freddie Mac PMMS"
+
+
+def _fred_series(sid, start):
+    txt = get(f"https://fred.stlouisfed.org/graph/fredgraph.csv?id={sid}&cosd={start}", timeout=40)
+    pts = []
+    for line in txt.strip().splitlines()[1:]:
+        d, v = (line.split(",") + [""])[:2]
+        if v not in ("", "."):
+            pts.append((d[:7], float(v)))
+    return sorted(pts)
+
+
+def _yoy(pts, ratio=True):
+    """(latest month, latest value, change vs the same month a year earlier)."""
+    if not pts:
+        return None, None, None
+    m, v = pts[-1]
+    prior = dict(pts).get(f"{int(m[:4]) - 1}{m[4:]}")
+    if prior in (None, 0):
+        return m, v, None
+    return m, v, (v / prior - 1) if ratio else v - prior
+
+
+def housing_markets(log):
+    """Days on market, price cuts, asking prices and listings in Opendoor's markets (Realtor.com via FRED)."""
+    from concurrent.futures import ThreadPoolExecutor
+    start = (dt.date.today() - dt.timedelta(days=800)).isoformat()
+    places = HOUSING_METROS + [("United States", "US")]
+    jobs = {(name, key): f"{prefix}{code}" for name, code in places for key, prefix in HOUSING_SERIES.items()}
+    got, failed = {}, []
+    with ThreadPoolExecutor(max_workers=8) as pool:
+        futs = {k: pool.submit(_fred_series, sid, start) for k, sid in jobs.items()}
+        for k, f in futs.items():
+            try:
+                got[k] = f.result()
+            except Exception as e:
+                failed.append(f"{jobs[k]} ({str(e)[:40]})")
+    rows = []
+    for name, code in places:
+        s = {key: got.get((name, key), []) for key in HOUSING_SERIES}
+        month, dom, dom_yoy = _yoy(s["dom"])
+        _, price, price_yoy = _yoy(s["price"])
+        _, listings, listings_yoy = _yoy(s["listings"])
+        share = [(m, c / dict(s["listings"])[m]) for m, c in s["cuts"] if dict(s["listings"]).get(m)]
+        _, cut_share, cuts_yoy = _yoy(share, ratio=False)
+        if month:
+            rows.append({"name": name, "code": code, "month": month, "dom": dom, "dom_yoy": dom_yoy, "price": price,
+                         "price_yoy": price_yoy, "listings": listings, "listings_yoy": listings_yoy,
+                         "cut_share": cut_share, "cuts_yoy": cuts_yoy})
+    metros = [r for r in rows if r["code"] != "US"]
+    if len(metros) < len(HOUSING_METROS) // 2:
+        raise RuntimeError(f"only {len(metros)} markets came back; failed: {', '.join(failed[:6])}")
+    med = lambda k: (lambda v: None if not v else sorted(v)[len(v) // 2] if len(v) % 2 else sum(sorted(v)[len(v) // 2 - 1:len(v) // 2 + 1]) / 2)(
+        [r[k] for r in metros if r.get(k) is not None])
+    basket = {k: med(k) for k in ("dom", "dom_yoy", "cut_share", "cuts_yoy", "price_yoy", "listings_yoy")}
+    month = max(r["month"] for r in metros)
+    log.append(f"housing: {len(metros)} of {len(HOUSING_METROS)} markets, {month}"
+               + (f"; {len(failed)} series failed: {', '.join(failed[:4])}" if failed else ""))
+    return {"month": month, "metros": metros, "us": next((r for r in rows if r["code"] == "US"), None),
+            "basket": basket, "source": "Realtor.com via FRED"}
 
 
 def mortgage_rates(log=None):
@@ -581,24 +866,29 @@ def pro_forma(q):
     """Latest complete balance sheet plus capital events dated after it."""
     bs = latest_with(q, "cash_musd", "total_debt_musd", "equity_musd")
     sh = latest_with(q, "shares_m")
-    pf = {k: bs.get(k) for k in ("cash_musd", "total_debt_musd", "equity_musd")}
+    keys = ("cash_musd", "home_debt_musd", "convert_debt_musd", "total_debt_musd", "equity_musd")
+    pf = {k: bs.get(k) for k in keys}
     pf["shares_m"] = sh.get("shares_m")
     pf["as_of"] = bs.get("quarter_end")
     applied = []
     for ev in CAPITAL_EVENTS:
         if bs and ev["date"] > bs["quarter_end"]:
-            for k in ("cash_musd", "total_debt_musd", "equity_musd"):
-                if pf[k] is not None and k in ev:
-                    pf[k] += ev[k]
+            for k in keys:
+                change = ev.get(k, 0.0) + (ev.get("convert_debt_musd", 0.0) if k == "total_debt_musd" else 0.0)
+                if pf[k] is not None and change:
+                    pf[k] += change
+            applied.append(ev)
     for ev in CAPITAL_EVENTS:  # share changes after the date the share count was measured
         if sh and pf["shares_m"] is not None and ev["date"] > sh["quarter_end"] and "shares_m" in ev:
             pf["shares_m"] += ev["shares_m"]
-            applied.append(ev)
+            if ev not in applied:
+                applied.append(ev)
     return pf, applied
 
 
 # ---------------------------------------------------------------- metrics + score
-def metrics(q, px, acc, macro=None):
+def metrics(q, px, acc, macro=None, dil=None, housing=None, today=None):
+    today = today or dt.date.today().isoformat()
     last = q[-1]
     g = lambda i, k: q[i].get(k) if -len(q) <= i < len(q) else None
     div = lambda a, b: a / b if a is not None and b not in (None, 0) else None
@@ -620,33 +910,63 @@ def metrics(q, px, acc, macro=None):
         pe = acc["prev_quarter_end"]
         q3_prior = next((r["revenue_musd"] for r in q if r["quarter_end"] == str(int(pe[:4]) - 1) + pe[4:]), None)
     two = q[-2:]
-    ani_row = latest_with(q, "adj_net_income_musd")
+    rows = {k: latest_with(q, k) for k in ("contribution_margin_pct", "gross_profit_musd", "aged_120_pct",
+                                           "adj_ebitda_musd", "adj_net_income_musd", "sbc_musd")}
+    ani_row = rows["adj_net_income_musd"]
     ani = ani_row.get("adj_net_income_musd")
     runway = None
     if ani is not None and pf["cash_musd"] is not None:
         runway = 99.0 if ani >= 0 else pf["cash_musd"] / -ani
-    dil_row = latest_with(q, "potential_dilution_m")
-    dil_shares = dil_row.get("shares_m") or shares
+    bs = latest_with(q, "cash_musd", "total_debt_musd", "equity_musd")
+    home_ltv = div(bs.get("home_debt_musd"), bs.get("inventory_musd")) if bs.get("home_debt_musd") else None
+    notes_debt = pf.get("convert_debt_musd")
+    cash_vs_notes = None
+    if pf["cash_musd"] is not None and notes_debt is not None:
+        cash_vs_notes = 99.0 if notes_debt <= 0 else pf["cash_musd"] / notes_debt
+
+    # dilution: every potential share by type, and how much of it is live at today's price
+    dq, br = dil if dil else (None, None)
+    full = {"kind": "full", "price": 0.0}
+    if br:
+        lines = dilution_lines(br, dq, today)
+        dil_src = "10-Q"
+    else:  # no breakdown: the XBRL total, all counted in full
+        row = latest_with(q, "potential_dilution_m")
+        dq = row.get("quarter_end")
+        lines = [("All potential shares (no breakdown available)", row["potential_dilution_m"], "Counted in full",
+                  [(full, row["potential_dilution_m"])])] if row else []
+        dil_src = "XBRL total"
+    live = dilution_at(lines, px["price"], today) if lines else None
+    dilution = None
+    if lines and shares:
+        grid = sorted({round(x * 0.25, 2) for x in range(4, 141)} | {round(px["price"], 2)})
+        dilution = {"quarter": dq, "source": dil_src, "price": px["price"], "shares_m": shares,
+                    "potential_m": sum(l[1] for l in lines), "live_m": live,
+                    "lines": [{"label": l, "n": n, "needs": nd, "live": sum(live_shares(i, px["price"], k, today) for i, k in parts)}
+                              for l, n, nd, parts in lines],
+                    "curve": [[p, dilution_at(lines, p, today) / shares] for p in grid]}
+
+    hb = (housing or {}).get("basket") or {}
     m = {
         "rev_nowcast_yoy": ch(q3_rev_est, q3_prior) if unreported else ch(g(-1, "revenue_musd"), g(-5, "revenue_musd")),
         "coe_q4_yoy": acc.get("coe_q4_yoy") if acc else None,
         "contracts_qoq": acc.get("contracts_qoq") if acc else None,
-        "contrib_margin": div(latest_with(q, "contribution_margin_pct").get("contribution_margin_pct"), 100),
-        "gross_margin": div(latest_with(q, "gross_profit_musd").get("gross_profit_musd"), latest_with(q, "gross_profit_musd").get("revenue_musd")),
-        "aged_inventory": div(latest_with(q, "aged_120_pct").get("aged_120_pct"), 100),
+        "contrib_margin": div(rows["contribution_margin_pct"].get("contribution_margin_pct"), 100),
+        "gross_margin": div(rows["gross_profit_musd"].get("gross_profit_musd"), rows["gross_profit_musd"].get("revenue_musd")),
+        "aged_inventory": div(rows["aged_120_pct"].get("aged_120_pct"), 100),
         "net_margin_2q": div(sum(r["net_income_musd"] for r in two), sum(r["revenue_musd"] for r in two))
                          if all("net_income_musd" in r for r in two) else None,
-        "adj_ebitda_m": div(latest_with(q, "adj_ebitda_musd").get("adj_ebitda_musd"), latest_with(q, "adj_ebitda_musd").get("revenue_musd")),
+        "adj_ebitda_m": div(rows["adj_ebitda_musd"].get("adj_ebitda_musd"), rows["adj_ebitda_musd"].get("revenue_musd")),
         "ani_margin": div(ani, ani_row.get("revenue_musd")),
         "coe_vs_guide": acc.get("coe_vs_guide") if acc else None,
         "contracts_vs_proj": acc.get("contracts_vs_proj") if acc else None,
         "clearance": acc.get("clearance") if acc else None,
-        "cash_to_debt": div(pf["cash_musd"], pf["total_debt_musd"]),
-        "debt_to_equity": div(pf["total_debt_musd"], pf["equity_musd"]),
+        "cash_vs_notes": cash_vs_notes,
+        "home_debt_ltv": home_ltv,
         "runway_q": runway,
         "share_yoy": ch(shares, year_ago["shares_m"]) if year_ago else None,
-        "sbc_pct": div(latest_with(q, "sbc_musd").get("sbc_musd"), latest_with(q, "sbc_musd").get("revenue_musd")),
-        "dilution_overhang": div(dil_row.get("potential_dilution_m"), dil_shares),
+        "sbc_pct": div(rows["sbc_musd"].get("sbc_musd"), rows["sbc_musd"].get("revenue_musd")),
+        "dilution_live": div(live, shares),
         "ps": div(mcap, ttm_rev),
         "pb": div(mcap, pf["equity_musd"]),
         "ret_1y": px.get("return_1y"),
@@ -654,26 +974,69 @@ def metrics(q, px, acc, macro=None):
         "vs_ma200": ch(px["price"], px.get("ma200")),
         "mortgage_rate": (macro or {}).get("rate"),
         "mortgage_13w": ((macro or {}).get("rate") - macro["rate_13w_ago"]) if macro and macro.get("rate_13w_ago") is not None else None,
+        "dom_yoy": hb.get("dom_yoy"),
+        "cuts_yoy": hb.get("cuts_yoy"),
+        "list_price_yoy": hb.get("price_yoy"),
     }
+    # which quarter each quarterly figure comes from (adjusted balance-sheet figures are current, so not listed)
+    asof = {"contrib_margin": rows["contribution_margin_pct"].get("quarter_end"),
+            "gross_margin": rows["gross_profit_musd"].get("quarter_end"),
+            "aged_inventory": rows["aged_120_pct"].get("quarter_end"),
+            "adj_ebitda_m": rows["adj_ebitda_musd"].get("quarter_end"),
+            "ani_margin": ani_row.get("quarter_end"), "sbc_pct": rows["sbc_musd"].get("quarter_end"),
+            "home_debt_ltv": bs.get("quarter_end"), "dilution_live": dq}
+    if not applied:
+        asof.update(cash_vs_notes=bs.get("quarter_end"), runway_q=bs.get("quarter_end"))
+    notes = {}
+    mk = rows["aged_120_pct"].get("market_aged_120_pct")
+    if mk is not None:
+        notes["aged_inventory"] = f"Whole market: {mk:g}%"
+    if dilution:
+        notes["dilution_live"] = f"Of {dilution['potential_m']:,.0f}M potential shares in all"
+    if hb:
+        notes.update({k: f"{len(housing['metros'])} markets, {_month(housing['month'])}" for k in ("dom_yoy", "cuts_yoy", "list_price_yoy")})
+    if home_ltv is not None:
+        notes["home_debt_ltv"] = f"Cushion {100 - home_ltv * 100:.1f}% if home prices fall"
     extra = {"market_cap_musd": mcap, "ttm_revenue_musd": ttm_rev, "shares_m": shares, "pro_forma": pf,
              "capital_events": [e["what"] for e in applied], "q3_revenue_estimate_musd": q3_rev_est,
              "revenue_per_home_k": rph * 1000 if rph else None, "q3_prior_revenue_musd": q3_prior,
              "shares_year_ago": (year_ago or {}).get("shares_m"), "shares_year_ago_date": (year_ago or {}).get("quarter_end"),
              "reported_rev_yoy": ch(g(-1, "revenue_musd"), g(-5, "revenue_musd")),
              "adj_net_income_musd": ani, "adj_net_income_quarter": ani_row.get("quarter_end"),
-             "potential_dilution_m": dil_row.get("potential_dilution_m"), "potential_dilution_quarter": dil_row.get("quarter_end"),
+             "balance_sheet": {k: bs.get(k) for k in ("quarter_end", "cash_musd", "home_debt_musd", "convert_debt_musd",
+                                                      "total_debt_musd", "inventory_musd", "equity_musd")},
+             "dilution": dilution, "housing": housing, "asof": asof, "notes": notes, "latest_quarter": last["quarter_end"],
              "mortgage": macro}
     return m, extra
 
 
-def score(m):
+def _quarters_between(a, b):
+    """Whole quarters from quarter end a to quarter end b."""
+    da, db = dt.date.fromisoformat(a), dt.date.fromisoformat(b)
+    return round(((db.year - da.year) * 12 + db.month - da.month) / 3)
+
+
+def _month(ym):
+    try:
+        return dt.date.fromisoformat(ym + "-01").strftime("%b %Y")
+    except (TypeError, ValueError):
+        return str(ym)
+
+
+def score(m, extra=None):
+    """Metrics to points. A quarterly figure one quarter behind still counts (and is labelled);
+    two or more quarters behind, it is shown but no longer scored."""
+    extra = extra or {}
+    asof, notes, latest = extra.get("asof", {}), extra.get("notes", {}), extra.get("latest_quarter")
     pillars, total, wsum = [], 0.0, 0
     for name, w, keys, ask in PILLARS:
         items = []
         for k in keys:
             label, bad, good, f = RULES[k]
-            items.append({"key": k, "label": label, "value": m.get(k), "score": lin(m.get(k), bad, good),
-                          "fmt": f, "bad": bad, "good": good})
+            lag = _quarters_between(asof[k], latest) if asof.get(k) and latest else 0
+            pts = lin(m.get(k), bad, good) if lag < 2 else None
+            items.append({"key": k, "label": label, "value": m.get(k), "score": pts, "fmt": f, "bad": bad, "good": good,
+                          "asof": asof.get(k), "lag": lag, "note": notes.get(k)})
         got = [i["score"] for i in items if i["score"] is not None]
         ps = round(sum(got) / len(got), 1) if got else None
         if ps is not None:
@@ -695,6 +1058,8 @@ def fmt(v, kind):
         return f"{v*100:+.1f}%"
     if kind == "rate":
         return f"{v*100:.2f}%"
+    if kind == "share":
+        return f"{v*100:.1f}%"
     if kind == "pp":
         return f"{v*100:+.2f}pp"
     if kind == "qtrs":
@@ -984,12 +1349,165 @@ details[open] .chev{transform:rotate(180deg)}.chev{display:inline-block;transiti
 .note{color:var(--muted);font-size:13px}
 footer{margin-top:56px;font-size:13px;color:#5d5d6a;line-height:1.6;max-width:900px}
 footer b{color:var(--ink);font-weight:500}
+.nw{white-space:nowrap}table.mk th small{display:block;font-weight:400;color:#9a9088;font-size:11px}
+.grid2{display:grid;grid-template-columns:1fr 1.2fr;gap:24px;margin-top:16px;align-items:start}
+.grid2 .card{margin-top:0}
+.dbar{padding:4px 0 18px}.dbar+.dbar{border-top:1px solid var(--line);padding-top:18px;padding-bottom:4px}
+.dlab{display:flex;justify-content:space-between;align-items:baseline;gap:12px;font-size:15px;color:var(--muted2);margin:0 0 10px}
+.dlab b{font-size:26px;font-weight:500;color:var(--ink);letter-spacing:-.03em}
+.dtrack{height:14px;border-radius:8px;background:#f1efec;overflow:hidden;display:flex}
+.dfill{height:100%;background:var(--blue)}.dcush{height:100%;background:#34d399}.dcash{height:100%;background:#34d399}
+.pair .dfill,.pair .dcash{border-radius:8px}
+.dleg{display:flex;flex-wrap:wrap;gap:6px 18px;font-size:13px;color:var(--muted2);margin-top:10px}
+.dleg i{display:inline-block;width:10px;height:10px;border-radius:3px;margin-right:6px;vertical-align:-1px}
+.dim{color:var(--muted)}.dnote{font-size:13px;color:var(--muted);margin:10px 0 0;max-width:560px}
+.pair{display:grid;grid-template-columns:132px 1fr 76px;align-items:center;gap:12px;font-size:14px;margin:8px 0}
+.pair b{font-weight:500;text-align:right}
+table.dil td:first-child{white-space:normal}
+table.dil td small{display:block;font-size:12px;color:var(--muted);font-weight:400;margin-top:1px}
+td.on{font-weight:500}td.off{color:var(--muted)}
+tr.tot td{font-weight:600;border-top:1px solid #d9d4ce}tr.us td{color:var(--muted)}
+td.up{color:#10b981}td.down{color:#e5484d}
+.m .lab small{display:block;font-size:12px;color:var(--muted);margin-top:1px}
+.m .lab em.stale{display:table;font-style:normal;font-size:11px;font-weight:500;color:#c27c0e;background:#fdf3e1;border-radius:6px;padding:1px 7px;margin-top:4px}
+.m .lab em.stale.old{color:var(--muted2);background:#f1efec}
+.dchart{touch-action:pan-y;cursor:crosshair}
+.dchart .pulse{transform-box:fill-box;transform-origin:center;opacity:.45;animation:pulse 2.4s ease-out infinite}
+@media (max-width:900px){.grid2{grid-template-columns:1fr}}
+@media (max-width:640px){.chartbox .dchart{min-width:600px}}
+@media (max-width:520px){.pair{grid-template-columns:96px 1fr 70px;gap:8px}.dlab b{font-size:22px}}
+@media (prefers-reduced-motion:reduce){.dchart .pulse{animation:none}}
 @media (max-width:900px){.burger{display:block}.by{display:none}.bar nav.desk{display:none}.hero{grid-template-columns:1fr;gap:20px;padding-top:48px}.asof{position:static;text-align:left;order:-1}
 .grid{grid-template-columns:1fr}.kpis{grid-template-columns:1fr 1fr}.kpi:nth-child(2){border-right:0}
 .kpi:nth-child(-n+2){border-bottom:1px solid var(--line)}h1{margin-top:8px}.bar nav.desk{display:none}}
 @media (max-width:520px){.brand small{font-size:11px}.brand{font-size:17px}.pbar{grid-template-columns:110px 1fr 34px;gap:10px;font-size:14px}.pbar .w{display:none}
 .card .hd{flex-wrap:nowrap;gap:12px}.card .hd>div:first-child{flex:1 1 auto;min-width:0}.card .hd>.right{flex:0 0 auto}.card .hd.stack{flex-direction:column;gap:10px}.hd.stack .right{text-align:left}.by{display:none}.bar .in{grid-template-columns:42px 1fr 42px;gap:8px;padding:10px 14px}.brand{grid-column:2}.bd,.card .hd,.kpi,.ft{padding-left:18px;padding-right:18px}.wrap{padding:0 14px 80px}}
 """
+
+
+def _money(v):
+    return "n/a" if v is None else f"${v:,.0f}M"
+
+
+def _debt_card(res, pillar):
+    ex = res["extra"]
+    bs, pf = ex.get("balance_sheet") or {}, ex.get("pro_forma") or {}
+    home, inv, cash, notes = bs.get("home_debt_musd"), bs.get("inventory_musd"), pf.get("cash_musd"), pf.get("convert_debt_musd")
+    if not home or not inv or cash is None or notes is None:
+        return ""
+    e = html.escape
+    ltv = home / inv
+    used, cush = min(ltv, 1.0) * 100, max(0.0, 1 - ltv) * 100
+    top = max(cash, notes, 1)
+    cover = "no notes outstanding" if notes <= 0 else f"{cash / notes:.1f}×"
+    events = ex.get("capital_events") or []
+    adj = (" Cash and notes are adjusted for: " + "; ".join(events) + ".") if events else ""
+    q = _d(bs.get("quarter_end"))
+    return (f'<div class="card" id="debt"><div class="hd"><div><h2>Debt, split by what backs it</h2>'
+            f'<p class="sub">Most of the debt is secured by the homes themselves</p></div>'
+            f'<div class="right">{_badge(_num(pillar["score"]), _tone(pillar["score"]))}<p class="sub nw">Balance sheet</p></div></div>'
+            f'<div class="bd">'
+            f'<div class="dbar"><div class="dlab"><span>Home-backed debt vs the homes it funds</span><b>{ltv * 100:.1f}%</b></div>'
+            f'<div class="dtrack"><div class="dfill" style="width:{used:.1f}%"></div><div class="dcush" style="width:{cush:.1f}%"></div></div>'
+            f'<div class="dleg"><span><i style="background:{BLUE}"></i>Debt {_money(home)}</span>'
+            f'<span><i style="background:#34d399"></i>Cushion {_money(max(0, inv - home))}</span><span class="dim">Homes held {_money(inv)}</span></div>'
+            f'<p class="dnote">If the homes sold for {cush:.1f}% less than their book value, the cushion would be gone. '
+            f'Lenders can take the homes but, except in limited cases, cannot claim the company.</p></div>'
+            f'<div class="dbar"><div class="dlab"><span>Cash vs the company&#39;s own debt</span><b>{cover}</b></div>'
+            f'<div class="pair"><span>Cash</span><div class="dtrack"><div class="dcash" style="width:{cash / top * 100:.1f}%"></div></div><b>{_money(cash)}</b></div>'
+            f'<div class="pair"><span>Convertible notes</span><div class="dtrack"><div class="dfill" style="width:{max(0, notes) / top * 100:.1f}%"></div></div><b>{_money(notes)}</b></div>'
+            f'<p class="dnote">The notes are unsecured, so they are the debt the company itself must repay or convert.</p></div>'
+            f'</div><div class="ft">Homes and home-backed debt from the {e(q)} balance sheet (10-Q).{e(adj)}</div></div>')
+
+
+def _dilution_svg(curve, price, shares):
+    W, H, L, R, T, B = 760, 230, 46, 16, 18, 32
+    xmax = 35.0
+    pts = [(p_, v) for p_, v in curve if p_ <= xmax]
+    if len(pts) < 3:
+        return ""
+    vmax = max(v for _, v in pts)
+    top = max(0.1, (int(vmax * 10) + 1) / 10)
+    x = lambda p_: L + p_ / xmax * (W - L - R)
+    y = lambda v: T + (1 - v / top) * (H - T - B)
+    out = [f'<svg viewBox="0 0 {W} {H}" width="100%" role="img" aria-label="Live potential dilution at different share prices" '
+           f'class="dchart" data-w="{W}" data-l="{L}" data-r="{R}" data-xmax="{xmax}" data-shares="{shares:.1f}" '
+           f'data-points=\'{json.dumps([[round(a, 2), round(b, 4), round(y(b), 1)] for a, b in pts], separators=(",", ":"))}\'>',
+           '<defs><linearGradient id="fill3" x1="0" x2="0" y1="0" y2="1"><stop offset="0" stop-color="#1d4ed8" stop-opacity=".16"/>'
+           '<stop offset="1" stop-color="#1d4ed8" stop-opacity="0"/></linearGradient></defs>']
+    step = 0.1 if top <= 0.5 else 0.2
+    t = 0.0
+    while t <= top + 1e-9:
+        out.append(f'<line x1="{L}" x2="{W - R}" y1="{y(t):.1f}" y2="{y(t):.1f}" stroke="{LINE}" stroke-dasharray="{"0" if t == 0 else "2 4"}"/>'
+                   f'<text x="{L - 10}" y="{y(t) + 4:.1f}" text-anchor="end" class="tick">{t * 100:.0f}%</text>')
+        t += step
+    for p_ in range(0, 36, 5):
+        out.append(f'<text x="{x(p_):.1f}" y="{H - 10}" text-anchor="middle" class="tick">${p_}</text>')
+    xy = [(x(a), y(b)) for a, b in pts]
+    line = "M" + " L".join(f"{a:.1f},{b:.1f}" for a, b in xy)
+    out.append(f'<path d="{line} L{xy[-1][0]:.1f},{y(0):.1f} L{xy[0][0]:.1f},{y(0):.1f} Z" fill="url(#fill3)"/>')
+    out.append(f'<path d="{line}" fill="none" stroke="{BLUE}" stroke-width="2.4" stroke-linejoin="round"/>')
+    now = min(pts, key=lambda pv: abs(pv[0] - price))
+    cx, cy = x(price), y(now[1])
+    out.append(f'<line x1="{cx:.1f}" x2="{cx:.1f}" y1="{T}" y2="{H - B}" stroke="{BLUE}" stroke-opacity=".35" stroke-dasharray="3 4"/>'
+               f'<circle class="pulse" cx="{cx:.1f}" cy="{cy:.1f}" r="7" fill="{BLUE}"/>'
+               f'<circle cx="{cx:.1f}" cy="{cy:.1f}" r="4.5" fill="{BLUE}" stroke="#fff" stroke-width="2"/>'
+               f'<text x="{cx + 10:.1f}" y="{cy + 20:.1f}" class="endlabel">Today ${price:.2f}</text>')
+    out.append(f'<line class="vline" x1="0" x2="0" y1="{T}" y2="{H - B}" stroke="#cfd3dc" stroke-width="1.2" style="display:none"/>'
+               f'<circle class="hdot" r="5" fill="{BLUE}" stroke="#fff" stroke-width="2" style="display:none"/>'
+               f'<rect x="{L}" y="{T}" width="{W - L - R}" height="{H - T - B}" fill="transparent"/></svg>')
+    return "".join(out)
+
+
+def _dilution_card(res, metric):
+    d = res["extra"].get("dilution")
+    if not d:
+        return ""
+    e = html.escape
+    rows = "".join(f'<tr><td>{e(l["label"])}<small>{e(l["needs"])}</small></td><td>{l["n"]:,.1f}M</td>'
+                   + (f'<td class="on">{l["live"]:,.1f}M</td></tr>' if l["live"] > 0.05 else '<td class="off">0</td></tr>')
+                   for l in d["lines"])
+    pct = d["live_m"] / d["shares_m"]
+    src = (f"10-Q for the quarter ended {_d(d['quarter'])}, table of anti-dilutive securities" if d["source"] == "10-Q"
+           else f"XBRL total for {_d(d['quarter'])} (no breakdown found, all counted in full)")
+    return (f'<div class="card" id="dilution"><div class="hd"><div><h2>Dilution, line by line</h2>'
+            f'<p class="sub">Every potential new share, and how many are live at ${d["price"]:.2f}</p></div>'
+            f'<div class="right">{_badge(f"{pct * 100:.1f}%", _tone(metric["score"]))}<p class="sub">live today</p></div></div>'
+            f'<div class="bd scroll" style="padding-top:4px"><table class="dil"><tr><th>Instrument</th><th>Potential</th><th>Live today</th></tr>{rows}'
+            f'<tr class="tot"><td>Total</td><td>{d["potential_m"]:,.1f}M</td><td>{d["live_m"]:,.1f}M</td></tr></table></div>'
+            f'<div class="bd" style="padding-top:0"><p class="dlab" style="margin:6px 0 2px"><span>Live dilution if the share price were…</span></p>'
+            f'<p class="swipe">Swipe for higher prices, tap the chart for figures</p><div class="chartbox dbox">{_dilution_svg(d["curve"], d["price"], d["shares_m"])}<div class="tip" hidden></div></div></div>'
+            f'<div class="ft">Live means it would become shares, or hand over their value, at that price. Awards with a price target '
+            f'count once the stock reaches it; warrants and convertibles count only the value above what they cost or repay. '
+            f'Shares outstanding: {d["shares_m"]:,.1f}M. Source: {e(src)}; contract terms from Opendoor&#39;s 8-Ks.</div></div>')
+
+
+def _markets_card(res, pillar):
+    h = res["extra"].get("housing")
+    if not h or not h.get("metros"):
+        return ""
+    e = html.escape
+    def cell(v, kind, bad_up=True):
+        if v is None:
+            return '<td class="dim">–</td>'
+        txt = f"{v * 100:+.1f}%" if kind == "pct" else f"{v * 100:+.1f} pts"
+        good = (v < 0) if bad_up else (v > 0)
+        return f'<td class="{"up" if good else "down" if abs(v) > 1e-9 else ""}">{txt}</td>'
+    def row(r, cls=""):
+        dom = "–" if r.get("dom") is None else f"{r['dom']:.0f}"
+        cut = "–" if r.get("cut_share") is None else f"{r['cut_share'] * 100:.0f}%"
+        return (f'<tr class="{cls}"><td>{e(r["name"])}</td><td>{dom}</td>{cell(r.get("dom_yoy"), "pct")}<td>{cut}</td>'
+                f'{cell(r.get("cuts_yoy"), "pp")}{cell(r.get("price_yoy"), "pct", bad_up=False)}{cell(r.get("listings_yoy"), "pct")}</tr>')
+    b = dict(h["basket"], name=f"Median of {len(h['metros'])} markets")
+    body = "".join(row(r) for r in h["metros"]) + row(b, "tot") + (row(h["us"], "us") if h.get("us") else "")
+    return (f'<div class="card" id="markets"><div class="hd"><div><h2>Housing in Opendoor&#39;s markets</h2>'
+            f'<p class="sub">How fast homes sell, and at what price, {e(_month(h["month"]))} vs a year earlier</p></div>'
+            f'<div class="right">{_badge(_num(pillar["score"]), _tone(pillar["score"]))}<p class="sub nw">Housing market</p></div></div>'
+            f'<div class="bd scroll" style="padding-top:4px"><table class="mk"><tr><th>Market</th><th>Days on market<small>median</small></th><th>Days on market<small>1-year change</small></th>'
+            f'<th>Price cuts<small>share of listings</small></th><th>Price cuts<small>1-year change</small></th>'
+            f'<th>Asking prices<small>1-year change</small></th><th>Homes for sale<small>1-year change</small></th></tr>{body}</table></div>'
+            f'<div class="ft">Green helps Opendoor resell its homes faster and for more; red hurts. Twelve of Opendoor&#39;s largest Sunbelt and '
+            f'Mountain markets, equally weighted; the median feeds the score. Source: {e(h.get("source", "Realtor.com via FRED"))}.</div></div>')
 
 
 def write_html(res, path):
@@ -1025,14 +1543,27 @@ def write_html(res, path):
                    f'<b>{_num(p["score"])}</b></div>' for p in s["pillars"])
     cards = ""
     for p in s["pillars"]:
+        def note(i):
+            return f'<small>{e(i["note"])}</small>' if i.get("note") else ""
+
+        def tag(i):
+            if not i.get("lag") or not i.get("asof"):
+                return ""
+            old_ = i["lag"] >= 2
+            return f'<em class="stale{" old" if old_ else ""}">{_qlabel(i["asof"])} figure{", too old to score" if old_ else ""}</em>'
         rows = "".join(f'<div class="m" title="0 points at {e(fmt(i["bad"], i["fmt"]))}, 10 points at {e(fmt(i["good"], i["fmt"]))}">'
-                       f'<span class="lab">{e(i["label"])}</span><span class="val">{e(fmt(i["value"], i["fmt"]))}'
+                       f'<span class="lab">{e(i["label"])}{note(i)}{tag(i)}</span>'
+                       f'<span class="val">{e(fmt(i["value"], i["fmt"]))}'
                        f'<span class="pts">{_num(i["score"], " pts", "–")}</span></span></div>'
                        for i in p["metrics"])
         sc = "n/a" if p["score"] is None else f"{p['score']:.1f}"
         cards += (f'<div class="card"><div class="hd"><div><h2>{e(p["name"])}</h2><p class="sub">{e(p["question"])}</p></div>'
                   f'<div class="right">{_badge(sc, _tone(p["score"]))}<p class="sub">{p["weight"]}% weight</p></div></div>'
                   f'<div class="bd" style="padding-top:6px;padding-bottom:6px">{rows}</div></div>')
+    pil = {p["name"]: p for p in s["pillars"]}
+    dil_metric = next(i for i in pil["Dilution"]["metrics"] if i["key"] == "dilution_live")
+    deep = (f'<div class="grid2">{_debt_card(res, pil["Balance sheet"])}{_dilution_card(res, dil_metric)}</div>'
+            f'{_markets_card(res, pil["Housing market"])}')
     contracts = _contracts_svg(res.get("contracts_all") or [])
     lo4, hi4, a4 = acc.get("contracts_last4_proj_low"), acc.get("contracts_last4_proj_high"), acc.get("contracts_last4")
     vs_mid = acc.get("contracts_vs_proj")
@@ -1060,7 +1591,7 @@ def write_html(res, path):
     hrows = "".join(f"<tr><td>{_d(h['run_at'])}{' (v' + (h.get('method') or METHOD) + ')' if (h.get('method') or METHOD) != METHOD else ''}</td>"
                     f"<td>${float(h['price']):.2f}</td><td><b>{float(h['overall']):.2f}</b> {e(h['grade'])}</td>"
                     + "".join(f"<td>{h.get(p[0]) or '–'}</td>" for p in PILLARS) + "</tr>" for h in reversed(hist[-60:]))
-    pf_note = ("Balance sheet, book value and share count include: " + "; ".join(ex["capital_events"]) + ". ") if ex.get("capital_events") else ""
+    pf_note = ("Cash, notes, book value and share count include: " + "; ".join(ex["capital_events"]) + ". ") if ex.get("capital_events") else ""
     est_note = (f"{acc.get('prev_quarter')} revenue is estimated at ${ex['q3_revenue_estimate_musd']:,.0f}M "
                 f"({ex['q3_revenue_estimate_musd'] / ex['q3_prior_revenue_musd'] * 100 - 100:+.1f}% YoY): homes sold × "
                 f"${ex['revenue_per_home_k']:.1f}K average revenue per home, until Opendoor reports. ") if ex.get("q3_revenue_estimate_musd") and ex.get("q3_prior_revenue_musd") else ""
@@ -1074,7 +1605,7 @@ def write_html(res, path):
 <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600&display=swap" rel="stylesheet">
 <style>{CSS}</style></head><body>
 <div class="bar"><div class="in">
-<nav class="desk"><a href="#score">Score</a><a href="#pillars">Pillars</a><a href="#contracts">Contracts</a><a href="#history">History</a><a href="#method">Method</a></nav>
+<nav class="desk"><a href="#score">Score</a><a href="#pillars">Pillars</a><a href="#deep">Deep dive</a><a href="#contracts">Contracts</a><a href="#history">History</a><a href="#method">Method</a></nav>
 <a class="brand" href="./">Opendoor Scorecard<small>Independent and not affiliated with Opendoor</small></a>
 <a class="by" href="https://thisisfed.xyz" target="_blank" rel="noopener">by Federico R. T. Ferrari</a>
 <button class="burger" type="button" aria-label="Open menu" aria-expanded="false" aria-controls="menu"><span></span><span></span><span></span></button>
@@ -1083,6 +1614,7 @@ def write_html(res, path):
 <nav class="menu" id="menu" hidden>
 <a href="#score"><span>Overall score</span><small>The grade and why</small></a>
 <a href="#pillars"><span>Pillars</span><small>What drives each score</small></a>
+<a href="#deep"><span>Deep dive</span><small>Debt, dilution and Opendoor&#39;s markets</small></a>
 <a href="#contracts"><span>Contracts</span><small>Opendoor against its own targets</small></a>
 <a href="#history"><span>History</span><small>Score over time and quarterly results</small></a>
 <a href="#method"><span>Method</span><small>How the score works, and sources</small></a>
@@ -1092,7 +1624,7 @@ def write_html(res, path):
 <section class="hero">
 <div class="asof"><span class="dot"></span>Updated {e(_d(res['generated']))}, {e(res['generated'][11:16])} UK<i>Prices to {e(_d(px['date']))}</i><i>Opendoor tracker as of {e(_d(asof))}, refreshed weekly</i></div>
 <h1>Opendoor,<br>scored.<br>Every weekday.</h1>
-<p class="lede">An independent scorecard that grades Opendoor 0–10 on nine pillars, rebuilt every weekday from SEC filings, the share price, mortgage rates and Opendoor's own public tracker.</p>
+<p class="lede">An independent scorecard that grades Opendoor 0–10 on nine pillars, rebuilt every weekday from SEC filings, the share price, housing data from its markets and Opendoor's own public tracker.</p>
 </section>
 
 <div class="card" id="score"><div class="hd stack"><div><h2>Overall score</h2><p class="sub">Weighted across nine pillars</p></div>
@@ -1107,6 +1639,9 @@ def write_html(res, path):
 
 <p class="section" id="pillars">What drives each score</p>
 <div class="grid" style="margin-top:16px">{cards}</div>
+
+<p class="section" id="deep">Deep dive</p>
+{deep}
 
 <p class="section" id="contracts">Opendoor's own targets</p>
 {contracts_card}
@@ -1124,9 +1659,12 @@ def write_html(res, path):
 
 <footer id="method"><p><b>Method.</b> Each metric scores 0–10 on a straight line between a "0 points" and a "10 points" value (hover a metric to see them).
 Pillars average their metrics, and the overall score weights the pillars as shown. Grades: A 8+, B 6.5+, C 5+, D 3.5+, F below.
+Debt is split by what backs it: home-backed debt, which lenders can recover only from the homes, is measured against the homes it funds,
+and the company's own convertible notes against its cash. Potential new shares count only once they are live at today's price (see Deep dive).
+A quarterly figure one quarter old is labelled; older than that, it stops counting.
 The thresholds and weights are judgement calls and have not been back-tested against share-price returns. {e(est_note)}{e(pf_note)}</p>
 <p><b>Sources.</b> SEC EDGAR (financial statements and earnings releases), accountable.opendoor.com, {e(str(px.get('source', 'price data')))} (price),
-{e(mort.get('source') or 'Freddie Mac')} (mortgage rate). Download the <a href="history.csv">score history</a> or <a href="scorecard.json">all the data</a>.</p>
+{e(mort.get('source') or 'Freddie Mac')} (mortgage rate), Realtor.com via FRED (housing in Opendoor's markets). Download the <a href="history.csv">score history</a> or <a href="scorecard.json">all the data</a>.</p>
 <p class="credit"><span>Made by <a href="https://thisisfed.xyz" target="_blank" rel="noopener">Federico R. T. Ferrari</a></span>
 <a href="https://thisisfed.xyz" target="_blank" rel="noopener">thisisfed.xyz</a>
 <a href="https://github.com/thisisfed/opendoor-scorecard" target="_blank" rel="noopener">Source code</a></p>
@@ -1183,6 +1721,38 @@ a recommendation or investment advice.</p></footer>
     svg.addEventListener("pointerleave", function (ev) {{ if (ev.pointerType === "mouse") hide(); }});
     box.addEventListener("scroll", hide);
     if (box.scrollWidth > box.clientWidth) box.scrollLeft = box.scrollWidth;  // phones: start at the latest weeks
+  }});
+}})();
+(function () {{
+  document.querySelectorAll(".dbox").forEach(function (box) {{
+    var svg = box.querySelector("svg.dchart"), tip = box.querySelector(".tip");
+    if (!svg || !tip) return;
+    var pts = JSON.parse(svg.getAttribute("data-points"));
+    var W = +svg.getAttribute("data-w"), L = +svg.getAttribute("data-l"), R = +svg.getAttribute("data-r");
+    var XM = +svg.getAttribute("data-xmax"), shares = +svg.getAttribute("data-shares");
+    var vline = svg.querySelector(".vline"), hdot = svg.querySelector(".hdot");
+    function span(cls, text) {{ var s = document.createElement("span"); s.className = cls; s.textContent = text; return s; }}
+    function show(ev) {{
+      var r = svg.getBoundingClientRect(), k = r.width / W, price = ((ev.clientX - r.left) / k - L) / (W - L - R) * XM;
+      var best = pts[0];
+      pts.forEach(function (p) {{ if (Math.abs(p[0] - price) < Math.abs(best[0] - price)) best = p; }});
+      var x = L + best[0] / XM * (W - L - R);
+      vline.setAttribute("x1", x); vline.setAttribute("x2", x); vline.style.display = "";
+      hdot.setAttribute("cx", x); hdot.setAttribute("cy", best[2]); hdot.style.display = "";
+      var b = document.createElement("b"); b.textContent = "Share price $" + best[0].toFixed(2);
+      tip.replaceChildren(b, span("c", (best[1] * 100).toFixed(1) + "% of shares live"),
+        span("n", "about " + Math.round(best[1] * shares).toLocaleString("en-US") + "M new shares"));
+      tip.hidden = false;
+      var vl = box.scrollLeft, vr = box.scrollLeft + box.clientWidth, tw = tip.offsetWidth, th = tip.offsetHeight;
+      var left = x * k + 14; if (left + tw > vr - 4) left = x * k - tw - 14;
+      left = Math.max(vl + 4, Math.min(left, vr - tw - 4));
+      tip.style.left = left + "px"; tip.style.top = Math.max(0, best[2] * k - th - 12) + "px";
+    }}
+    function hide() {{ tip.hidden = true; vline.style.display = "none"; hdot.style.display = "none"; }}
+    svg.addEventListener("pointermove", show);
+    svg.addEventListener("pointerdown", show);
+    svg.addEventListener("pointerleave", function (ev) {{ if (ev.pointerType === "mouse") hide(); }});
+    box.addEventListener("scroll", hide);
   }});
 }})();
 </script>
@@ -1301,6 +1871,8 @@ def main():
     ap.add_argument("--price-cache", default=os.path.join(HERE, "price_cache.json"))
     ap.add_argument("--releases-cache", default=os.path.join(HERE, "releases_cache.json"))
     ap.add_argument("--macro-cache", default=os.path.join(HERE, "macro_cache.json"))
+    ap.add_argument("--dilution-cache", default=os.path.join(HERE, "dilution_cache.json"))
+    ap.add_argument("--housing-cache", default=os.path.join(HERE, "housing_cache.json"))
     ap.add_argument("--ua", default=os.environ.get("SEC_UA", "OPEN scorecard research contact@example.com"))
     ap.add_argument("--shares", type=float, help="shares you hold")
     ap.add_argument("--avg-cost", type=float, help="your average cost per share, USD")
@@ -1309,7 +1881,7 @@ def main():
     ap.add_argument("--export-rows", metavar="DIR", help="also write flat JSON row files for the dashboard")
     a = ap.parse_args()
 
-    log, edgar, acc_raw, releases, macro = [], {}, None, {}, None
+    log, edgar, acc_raw, releases, macro, dil_cache, housing, sub = [], {}, None, {}, None, None, None, None
     px = dict(PRICE_SNAPSHOT, source="price snapshot")
     cached_px = json.load(open(a.price_cache)) if os.path.exists(a.price_cache) else None
     if a.offline and cached_px and cached_px.get("date", "") > PRICE_SNAPSHOT["date"]:
@@ -1321,10 +1893,26 @@ def main():
         except Exception as e:
             log.append(f"EDGAR unavailable ({e}); using csv only")
         try:
-            log.append("Earnings releases (sec.gov 8-K exhibit 99.1):")
-            releases = releases_to_rows(releases_from_sec(a.ua, a.releases_cache, log))
+            sub = sec_submissions(a.ua)
         except Exception as e:
-            log.append(f"earnings releases unavailable ({e}); using cached copies")
+            log.append(f"SEC filing index unavailable ({e}); using cached filings")
+        if sub:
+            try:
+                log.append("Earnings releases (sec.gov 8-K exhibit 99.1):")
+                releases = releases_to_rows(releases_from_sec(a.ua, a.releases_cache, log, sub=sub))
+            except Exception as e:
+                log.append(f"earnings releases unavailable ({e}); using cached copies")
+            try:
+                log.append("Potential shares by type (10-Q / 10-K anti-dilutive table):")
+                dil_cache = dilution_from_sec(a.ua, a.dilution_cache, log, sub=sub)
+            except Exception as e:
+                log.append(f"dilution table unavailable ({e}); using cached copy")
+        try:
+            housing = housing_markets(log)
+            with open(a.housing_cache, "w") as fh:
+                json.dump(housing, fh, indent=1)
+        except Exception as e:
+            log.append(f"housing data unavailable ({e}); using cached copy")
         try:
             macro = mortgage_rates(log)
             with open(a.macro_cache, "w") as fh:
@@ -1355,6 +1943,11 @@ def main():
         releases = releases_to_rows(json.load(open(a.releases_cache)))
     if macro is None and os.path.exists(a.macro_cache):
         macro = json.load(open(a.macro_cache))
+    if dil_cache is None and os.path.exists(a.dilution_cache):
+        dil_cache = json.load(open(a.dilution_cache))
+    if housing is None and os.path.exists(a.housing_cache):
+        housing = json.load(open(a.housing_cache))
+    dil = latest_dilution(dil_cache) if dil_cache else None
     if os.environ.get("RELEASE_DIAG"):
         kp = load_kpis(a.kpis)
         for end in sorted(releases):
@@ -1364,14 +1957,14 @@ def main():
     q = merge(edgar, load_kpis(a.kpis), releases)
     if len(q) < 2:
         sys.exit("Not enough quarterly data. Check network access or opendoor_kpis.csv.")
-    m, extra = metrics(q, px, acc, macro)
+    m, extra = metrics(q, px, acc, macro, dil, housing)
     try:
         from zoneinfo import ZoneInfo
         now = dt.datetime.now(ZoneInfo("Europe/London")).replace(tzinfo=None)
     except Exception:
         now = dt.datetime.now()
     res = {"generated": now.isoformat(timespec="minutes"), "ticker": TICKER, "price": px,
-           "extra": extra, "metrics": m, "score": score(m), "quarters": q, "accountable": acc, "log": log,
+           "extra": extra, "metrics": m, "score": score(m, extra), "quarters": q, "accountable": acc, "log": log,
            "contracts_all": (acc_raw or {}).get("contracts")}
     if a.shares and a.avg_cost:
         val, cost = a.shares * px["price"], a.shares * a.avg_cost
