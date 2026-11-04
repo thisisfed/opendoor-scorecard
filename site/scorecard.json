@@ -1,5 +1,5 @@
 {
-  "generated": "2026-11-04T09:49",
+  "generated": "2026-11-04T09:52",
   "ticker": "OPEN",
   "price": {
     "date": "2026-11-03",
@@ -1279,7 +1279,7 @@
           },
           {
             "key": "cuts_yoy",
-            "label": "Listings with a price cut vs a year ago, Opendoor's markets",
+            "label": "Price cuts per 100 listings vs a year ago, Opendoor's markets",
             "value": -0.003225364931120689,
             "score": 7.0,
             "fmt": "pp",
@@ -2686,7 +2686,7 @@
   "change": null,
   "history": [
     {
-      "run_at": "2026-11-04T09:49",
+      "run_at": "2026-11-04T09:52",
       "price_date": "2026-11-03",
       "price": "1.74",
       "tracker_as_of": "2026-10-31",
