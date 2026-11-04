@@ -2902,7 +2902,7 @@ def write_html(res, path):
 <div class="bar"><div class="in">
 <nav class="desk"><a href="#score">Score</a><a href="#pillars">Pillars</a><a href="#deep">Details</a><a href="#contracts">Contracts</a><a href="#history">History</a><a href="#method">Method</a></nav>
 <a class="brand" href="./">Opendoor Scorecard<small>Independent and not affiliated with Opendoor</small></a>
-<div class="r3">{'<a class="nl-btn" href="#subscribe">Subscribe</a>' if NEWSLETTER_USER else ''}<a class="by" href="https://thisisfed.xyz" target="_blank" rel="noopener">by Federico R. T. Ferrari</a></div>
+<div class="r3">{'<a class="nl-btn" href="#subscribe">Subscribe</a>' if NEWSLETTER_USER else ''}</div>
 <button class="burger" type="button" aria-label="Open menu" aria-expanded="false" aria-controls="menu"><span></span><span></span><span></span></button>
 </div>
 </div>
@@ -2914,7 +2914,6 @@ def write_html(res, path):
 <a href="#contracts"><span>Contracts</span><small>Opendoor against its own targets</small></a>
 <a href="#history"><span>History</span><small>Score over time and quarterly results</small></a>
 <a href="#method"><span>Method</span><small>Weights, every threshold, and sources</small></a>
-<a class="menu-by" href="https://thisisfed.xyz" target="_blank" rel="noopener">by Federico R. T. Ferrari</a>
 </nav>
 <div class="wrap">
 <section class="hero">
