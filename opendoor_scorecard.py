@@ -1864,7 +1864,6 @@ padding:calc(var(--barh,64px) + 2 * var(--bartop,14px)) 16px 32px;overflow-y:aut
 .menu a span{display:block;font-size:20px;font-weight:500;letter-spacing:-.02em}
 .menu a small{display:block;font-size:14px;color:var(--muted);margin-top:1px}
 .menu a.menu-by{background:none;text-align:center;font-size:14px;color:var(--muted);margin-top:18px}
-.credit{display:flex;flex-wrap:wrap;justify-content:center;gap:6px 28px;margin:32px 0 0}
 .r3{order:2;margin-left:20px;display:flex;align-items:center;gap:14px}
 .nl-btn{display:inline-flex;align-items:center;height:44px;padding:0 20px;border-radius:12px;background:rgba(255,255,255,.9);color:var(--ink);
 font-size:16px;font-weight:500;letter-spacing:-.04em;text-decoration:none;white-space:nowrap;
@@ -1873,8 +1872,9 @@ box-shadow:0 0 0 1px rgba(88,64,50,.16),inset 0 0 0 1px rgba(255,255,255,.3),0 2
 .by{order:-1;font-size:14px;color:var(--muted);text-decoration:none;white-space:nowrap}
 .by:hover{color:var(--ink)}
 @media (max-width:1320px){.r3 .by{display:none}}
-.credit{font-size:14px;color:var(--ink);padding:14px 0;border-top:1px solid #e3dfda;border-bottom:1px solid #e3dfda}
-.credit a{font-weight:500;text-decoration:none;border-bottom:1px solid #cfc8c0}.credit a:hover{border-color:var(--ink)}
+/* closing line, set like the hero headline */
+.credit{margin:72px 0 0;font-size:clamp(46px,8.4vw,92px);line-height:1;font-weight:500;letter-spacing:-.034em;color:var(--ink)}
+.credit a{color:inherit;text-decoration:none;background:linear-gradient(currentColor,currentColor) 0 100%/0 2px no-repeat;transition:background-size .25s}.credit a:hover{background-size:100% 2px}
 .wrap{max-width:1280px;margin:0 auto;padding:0 24px 120px}
 .hero{display:grid;grid-template-columns:1.3fr 1fr;gap:40px;align-items:end;padding:64px 0 56px;position:relative}
 .asof{position:absolute;top:28px;right:0;text-align:right;font-size:14px;font-weight:500}
@@ -3571,7 +3571,7 @@ The thresholds and weights are judgement calls and have not been back-tested aga
 {e(mort.get('source') or 'Freddie Mac')} (mortgage rate), Realtor.com (housing in Opendoor's markets). Download the <a href="history.csv">score history</a> or <a href="scorecard.json">all the data</a>.</p>
 <p><b>Independent project</b>, not affiliated with or endorsed by Opendoor Technologies Inc. A structured summary of public numbers, not a forecast,
 a recommendation or investment advice.</p></footer>
-<p class="credit"><span>An idea by Federico R. T. Ferrari (<a href="https://thisisfed.xyz" target="_blank" rel="noopener">thisisfed.xyz</a>)</span></p>
+<p class="credit">An idea by<br><a href="https://thisisfed.xyz" target="_blank" rel="noopener" title="thisisfed.xyz">Federico R.&nbsp;T. Ferrari.</a></p>
 </div>
 <script>
 (function () {{
