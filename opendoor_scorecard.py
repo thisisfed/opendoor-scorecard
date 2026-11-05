@@ -145,7 +145,7 @@ METHOD_CHANGES = [
 # ---------------------------------------------------------------- scoring rules
 # metric: (label, value scoring 0, value scoring 10, format). Linear in between, clipped.
 RULES = {
-    "rev_nowcast_yoy": ("Revenue YoY, latest qtr (est. until reported)",          -0.40, 0.30, "pct"),
+    "rev_nowcast_yoy": ("Revenue YoY, latest quarter",                              -0.40, 0.30, "pct"),
     "coe_q4_yoy":      ("Quarter-to-date homes sold YoY",          -0.20, 0.50, "pct"),
     "contracts_qoq":   ("Acquisition contracts, last qtr vs prior",    -0.20, 0.20, "pct"),
     "contrib_margin":  ("Contribution margin",                 0.00, 0.07, "pct"),
@@ -1552,6 +1552,8 @@ def score(m, extra=None):
         items = []
         for k in keys:
             label, bad, good, f = RULES[k]
+            if str(((extra.get("fresh") or {}).get(k) or {}).get("text", "")).endswith("estimate"):
+                label += " (estimate until reported)"   # display only; drops off by itself once the quarter is reported
             lag = _quarters_between(asof[k], latest) if asof.get(k) and latest else 0
             pts = lin(m.get(k), bad, good) if lag < 2 else None
             items.append({"key": k, "label": label, "value": m.get(k), "score": pts, "fmt": f, "bad": bad, "good": good,
@@ -1917,9 +1919,10 @@ h1{font-size:clamp(46px,8.4vw,92px);line-height:1;font-weight:500;letter-spacing
 .kpi{padding:16px 24px;border-right:1px solid var(--line)}.kpi:last-child{border-right:0}
 .kpi .l{font-size:13px;color:var(--muted)}.kpi .v{font-size:26px;font-weight:500;letter-spacing:-.03em;margin-top:2px}
 .kpi .s{font-size:13px;color:var(--muted2)}
-.pbar{display:grid;grid-template-columns:150px 1fr 44px;align-items:center;gap:14px;padding:7px 0;font-size:15px}
+.pbar{display:grid;grid-template-columns:150px 1fr 44px 46px;align-items:center;gap:14px;padding:7px 0;font-size:15px}
 .pbar .track{height:10px;border-radius:6px;background:#f1efec;overflow:hidden}
 .pbar .fill{height:100%;border-radius:6px}
+.pmv{font-style:normal;font-size:12px;font-variant-numeric:tabular-nums;text-align:center;border-radius:999px;padding:1px 0}.pmv.up{color:#0f7a4f;background:#e6f6ee}.pmv.dn{color:#c2410c;background:#fdeee6}.pmv.fl{color:#b3ada4}
 .fill.green{background:#34d399}.fill.amber{background:#f5b53f}.fill.red{background:#f07470}.fill.grey{background:#d6d1cb}
 .pbar .w{color:var(--muted);font-size:13px;margin-left:6px}
 .pbar b{font-weight:500;text-align:right}
@@ -2006,16 +2009,44 @@ padding:6px 0;border-bottom:1px solid var(--line);font-size:13.5px}.d-pills li:l
 .d-cols{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:18px}
 .d-ch{margin:0 0 6px;font-size:14px;font-weight:500}.d-ch small{display:block;font-weight:400;font-size:12px;color:var(--muted)}
 .d-cols ul{margin:0;padding:0;list-style:none;font-size:13.5px;color:var(--muted2)}.d-cols li{padding:2px 0}.d-cols li b{color:var(--ink);font-weight:500}
-.d-call.done{display:flex;gap:10px;align-items:center}.d-call.done p{margin:0;font-size:14.5px;color:var(--muted2)}.d-call.done b{color:var(--ink);font-weight:500}
+.d-call.q3{background:linear-gradient(180deg,#f3f6fd,#fbfaf8 70%);padding:20px 28px 22px}
+.q3-hd{display:flex;align-items:center;justify-content:space-between;gap:12px;flex-wrap:wrap;margin-bottom:4px}
+.q3-t{margin:0;font-size:18px;font-weight:600;color:var(--ink);display:flex;align-items:center;gap:9px}
+.q3-when{font-size:13px;font-weight:500;color:#1d4ed8;background:#e3ebfd;border-radius:999px;padding:4px 12px}
+.q3-i{margin:0 0 14px;font-size:14px;color:var(--muted2)}
+.q3-gs{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:14px}
+.q3-g{background:#fff;border:1px solid var(--line);border-radius:14px;padding:12px 14px 6px}
+.q3-gh{margin:0 0 6px;font-size:14px;font-weight:600;display:flex;align-items:baseline;gap:8px;flex-wrap:wrap}
+.q3-gh small{font-weight:400;font-size:12px;color:var(--muted)}
+.q3-c{display:inline-grid;place-items:center;min-width:22px;height:22px;border-radius:999px;background:#eef1f6;font-size:12px;font-weight:600;color:var(--muted2);align-self:center}
+.q3-l{list-style:none;margin:0;padding:0}
+.q3-l li{display:grid;grid-template-columns:minmax(0,1fr) auto auto auto auto;align-items:center;gap:8px;padding:7px 0;border-top:1px solid #f1efeb;font-size:13.5px}
+.q3-l li:first-child{border-top:0}
+.q3-m{color:var(--ink);font-weight:500;min-width:0}.q3-m small{display:block;font-weight:400;font-size:11.5px;color:var(--muted)}
+.q3-v{font-variant-numeric:tabular-nums;color:var(--muted2);text-align:right}
+.q3-tag{font-size:11.5px;border-radius:999px;padding:2px 8px;white-space:nowrap;border:1px solid transparent}
+.q3-tag.old{background:#f1f0ed;color:var(--muted2)}.q3-tag.est{background:#fdf3e1;color:#92580b}
+.q3-tag.to{border-color:#c9d6f5;color:#1d4ed8;background:#fff}.q3-tag.rep{background:#e6f6ee;color:#0f7a4f}
+.q3-ar{color:var(--muted);font-size:13px}
+.q3-same{margin:12px 0 0;font-size:13px;color:var(--muted2)}.q3-same b{color:var(--ink);font-weight:500}
+.d-call.q3.done{background:#f6fbf8}.d-call.q3.done .rb-dot{background:#10b981}
+.q3-l li.rep{grid-template-columns:minmax(0,1fr) auto auto}
 @media (max-width:900px){.dash .d-top{grid-template-columns:1fr;gap:18px;padding:20px 18px}.d-side{border-left:0;padding-left:0;border-top:1px solid var(--line);padding-top:14px}
-.mv5{grid-template-columns:repeat(2,minmax(0,1fr))}.d-cols{grid-template-columns:1fr;gap:12px}.d-sec,.d-call{padding:14px 18px 18px}
+.mv5{grid-template-columns:repeat(2,minmax(0,1fr))}.d-cols{grid-template-columns:1fr;gap:12px}.d-sec,.d-call{padding:14px 18px 18px}.d-call.q3{padding:16px 16px 18px}.q3-gs{grid-template-columns:1fr}.q3-l li{display:flex;gap:6px}.q3-m{flex:1 1 auto}.q3-tag.old,.q3-ar{display:none}.q3-tag.to::before{content:'\\2192  '}.q3-t{font-size:16.5px}
 .dash .kpis .kpi{padding:12px 18px}}
 .mc{margin:0;padding-left:18px;font-size:14px;color:var(--muted2)}.mc li{margin:4px 0}
 /* wide tables on phones: scroll sideways, keep the first column in view */
 table.dil td:first-child,table.dil th:first-child,table.mk td:first-child,table.mk th:first-child,table.mv td:first-child,
 table.mv th:first-child,table.mv2 td:first-child,table.mv2 th:first-child{position:sticky;left:0;background:#fff;z-index:1;box-shadow:1px 0 0 var(--line)}
 table.dil tr.tot td:first-child{background:inherit}
-@media (max-width:640px){table.mk{min-width:620px}table.dil{min-width:420px}.ins{grid-template-columns:1fr}
+@media (max-width:640px){table.mk{min-width:620px}.ins{grid-template-columns:1fr}
+/* the two densest tables stack into cards on phones instead of scrolling sideways */
+table.dil tr:first-child,table.qr tr:first-child{display:none}table.dil,table.dil tbody,table.qr,table.qr tbody{display:block}
+table.dil tr{display:grid;grid-template-columns:1fr 1fr;gap:2px 10px;padding:9px 0;border-bottom:1px solid #eee}
+table.qr tr{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:6px 8px;padding:10px 0;border-bottom:1px solid #eee}
+table.dil td,table.qr td{border:0;padding:0;text-align:left!important;white-space:normal!important;font-size:13px;position:static!important;box-shadow:none!important;background:none!important}
+table.dil td:first-child,table.qr td:first-child{grid-column:1/-1;font-weight:500}table.dil tr.tot td{border:0!important;font-weight:600}
+table.dil td[data-l]::before,table.qr td[data-l]::before{content:attr(data-l);display:block;font-size:11px;color:#8a8a8a}
 table.mv tr:first-child{display:none}table.mv,table.mv tbody{display:block}
 table.mv tr{display:grid;grid-template-columns:1fr 1fr 1fr;gap:4px 8px;padding:10px 0;border-bottom:1px solid #eee}
 table.mv td{border:0;padding:0;text-align:left!important;white-space:normal!important;font-size:13px;position:static!important;box-shadow:none!important}
@@ -2116,6 +2147,8 @@ color:#fff;display:grid;grid-template-columns:1.05fr 1fr;gap:40px;align-items:ce
 .nl-row button{font:inherit;font-size:16px;font-weight:600;padding:13px 18px;border:0;border-radius:12px;background:#7ee2b8;color:#0f2a1f;cursor:pointer;white-space:nowrap}
 .nl-row button:hover{background:#9cf0cc}
 .nl-ok{margin:12px 0 0;font-size:14px;color:#7ee2b8}.nl-fine{margin:12px 0 0;font-size:12.5px;color:#a9b6e8}.nl-fine a{color:#fff}
+.howto{margin-top:16px;font-size:14.5px;color:var(--muted2);max-width:560px}.howto summary{cursor:pointer;font-weight:500;color:var(--ink);list-style:none;display:inline-flex;align-items:center;gap:6px}.howto summary::-webkit-details-marker{display:none}.howto summary::before{content:'+';display:inline-grid;place-items:center;width:18px;height:18px;border-radius:50%;border:1px solid #cfc9bf;font-size:13px;line-height:1;color:var(--muted2)}.howto[open] summary::before{content:'\\2212'}.howto p{margin:10px 0 0;line-height:1.55}
+@media (min-width:901px){.hero>div:last-child{padding-top:92px}}
 .nl-cta{display:inline-flex;align-items:center;gap:8px;margin-top:18px;font-size:16px;font-weight:600;color:#fff;background:#1d4ed8;
 padding:11px 18px;border-radius:12px;text-decoration:none;box-shadow:0 6px 20px rgba(29,78,216,.28)}.nl-cta:hover{background:#1e40af}
 .nl-strip{display:flex;justify-content:space-between;align-items:center;gap:16px;margin-top:28px;padding:18px 22px;border-radius:16px;
@@ -2150,7 +2183,7 @@ background:#fff;border-radius:999px;padding:7px 14px;cursor:pointer}.pre.on{back
 @media (max-width:900px){.burger{display:block}.by{display:none}.r3 .nl-btn{display:none}.bar nav.desk{display:none}.hero{grid-template-columns:1fr;gap:20px;padding-top:48px}.asof{position:static;text-align:left;order:-1}
 .grid{grid-template-columns:1fr}.kpis{grid-template-columns:1fr 1fr}.kpi:nth-child(2){border-right:0}
 .kpi:nth-child(-n+2){border-bottom:1px solid var(--line)}h1{margin-top:8px}.bar nav.desk{display:none}}
-@media (max-width:520px){.brand small{font-size:11px}.brand{font-size:17px}.pbar{grid-template-columns:110px 1fr 34px;gap:10px;font-size:14px}.pbar .w{display:none}
+@media (max-width:520px){.brand small{font-size:11px}.brand{font-size:17px}.pbar{grid-template-columns:112px 1fr 28px 38px;gap:7px;font-size:13.5px}.pbar .w{display:none}
 .card .hd{flex-wrap:nowrap;gap:12px}.card .hd>div:first-child{flex:1 1 auto;min-width:0}.card .hd>.right{flex:0 0 auto}.card .hd.stack{flex-direction:column;gap:10px}.hd.stack .right{text-align:left}.by{display:none}.bar .in{height:60px;padding:0 14px}.burger{margin-left:auto}.brand{grid-column:2}.bd,.card .hd,.kpi,.ft{padding-left:18px;padding-right:18px}.wrap{padding:0 14px 80px}}
 """
 
@@ -2296,6 +2329,23 @@ def _targets_card(res):
 NEWSLETTER_USER = os.environ.get("BUTTONDOWN_USERNAME", "").strip()  # set as a repository variable to switch the signup on
 
 
+def _how_to_read():
+    """Short, collapsed explainer for first-time visitors. Weights and grade bands are read from PILLARS and GRADES."""
+    tiers = {}
+    for name, w, *_ in PILLARS:
+        tiers.setdefault(w, []).append(name)
+    def _and(xs):
+        return xs[0] if len(xs) == 1 else ", ".join(xs[:-1]) + " and " + xs[-1]
+    wtxt = "; ".join(f"{_and(n)} {w}%{' each' if len(n) > 1 else ''}" for w, n in sorted(tiers.items(), reverse=True))
+    bands = ", ".join(f"{g} from {t:.1f}" for t, g, _ in GRADES if t > 0) + f", {GRADES[-1][1]} below"
+    return ('<details class="howto"><summary>How to read this scorecard</summary>'
+            '<p>Opendoor is rated on nine pillars, from growth and unit economics to dilution, valuation and the housing market. '
+            'Each metric earns 0 to 10 points on a straight line between two published levels, and a pillar is the average of its metrics. '
+            f'The overall score is the weighted average of the pillars ({html.escape(wtxt)}), '
+            f'and the grade follows from it: {bands}. '
+            'It is an independent summary of public numbers, not a forecast, a recommendation or investment advice.</p></details>')
+
+
 def _dashboard(res, change, change_sub, ospark, kpi_html):
     """The top of the page in one card: score and why it moved, data status, live numbers, the five biggest moves,
     and what the next report will change. Every figure here also appears, in full, further down the page."""
@@ -2324,14 +2374,30 @@ def _dashboard(res, change, change_sub, ospark, kpi_html):
              + ' <a href="#move">How the score moves</a></p></div><div class="mv5">' + tiles + '</div></div>') if tiles else ""
     ri = _results_info(res)
     call = ""
-    if ri and ri["state"] == "done":
-        call = (f'<div class="d-call done"><span class="rb-dot"></span><p><b>{e(ri["title"])}.</b> {e(ri["note"])}</p></div>')
-    elif ri:
-        cols = "".join(f'<div><p class="d-ch">{e(h)}<small>{e(sub)}</small></p><ul>'
-                       + "".join(f'<li><b>{e(n)}</b>{(" " + e(d)) if d else ""}</li>' for n, d in items) + '</ul></div>'
-                       for h, sub, items in ri["cols"])
-        call = (f'<div class="d-call"><p class="d-ct"><span class="rb-dot"></span><b>{e(ri["title"])}</b> {e(ri["when"])}. '
-                f'Until then the quarterly figures are {e(ri["latest"])}.</p><div class="d-cols">{cols}</div></div>')
+    if ri:
+        n_sw = sum(len(g[2]) for g in ri["groups"])
+        grp = ""
+        for h, sub, rows in ri["groups"]:
+            if not rows:
+                continue
+            li = "".join(f'<li{" class=\"rep\"" if r["now"][1] == "rep" else ""}><span class="q3-m">{e(r["name"])}<small>{e(r["pillar"])}</small></span>'
+                         f'<span class="q3-v">{e(r["value"])}</span>'
+                         + (f'<span class="q3-tag {r["now"][1]}">{e(r["now"][0])}</span>' if r["now"][1] != "rep" else "")
+                         + (f'<span class="q3-ar" aria-hidden="true">&rarr;</span><span class="q3-tag to">{e(ri["next"])}</span>'
+                            if r["now"][1] != "rep" else f'<span class="q3-tag rep">{e(r["now"][0])}</span>') + '</li>'
+                         for r in rows)
+            grp += (f'<div class="q3-g"><p class="q3-gh"><span class="q3-c">{len(rows)}</span>{e(h)}<small>{e(sub)}</small></p>'
+                    f'<ul class="q3-l">{li}</ul></div>')
+        intro = (f'{n_sw} of {ri["total"]} scored metrics switch from {e(ri["latest"])} figures'
+                 + (' or this page\'s estimate' if any(r["now"][1] == "est" for g in ri["groups"] for r in g[2]) else "")
+                 + f' to {e(ri["next"])} reported.' if ri["state"] != "done" else
+                 f'Release metrics now use {e(ri["next"])} reported figures; {e(ri["when"])}.')
+        call = (f'<div class="d-call q3 {"done" if ri["state"] == "done" else ""}" id="q3">'
+                f'<div class="q3-hd"><p class="q3-t"><span class="rb-dot"></span>{e(ri["title"])}</p>'
+                + (f'<span class="q3-when">{e(ri["when"])}</span>' if ri["state"] != "done" else "")
+                + f'</div><p class="q3-i">{intro}</p><div class="q3-gs">{grp}</div>'
+                + (f'<p class="q3-same"><b>Not affected:</b> {e(", ".join(ri["same"]))}, plus the tracker metrics, '
+                   'which update weekly.</p>' if ri["same"] else "") + '</div>')
     return (f'<div class="card dash" id="score"><div class="d-top"><div class="d-main">'
             f'<p class="d-k">Overall score <span>weighted across nine pillars</span></p>'
             f'<div class="score"><span class="num">{s["overall"]:.2f}</span><span class="of">/ 10</span>'
@@ -2425,7 +2491,7 @@ def _fallout_card(res):
     py = [f for f in fh if "year-earlier" in f["source"]]
     return ('<div class="card" id="fallout"><div class="hd stack"><div><h2>Contracts that fell through</h2><p class="sub">Signed '
             'purchase contracts that never became a home bought</p></div>'
-            f'<div class="right">{_badge(f"{last["rate"] * 100:.0f}%", tone)}<p class="sub">{_qlabel(last["quarter"])}, estimate</p></div></div>'
+            f'<div class="right">{_badge(f"{last["rate"] * 100:.0f}%", tone)}<p class="sub">{_qlabel(last["quarter"])}, derived</p></div></div>'
             '<div class="bd scroll" style="padding-top:4px"><table class="fall"><tr><th>Quarter</th><th>Open at start</th>'
             '<th>Signed</th><th>Bought</th><th>Open at end</th><th>Fell through</th><th>Rate</th></tr>' + rows + '</table></div>'
             '<div class="ft">Worked out from Opendoor\'s own numbers: contracts open at the start of the quarter, plus contracts '
@@ -2652,42 +2718,53 @@ def _move_card(res):
 
 
 def _results_info(res):
-    """State of the next report and which scored metrics it moves: None, or a dict for the dashboard callout."""
+    """State of the next report and which scored metrics it moves: None, or a dict for the dashboard callout.
+    Each row says where a metric's number comes from now and where it will come from once the report is in."""
     nr = NEXT_RESULTS
     if not nr.get("quarter"):
         return None
     today = res["generated"][:10]
     latest = res["quarters"][-1]["quarter_end"]
-    ql = _qlabel(nr["quarter"])
-    if latest >= nr["quarter"]:
-        if _days(nr["date"], today) > 10:
-            return None
-        bs_in = ((res["extra"].get("pro_forma") or {}).get("as_of") or "") >= nr["quarter"]
-        return {"state": "done", "title": f"{ql} results are in the score",
-                "note": ("The balance sheet, share count and stock pay are updated too (10-Q filed)." if bs_in else
-                         "Balance sheet, share count and stock pay still use the previous quarter until the 10-Q is filed, "
-                         "usually within days.")}
-    if _days(nr["date"], today) > 21:
+    ql, ll = _qlabel(nr["quarter"]), _qlabel(latest)
+    done = latest >= nr["quarter"]
+    if done and _days(nr["date"], today) > 10:
         return None
+    if not done and _days(nr["date"], today) > 21:
+        return None
+    bs_in = ((res["extra"].get("pro_forma") or {}).get("as_of") or "") >= nr["quarter"]
+    has_est = bool(res["extra"].get("nowcast")) and not done
     pil = {p["name"]: [i for i in p["metrics"] if i["score"] is not None] for p in res["score"]["pillars"]}
 
-    def group(keys):
+    pf_q = (res["extra"].get("pro_forma") or {}).get("as_of")
+    bs_q = _qlabel(pf_q or _prev_qend(latest)) if done and not bs_in else ll
+
+    def rows(keys, reported):
         out = []
         for name, items in pil.items():
-            hit = [i for i in items if i["key"] in keys]
-            if hit:
-                out.append((name, f"all {len(hit)}" if len(hit) == len(items) and len(hit) > 1 else
-                            ", ".join(SHORT.get(i["key"], i["label"]) for i in hit)))
+            for i in items:
+                if i["key"] not in keys:
+                    continue
+                n = NAMES.get(i["key"], i["label"])
+                now = ("Estimate", "est") if i["key"] == "rev_nowcast_yoy" and has_est else (bs_q if done else ll, "old")
+                out.append({"name": n[:1].upper() + n[1:], "pillar": name, "value": fmt(i["value"], i["fmt"]),
+                            "now": (f"{ql} reported", "rep") if reported else now})
         return out
-    same = [(n, "") for n, items in pil.items() if items and not any(i["key"] in FROM_RELEASE + FROM_10Q for i in items)]
-    when = ("tonight, after the US close (about 21:00 UK)" if today == nr["date"] else
-            f"on {_d(nr['date'])}, after the US close (about 21:00 UK)" if today < nr["date"] else
-            f"were due {_d(nr['date'])}; in on the first evening run after the release reaches the SEC site")
-    return {"state": "upcoming" if today <= nr["date"] else "due", "title": f"What updates with {ql} results", "when": when,
-            "latest": _qlabel(latest),
-            "cols": [("With the earnings release", "the first evening run after it", group(FROM_RELEASE)),
-                     ("With the 10-Q", "often a few days later", group(FROM_10Q)),
-                     ("Not affected", "plus the tracker metrics, weekly", same)]}
+    same = [n for n, items in pil.items() if items and not any(i["key"] in FROM_RELEASE + FROM_10Q for i in items)]
+    total = sum(len(v) for v in pil.values())
+    if done:
+        when = ("balance sheet, share count and stock pay are updated too (10-Q filed)" if bs_in else
+                "balance sheet, share count and stock pay switch when the 10-Q is filed, usually within days")
+        return {"state": "done", "title": f"{ql} results are in the score", "when": when, "latest": ll, "total": total,
+                "same": same, "next": ql,
+                "groups": [("Earnings release", "in the score now", rows(FROM_RELEASE, True)),
+                           ("10-Q", "in the score now" if bs_in else "next, within days", rows(FROM_10Q, bs_in))]}
+    when = ("Tonight, about 21:00 UK" if today == nr["date"] else
+            f"{_d(nr['date'])}, about 21:00 UK" if today < nr["date"] else
+            f"Due {_d(nr['date'])}; first evening run after the SEC filing")
+    return {"state": "upcoming" if today <= nr["date"] else "due", "title": f"What updates with {ql} results",
+            "when": when, "latest": ll, "total": total, "same": same, "next": ql,
+            "groups": [("Earnings release", "first evening run after it", rows(FROM_RELEASE, False)),
+                       ("10-Q", "often a few days later", rows(FROM_10Q, False))]}
 
 
 def _results_banner(res):
@@ -3143,8 +3220,9 @@ def _dilution_card(res, metric):
     if not d:
         return ""
     e = html.escape
-    rows = "".join(f'<tr><td>{e(l["label"])}<small>{e(l["needs"])}</small></td><td>{l["n"]:,.1f}M</td>'
-                   + (f'<td class="on">{l["live"]:,.1f}M</td></tr>' if l["live"] > 0.05 else '<td class="off">0</td></tr>')
+    rows = "".join(f'<tr><td>{e(l["label"])}<small>{e(l["needs"])}</small></td><td data-l="Potential">{l["n"]:,.1f}M</td>'
+                   + (f'<td class="on" data-l="Live today">{l["live"]:,.1f}M</td></tr>' if l["live"] > 0.05
+                      else '<td class="off" data-l="Live today">0</td></tr>')
                    for l in d["lines"])
     pct = d["live_m"] / d["shares_m"]
     src = (f"10-Q for the quarter ended {_d(d['quarter'])}, table of anti-dilutive securities" if d["source"] == "10-Q"
@@ -3153,7 +3231,7 @@ def _dilution_card(res, metric):
             f'<p class="sub">Every potential new share, and how many are live at ${d["price"]:.2f}</p></div>'
             f'<div class="right">{_badge(f"{pct * 100:.1f}%", _tone(metric["score"]))}<p class="sub">live today</p></div></div>'
             f'<div class="bd scroll" style="padding-top:4px"><table class="dil"><tr><th>Instrument</th><th>Potential</th><th>Live today</th></tr>{rows}'
-            f'<tr class="tot"><td>Total</td><td>{d["potential_m"]:,.1f}M</td><td>{d["live_m"]:,.1f}M</td></tr></table></div>'
+            f'<tr class="tot"><td>Total</td><td data-l="Potential">{d["potential_m"]:,.1f}M</td><td data-l="Live today">{d["live_m"]:,.1f}M</td></tr></table></div>'
             f'<div class="bd" style="padding-top:0"><p class="dlab" style="margin:6px 0 2px"><span>Live dilution if the share price were…</span></p>'
             f'<p class="swipe">Swipe for higher prices, tap the chart for figures</p><div class="chartbox dbox">{_dilution_svg(d["curve"], d["price"], d["shares_m"])}<div class="tip" hidden></div></div></div>'
             f'<div class="ft">Live means it would become shares, or hand over their value, at that price. Awards with a price target '
@@ -3232,9 +3310,18 @@ def write_html(res, path):
              f"week of {_d(mort.get('date'))}" if mort.get("date") else "Freddie Mac")]
     kpi_html = "".join(f'<div class="kpi"><div class="l">{e(l)}</div><div class="v">{e(v)}</div><div class="s">{e(sb)}</div></div>'
                        for l, v, sb in kpis)
+    pch = (ch or {}).get("pillars") if ch and not ch.get("method_changed") else None
+
+    def mv(name):
+        """Small move chip since the last scored run: green up, red down, grey flat. Nothing on a first or re-based run."""
+        if pch is None or pch.get(name) is None:
+            return '<i class="pmv"></i>'
+        d = pch[name]
+        cls, txt = ("up", f"+{d:.1f}") if d > 0.05 else ("dn", f"\u2212{-d:.1f}") if d < -0.05 else ("fl", "0.0")
+        return f'<i class="pmv {cls}" title="Change since {e(_d(ch["since"]))}">{txt}</i>'
     bars = "".join(f'<div class="pbar"><span>{e(p["name"])}<span class="w">{p["weight"]}%</span></span>'
                    f'<div class="track"><div class="fill {_tone(p["score"])}" style="width:{(p["score"] or 0) * 10:.0f}%"></div></div>'
-                   f'<b>{_num(p["score"])}</b></div>' for p in s["pillars"])
+                   f'<b>{_num(p["score"])}</b>{mv(p["name"])}</div>' for p in s["pillars"])
     decomp = " + ".join(f'{e(p["name"])} {p["contribution"]:.2f}' for p in s["pillars"] if p.get("contribution") is not None)
     cards = ""
     ser = _series(res)  # sparkline data per metric
@@ -3297,9 +3384,11 @@ def write_html(res, path):
             f'Source: accountable.opendoor.com, data as of {e(_d(asof))}.</div></div>'
             if a4 else "")
     n = lambda r, k, d=0: "–" if r.get(k) is None else f"{r[k]:,.{d}f}"
-    qrows = "".join(f"<tr><td>{_qlabel(r['quarter_end'])}</td><td>{n(r, 'revenue_musd')}</td><td>{n(r, 'net_income_musd')}</td>"
-                    f"<td>{n(r, 'adj_net_income_musd')}</td><td>{n(r, 'homes_purchased')}</td><td>{n(r, 'homes_sold')}</td>"
-                    f"<td>{n(r, 'contribution_margin_pct', 1)}</td><td>{n(r, 'aged_120_pct', 0)}</td><td>{n(r, 'cash_musd')}</td></tr>"
+    qrows = "".join(f"<tr><td>{_qlabel(r['quarter_end'])}</td><td data-l='Revenue'>{n(r, 'revenue_musd')}</td>"
+                    f"<td data-l='Net income'>{n(r, 'net_income_musd')}</td><td data-l='Adj. income'>{n(r, 'adj_net_income_musd')}</td>"
+                    f"<td data-l='Cash'>{n(r, 'cash_musd')}</td><td data-l='Homes bought'>{n(r, 'homes_purchased')}</td>"
+                    f"<td data-l='Homes sold'>{n(r, 'homes_sold')}</td><td data-l='Contrib. %'>{n(r, 'contribution_margin_pct', 1)}</td>"
+                    f"<td data-l='120+ days %'>{n(r, 'aged_120_pct', 0)}</td></tr>"
                     for r in reversed(res["quarters"][-8:]))
     hist = res.get("history") or []
     heads = "".join(f"<th>{e(p[0])}</th>" for p in PILLARS)
@@ -3347,7 +3436,8 @@ def write_html(res, path):
 <div class="asof"><span class="dot"></span>Updated {e(_d(res['generated']))}, {e(res['generated'][11:16])} UK<i>Prices to {e(_d(px['date']))}</i><i>Opendoor tracker as of {e(_d(asof))}, refreshed weekly</i></div>
 <h1>Opendoor,<br>scored.<br>Every weekday.</h1>
 <div><p class="lede">An independent scorecard that grades Opendoor 0–10 on nine pillars, rebuilt every weekday from SEC filings, the share price, housing data from its markets and Opendoor's own public tracker.</p>
-{'<a class="nl-cta" href="#subscribe">Get the weekly email, free <span>&rarr;</span></a>' if NEWSLETTER_USER else ''}</div>
+{'<a class="nl-cta" href="#subscribe">Get the weekly email, free <span>&rarr;</span></a>' if NEWSLETTER_USER else ''}
+{_how_to_read()}</div>
 </section>
 
 {_dashboard(res, change, change_sub, ospark, kpi_html)}
@@ -3380,8 +3470,8 @@ def write_html(res, path):
 {_score_chart(res)}
 
 <div class="card"><div class="hd"><div><h2>Quarterly results</h2><p class="sub">$ millions, from Opendoor's earnings releases and SEC filings</p></div></div>
-<div class="bd scroll" style="padding-top:4px"><table><tr><th>Quarter</th><th>Revenue</th><th>Net income</th><th>Adj. net income</th><th>Bought</th><th>Sold</th>
-<th>Contrib. %</th><th>120+ days %</th><th>Cash</th></tr>{qrows}</table></div></div>
+<div class="bd scroll" style="padding-top:4px"><table class="qr"><tr><th>Quarter</th><th>Revenue</th><th>Net income</th><th>Adj. net income</th><th>Cash</th>
+<th>Bought</th><th>Sold</th><th>Contrib. %</th><th>120+ days %</th></tr>{qrows}</table></div></div>
 
 <div class="card"><details open><summary class="hd" style="border-bottom:0"><div><h2>Run history</h2><p class="sub">Every pillar's score on every day</p></div>
 <span class="chev">▾</span></summary><div class="bd scroll" style="border-top:1px solid var(--line);padding-top:4px"><table><tr><th>Run</th><th>Price</th><th>Overall</th>{heads}</tr>{hrows}</table></div></details></div>
