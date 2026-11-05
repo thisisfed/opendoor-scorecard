@@ -127,3 +127,19 @@ why there is one list rather than a daily/weekly choice; its $9 Basic plan would
   commits the updated history, which counts as activity.
 - **Run it on demand** at any time from **Actions → Update Opendoor scorecard → Run workflow**.
 - **Run it on a computer instead:** `python3 opendoor_scorecard.py` writes the same page to `www/index.html`.
+
+## Private position page
+
+`position_page.py` adds a page at `/me/` with your own holding in pounds: value, the day's gain or loss and the total,
+with a chart and a day-by-day table. It is locked: the figures are encrypted (AES-256-GCM, key from your passphrase
+via PBKDF2-SHA256) before they reach this public repository, and only decrypt in your browser.
+
+Set three repository secrets (Settings > Secrets and variables > Actions > New repository secret):
+
+- `POSITION_PASSPHRASE`: the passphrase for the page. Make it long (four or five random words); it is the only lock.
+- `POSITION_SHARES`: how many shares you hold, e.g. `1250.5`
+- `POSITION_COST_GBP`: everything you have paid for them in pounds, fees included, e.g. `4800`
+
+After a top-up, update the last two. Money you add is taken out of the day's figure, so a purchase never shows as a
+gain. The pound/dollar rate is FRED series DEXUSUK. If you change the passphrase, the day-by-day log starts again.
+Without the secrets the step does nothing.

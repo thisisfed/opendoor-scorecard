@@ -1,0 +1,280 @@
+#!/usr/bin/env python3
+"""Private position page: your $OPEN holding in pounds, locked with a passphrase.
+
+Runs after the scorecard. It reads three repository secrets:
+  POSITION_PASSPHRASE  the passphrase that unlocks the page (use a long one: it is the only thing protecting the page)
+  POSITION_SHARES      how many shares you hold now, e.g. 1250.5
+  POSITION_COST_GBP    everything you have paid for them, in pounds, fees included, e.g. 4800
+
+Each run adds a line for the latest close: price in dollars, the pound/dollar rate (FRED series DEXUSUK, dollars per
+pound), the value in pounds, the day's gain or loss and the total. Money you add (a top-up raises POSITION_COST_GBP)
+is taken out of the day's figure, so a purchase never shows as a gain.
+
+Nothing readable leaves this script. The log and the page both carry the same blob, encrypted with AES-256-GCM under a
+key derived from the passphrase (PBKDF2-SHA256, 310,000 rounds); the page decrypts it in your browser. The repository
+and the site are public, so the share count and pound figures exist only inside that blob. Without the three secrets
+the script does nothing.
+"""
+import base64
+import csv
+import datetime as dt
+import json
+import os
+import secrets
+import sys
+import urllib.request
+
+ITER = 310_000
+LOG = "position_log.enc"
+PAGE_DIR = os.path.join("site", "me")
+
+
+def _b64(b):
+    return base64.b64encode(b).decode()
+
+
+def _key(passphrase, salt):
+    import hashlib
+    return hashlib.pbkdf2_hmac("sha256", passphrase.encode(), salt, ITER, dklen=32)
+
+
+def encrypt(obj, passphrase, salt):
+    from cryptography.hazmat.primitives.ciphers.aead import AESGCM
+    iv = secrets.token_bytes(12)
+    ct = AESGCM(_key(passphrase, salt)).encrypt(iv, json.dumps(obj, separators=(",", ":")).encode(), None)
+    return {"v": 1, "kdf": "PBKDF2-SHA256", "iter": ITER, "salt": _b64(salt), "iv": _b64(iv), "ct": _b64(ct)}
+
+
+def decrypt(blob, passphrase):
+    from cryptography.hazmat.primitives.ciphers.aead import AESGCM
+    salt = base64.b64decode(blob["salt"])
+    pt = AESGCM(_key(passphrase, salt)).decrypt(base64.b64decode(blob["iv"]), base64.b64decode(blob["ct"]), None)
+    return json.loads(pt)
+
+
+def fx_series(start):
+    """Dollars per pound by day from FRED, oldest first: [(date, rate)]."""
+    url = f"https://fred.stlouisfed.org/graph/fredgraph.csv?id=DEXUSUK&cosd={start}"
+    req = urllib.request.Request(url, headers={"User-Agent": "opendoor-scorecard"})
+    with urllib.request.urlopen(req, timeout=40) as r:
+        txt = r.read().decode()
+    out = []
+    for line in txt.strip().splitlines()[1:]:
+        d, v = (line.split(",") + [""])[:2]
+        if v not in ("", "."):
+            out.append((d[:10], float(v)))
+    return out
+
+
+def fx_on(series, day):
+    """The latest rate published on or before the day."""
+    best = None
+    for d, v in series:
+        if d <= day:
+            best = (d, v)
+    return best
+
+
+def entry(day, price, fx, fx_day, shares, cost, prev, seed=False):
+    val = shares * price / fx
+    e = {"d": day, "px": round(price, 4), "fx": round(fx, 4), "fxd": fx_day, "sh": shares, "cost": round(cost, 2),
+         "val": round(val, 2), "tot": round(val - cost, 2), "day": None, "dayfx": None}
+    if seed:
+        e["seed"] = True
+    if prev:
+        # the day's gain: change in value, less any money put in since the last close
+        e["day"] = round((val - prev["val"]) - (cost - prev["cost"]), 2)
+        # the part of it that came from the pound/dollar rate alone
+        e["dayfx"] = round(shares * price * (1 / fx - 1 / prev["fx"]), 2)
+    return e
+
+
+def main():
+    pw = os.environ.get("POSITION_PASSPHRASE", "")
+    sh_s, cost_s = os.environ.get("POSITION_SHARES", ""), os.environ.get("POSITION_COST_GBP", "")
+    if not (pw and sh_s and cost_s):
+        print("Position page: secrets not set, skipped.")
+        return 0
+    try:
+        shares, cost = float(sh_s.replace(",", "")), float(cost_s.replace(",", "").replace("£", ""))
+    except ValueError:
+        print("Position page: POSITION_SHARES and POSITION_COST_GBP must be plain numbers; skipped.")
+        return 0
+    if len(pw) < 12:
+        print("Position page: warning, the passphrase is short; a long one is much harder to guess.")
+    sc = json.load(open(os.path.join("site", "scorecard.json")))
+    price, pday = float(sc["price"]["price"]), sc["price"]["date"][:10]
+
+    salt, entries = None, []
+    if os.path.exists(LOG):
+        try:
+            blob = json.load(open(LOG))
+            entries = decrypt(blob, pw)["entries"]
+            salt = base64.b64decode(blob["salt"])
+        except Exception:
+            print("Position page: the old log would not open with this passphrase (changed?); starting a new one.")
+            entries, salt = [], None
+    salt = salt or secrets.token_bytes(16)
+
+    start = (dt.date.fromisoformat(pday) - dt.timedelta(days=40)).isoformat()
+    try:
+        series = fx_series(start)
+    except Exception as ex:  # keep going on yesterday's rate rather than fail the run
+        print(f"Position page: FX fetch failed ({ex}); using the last known rate.")
+        series = [(entries[-1]["fxd"], entries[-1]["fx"])] if entries else []
+    hit = fx_on(series, pday)
+    if not hit:
+        print("Position page: no pound/dollar rate available; skipped.")
+        return 0
+
+    entries = [x for x in entries if x["d"] != pday]          # a second run on the same close replaces it
+    prev = entries[-1] if entries else None
+    if prev is None:
+        # first run: seed the previous close from the scorecard's own history, holding as today, so day one has a figure
+        try:
+            rows = [r for r in csv.DictReader(open(os.path.join("site", "history.csv"))) if r.get("price_date", "") < pday]
+            if rows:
+                r = rows[-1]
+                h = fx_on(series, r["price_date"])
+                if h:
+                    prev = entry(r["price_date"], float(r["price"]), h[1], h[0], shares, cost, None, seed=True)
+                    entries.append(prev)
+        except FileNotFoundError:
+            pass
+    entries.append(entry(pday, price, hit[1], hit[0], shares, cost, prev))
+    data = {"entries": entries[-400:], "updated": sc.get("generated"), "ticker": "OPEN"}
+    blob = encrypt(data, pw, salt)
+    with open(LOG, "w") as fh:
+        json.dump(blob, fh)
+    os.makedirs(PAGE_DIR, exist_ok=True)
+    with open(os.path.join(PAGE_DIR, "index.html"), "w") as fh:
+        fh.write(PAGE.replace("__BLOB__", json.dumps(blob)))
+    print(f"Position page: updated for the {pday} close ({len(entries)} days in the log).")
+    return 0
+
+
+PAGE = r"""<!DOCTYPE html><html lang="en"><head><meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<meta name="robots" content="noindex,nofollow,noarchive"><meta name="referrer" content="no-referrer">
+<title>Private</title>
+<script>(function(){var d=document.documentElement,t=null;try{t=localStorage.getItem("theme")}catch(e){}
+d.setAttribute("data-theme",t==="dark"||t==="light"?t:(matchMedia&&matchMedia("(prefers-color-scheme: dark)").matches?"dark":"light"))})();</script>
+<link rel="preconnect" href="https://fonts.googleapis.com"><link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600&display=swap" rel="stylesheet">
+<style>
+:root{--bg:#f3f2f0;--card:#fff;--soft:#f6f4f1;--line:#ebe7e2;--line2:#dcd6cf;--ink:#23201d;--muted:#72685e;--muted2:#5a524a;
+--good:#047857;--good-bg:#e3f3ea;--bad:#b4302b;--bad-bg:#fbe9e7;--blue:#1d4ed8;--accent:#1d4ed8;--track:#f1efec;color-scheme:light}
+:root[data-theme=dark]{--bg:#141312;--card:#1e1c1a;--soft:#272421;--line:#36312d;--line2:#4a443e;--ink:#f2ede7;--muted:#ada296;--muted2:#cbc2b8;
+--good:#5fd49b;--good-bg:#173126;--bad:#ff8e82;--bad-bg:#3a201d;--blue:#7ea2ff;--accent:#3563e9;--track:#322e2a;color-scheme:dark}
+*{box-sizing:border-box}body{margin:0;background:var(--bg);color:var(--ink);font:400 15px/1.5 Inter,system-ui,sans-serif;
+letter-spacing:-.011em;font-variant-numeric:tabular-nums;-webkit-font-smoothing:antialiased}
+.wrap{max-width:900px;margin:0 auto;padding:32px 18px 80px}
+h1{font-size:28px;font-weight:600;letter-spacing:-.03em;margin:0}.sub{color:var(--muted);margin:4px 0 0}
+.card{background:var(--card);border-radius:20px;padding:22px 24px;margin-top:18px;box-shadow:0 1px 2px rgba(0,0,0,.06)}
+:root[data-theme=dark] .card{box-shadow:0 0 0 1px var(--line)}
+form{display:flex;gap:8px;flex-wrap:wrap;margin-top:14px}
+input[type=password]{flex:1 1 240px;min-height:48px;font:inherit;font-size:16px;padding:0 14px;border:1px solid var(--line2);border-radius:12px;background:var(--card);color:var(--ink)}
+button{min-height:48px;font:inherit;font-size:16px;font-weight:600;padding:0 20px;border:0;border-radius:12px;background:var(--accent);color:#fff;cursor:pointer}
+button.ghost{background:none;color:var(--ink);border:1px solid var(--line2);font-weight:500;min-height:40px;font-size:14px}
+label.rem{display:flex;align-items:center;gap:8px;min-height:44px;font-size:14px;color:var(--muted2);flex-basis:100%}
+.err{color:var(--bad);margin:10px 0 0;min-height:1.5em}
+.big{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:12px}
+.k{background:var(--soft);border-radius:14px;padding:14px 16px}.k p{margin:0}
+.k .l{font-size:13px;color:var(--muted)}.k .v{font-size:30px;font-weight:600;letter-spacing:-.03em;line-height:1.15;margin-top:2px}
+.k .s{font-size:13px;color:var(--muted2);margin-top:2px}
+.up{color:var(--good)}.dn{color:var(--bad)}.k.up{background:var(--good-bg)}.k.dn{background:var(--bad-bg)}
+.facts{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:10px;margin-top:16px}
+.facts div{border-top:1px solid var(--line);padding-top:8px}.facts b{display:block;font-size:17px;font-weight:600}.facts span{font-size:12.5px;color:var(--muted)}
+table{width:100%;border-collapse:collapse;font-size:14px}th{font-size:12px;font-weight:500;color:var(--muted);text-align:right;padding:8px 10px;border-bottom:1px solid var(--line)}
+td{text-align:right;padding:9px 10px;border-bottom:1px solid var(--line);white-space:nowrap}th:first-child,td:first-child{text-align:left}
+.scroll{overflow-x:auto}.note{font-size:13px;color:var(--muted);margin:12px 0 0}
+svg text{font-size:12px;fill:var(--muted)}
+.top{display:flex;justify-content:space-between;align-items:flex-start;gap:12px}
+@media (max-width:640px){.big{grid-template-columns:1fr}.facts{grid-template-columns:1fr 1fr}.k .v{font-size:28px}.card{padding:18px 16px}
+table.days thead{display:none}table.days,table.days tbody{display:block}table.days tr{display:grid;grid-template-columns:repeat(3,1fr);gap:4px 8px;padding:10px 0;border-bottom:1px solid var(--line)}
+table.days td{border:0;padding:0;text-align:left}table.days td:first-child{grid-column:1/-1;font-weight:600}table.days td::before{content:attr(data-l);display:block;font-size:11px;color:var(--muted)}}
+</style></head><body><div class="wrap">
+<div class="top"><div><h1>Your OPEN position</h1><p class="sub">In pounds. Private: unlocks only with your passphrase.</p></div>
+<button class="ghost" id="lock" hidden>Lock</button></div>
+<div class="card" id="gate"><form id="f"><input type="password" id="pw" autocomplete="current-password" placeholder="Passphrase" aria-label="Passphrase" required>
+<button type="submit">Unlock</button><label class="rem"><input type="checkbox" id="rem"> Stay unlocked on this device</label></form><p class="err" id="err" role="alert"></p></div>
+<div id="out" hidden></div></div>
+<script>
+var BLOB = __BLOB__;
+function b64(s) { return Uint8Array.from(atob(s), function (c) { return c.charCodeAt(0); }); }
+function u8(b) { return btoa(String.fromCharCode.apply(null, new Uint8Array(b))); }
+async function derive(pw) {
+  var base = await crypto.subtle.importKey("raw", new TextEncoder().encode(pw), "PBKDF2", false, ["deriveKey"]);
+  return crypto.subtle.deriveKey({name: "PBKDF2", salt: b64(BLOB.salt), iterations: BLOB.iter, hash: "SHA-256"}, base,
+    {name: "AES-GCM", length: 256}, true, ["decrypt"]);
+}
+async function open_(key) {
+  var pt = await crypto.subtle.decrypt({name: "AES-GCM", iv: b64(BLOB.iv)}, key, b64(BLOB.ct));
+  return JSON.parse(new TextDecoder().decode(pt));
+}
+var gbp = function (v, sign) { var s = Math.abs(v).toLocaleString("en-GB", {minimumFractionDigits: 2, maximumFractionDigits: 2});
+  return (v < 0 ? "−" : sign && v > 0 ? "+" : "") + "£" + s; };
+var pct = function (v) { return (v < 0 ? "−" : "+") + Math.abs(v * 100).toFixed(2) + "%"; };
+var cls = function (v) { return v > 0.004 ? "up" : v < -0.004 ? "dn" : ""; };
+var dlab = function (d) { var t = new Date(d + "T12:00:00Z"); return t.toLocaleDateString("en-GB", {day: "numeric", month: "short", year: "numeric"}); };
+function chart(E) {
+  if (E.length < 2) return '<p class="note">The chart starts once there are two days in the log.</p>';
+  var W = Math.round(Math.min(840, Math.max(300, window.innerWidth - 72))), H = W < 520 ? 200 : 220, L = 56, R = 12, T = 12, B = 26, vs = [];
+  E.forEach(function (e) { vs.push(e.val, e.cost); });
+  var lo = Math.min.apply(null, vs), hi = Math.max.apply(null, vs), pad = (hi - lo) * 0.1 || hi * 0.05 || 1; lo -= pad; hi += pad;
+  var x = function (i) { return L + i * (W - L - R) / (E.length - 1); }, y = function (v) { return T + (1 - (v - lo) / (hi - lo)) * (H - T - B); };
+  var line = function (k) { return E.map(function (e, i) { return x(i).toFixed(1) + "," + y(e[k]).toFixed(1); }).join(" "); };
+  var g = "";
+  [lo + pad, (lo + hi) / 2, hi - pad].forEach(function (v) { g += '<line x1="' + L + '" x2="' + (W - R) + '" y1="' + y(v) + '" y2="' + y(v) + '" stroke="var(--line)"/>' +
+    '<text x="' + (L - 8) + '" y="' + (y(v) + 4) + '" text-anchor="end">£' + Math.round(v).toLocaleString("en-GB") + '</text>'; });
+  return '<svg viewBox="0 0 ' + W + ' ' + H + '" width="100%" role="img" aria-label="Value and money invested, by day">' + g +
+    '<polyline points="' + line("cost") + '" fill="none" stroke="var(--muted)" stroke-dasharray="4 4" stroke-width="1.5"/>' +
+    '<polyline points="' + line("val") + '" fill="none" stroke="var(--blue)" stroke-width="2.4" stroke-linejoin="round"/>' +
+    '<text x="' + L + '" y="' + (H - 6) + '">' + dlab(E[0].d) + '</text><text x="' + (W - R) + '" y="' + (H - 6) + '" text-anchor="end">' + dlab(E[E.length - 1].d) + '</text></svg>' +
+    '<p class="note"><span style="color:var(--blue)">—</span> value &nbsp; <span>- -</span> money put in</p>';
+}
+function render(D) {
+  var E = D.entries, L = E[E.length - 1], P = E.length > 1 ? E[E.length - 2] : null;
+  var avg = L.cost / L.sh, be = avg * L.fx;
+  var day = L.day === null ? null : L.day, dayp = day === null || !P ? null : day / (P.val + (L.cost - P.cost));
+  var h = '<div class="card"><div class="big">' +
+    '<div class="k"><p class="l">Value now</p><p class="v">' + gbp(L.val) + '</p><p class="s">close ' + dlab(L.d) + '</p></div>' +
+    '<div class="k ' + cls(L.tot) + '"><p class="l">Total gain or loss</p><p class="v">' + gbp(L.tot, true) + '</p><p class="s">' + pct(L.tot / L.cost) + ' on ' + gbp(L.cost) + ' put in</p></div>' +
+    '<div class="k ' + (day === null ? "" : cls(day)) + '"><p class="l">Day</p><p class="v">' + (day === null ? "n/a" : gbp(day, true)) + '</p><p class="s">' +
+      (day === null ? "from the next close" : pct(dayp) + (L.dayfx !== null ? ", of which the pound/dollar rate " + gbp(L.dayfx, true) : "")) + '</p></div></div>' +
+    '<div class="facts"><div><b>' + L.sh.toLocaleString("en-GB", {maximumFractionDigits: 4}) + '</b><span>shares</span></div>' +
+    '<div><b>£' + avg.toFixed(3) + '</b><span>average cost a share</span></div>' +
+    '<div><b>$' + L.px.toFixed(2) + '</b><span>last close, breakeven $' + be.toFixed(2) + '</span></div>' +
+    '<div><b>$' + L.fx.toFixed(4) + '</b><span>per £1, ' + dlab(L.fxd) + '</span></div></div></div>' +
+    '<div class="card"><p class="l" style="margin:0 0 8px;font-weight:600">Value and money put in</p>' + chart(E) + '</div>';
+  var rows = E.slice().reverse().map(function (e) {
+    return '<tr><td>' + dlab(e.d) + (e.seed ? " *" : "") + '</td><td data-l="Close">$' + e.px.toFixed(2) + '</td><td data-l="$ per £">' + e.fx.toFixed(4) + '</td>' +
+      '<td data-l="Value">' + gbp(e.val) + '</td><td data-l="Day" class="' + (e.day === null ? "" : cls(e.day)) + '">' + (e.day === null ? "–" : gbp(e.day, true)) + '</td>' +
+      '<td data-l="Total" class="' + cls(e.tot) + '">' + gbp(e.tot, true) + '</td></tr>'; }).join("");
+  h += '<div class="card"><p style="margin:0 0 8px;font-weight:600">Day by day</p><div class="scroll"><table class="days"><thead><tr><th>Close</th><th>Price</th><th>$ per £</th><th>Value</th><th>Day</th><th>Total</th></tr></thead><tbody>' + rows + '</tbody></table></div>' +
+    '<p class="note">Values use each close and the Federal Reserve noon rate for the pound (FRED series DEXUSUK) for that day or the latest before it. ' +
+    'Money you add is taken out of the day\'s figure. ' + (E.some(function (e) { return e.seed; }) ? "* The first day is worked out from the scorecard's previous close, assuming the same holding. " : "") +
+    'Updated ' + (D.updated || "").replace("T", " ") + ' UK. Not advice.</p></div>';
+  document.getElementById("out").innerHTML = h; document.getElementById("out").hidden = false;
+  document.getElementById("gate").hidden = true; document.getElementById("lock").hidden = false;
+}
+document.getElementById("f").addEventListener("submit", async function (ev) {
+  ev.preventDefault(); var err = document.getElementById("err"); err.textContent = "Unlocking…";
+  try {
+    var key = await derive(document.getElementById("pw").value), D = await open_(key);
+    if (document.getElementById("rem").checked) { try { localStorage.setItem("pos-key", JSON.stringify({salt: BLOB.salt, k: u8(await crypto.subtle.exportKey("raw", key))})); } catch (e) {} }
+    err.textContent = ""; document.getElementById("pw").value = ""; render(D);
+  } catch (e) { err.textContent = "That passphrase did not unlock it."; }
+});
+document.getElementById("lock").addEventListener("click", function () { try { localStorage.removeItem("pos-key"); } catch (e) {} location.reload(); });
+(async function () {
+  var s = null; try { s = JSON.parse(localStorage.getItem("pos-key") || "null"); } catch (e) {}
+  if (!s || s.salt !== BLOB.salt) return;
+  try { var key = await crypto.subtle.importKey("raw", b64(s.k), "AES-GCM", false, ["decrypt"]); render(await open_(key)); }
+  catch (e) { try { localStorage.removeItem("pos-key"); } catch (x) {} }
+})();
+</script></body></html>
+"""
+
+if __name__ == "__main__":
+    sys.exit(main())
