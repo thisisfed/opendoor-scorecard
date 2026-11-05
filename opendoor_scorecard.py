@@ -1981,7 +1981,7 @@ font-size:14.5px;line-height:1.5;color:var(--muted2)}
 .mv-dir{display:inline-block;font-weight:600;border-radius:8px;padding:1px 9px;margin:0 2px}
 .mv-dir.up{background:#e6f4ea;color:#0f9f6e}.mv-dir.down{background:#fdeceb;color:#e5484d}.mv-dir.flat{background:#f1efec;color:var(--muted2)}
 /* dashboard: the top card */
-.dash .d-top{display:grid;grid-template-columns:minmax(0,1fr) 300px;gap:32px;padding:24px 28px 22px}
+.dash .d-top{display:grid;grid-template-columns:3fr 1fr;gap:0;padding:0}.dash .d-main{padding:24px 28px 22px;min-width:0}.dash .d-side{padding:24px 28px 22px;min-width:0}
 .d-k{margin:0 0 6px;font-size:13px;font-weight:500;color:var(--muted2)}.d-k span{font-weight:400;color:var(--muted)}
 .dash .score{align-items:center;gap:12px}.dash .score .mini i{display:none}.dash .score .num{font-size:clamp(60px,8vw,96px)}
 .d-chg{display:inline-flex;flex-direction:column;align-items:flex-start;gap:3px;margin-left:4px}.d-chg small{font-size:12px;color:var(--muted)}
@@ -1989,7 +1989,7 @@ font-size:14.5px;line-height:1.5;color:var(--muted2)}
 .d-moved{margin-top:14px;padding:10px 14px;border-radius:12px;background:#f6f4f1;font-size:14.5px;line-height:1.5;color:var(--muted2)}
 .d-moved>p{margin:0}.d-moved summary{cursor:pointer;color:#1d4ed8;font-size:13px;margin-top:6px}
 .d-moved .moved{margin:8px 0 0;padding:0;border:0;background:none;font-size:13.5px}
-.d-side{border-left:1px solid var(--line);padding-left:24px}
+.d-side{border-left:1px solid var(--line)}
 .d-pills{list-style:none;margin:0;padding:0}.d-pills li{display:flex;justify-content:space-between;align-items:center;gap:10px;
 padding:6px 0;border-bottom:1px solid var(--line);font-size:13.5px}.d-pills li:last-child{border-bottom:0}
 .d-src small{display:block;font-size:11.5px;color:var(--muted)}.d-pills .badge{font-size:12px;padding:2px 8px}
@@ -2031,7 +2031,7 @@ padding:6px 0;border-bottom:1px solid var(--line);font-size:13.5px}.d-pills li:l
 .q3-same{margin:12px 0 0;font-size:13px;color:var(--muted2)}.q3-same b{color:var(--ink);font-weight:500}
 .d-call.q3.done{background:#f6fbf8}.d-call.q3.done .rb-dot{background:#10b981}
 .q3-l li.rep{grid-template-columns:minmax(0,1fr) auto auto}
-@media (max-width:900px){.dash .d-top{grid-template-columns:1fr;gap:18px;padding:20px 18px}.d-side{border-left:0;padding-left:0;border-top:1px solid var(--line);padding-top:14px}
+@media (max-width:900px){.dash .d-top{grid-template-columns:1fr;gap:0;padding:0}.dash .d-main{padding:20px 18px 18px}.dash .d-side{border-left:0;border-top:1px solid var(--line);padding:14px 18px 18px}
 .mv5{grid-template-columns:repeat(2,minmax(0,1fr))}.d-cols{grid-template-columns:1fr;gap:12px}.d-sec,.d-call{padding:14px 18px 18px}.d-call.q3{padding:16px 16px 18px}.q3-gs{grid-template-columns:1fr}.q3-l li{display:flex;gap:6px}.q3-m{flex:1 1 auto}.q3-tag.old,.q3-ar{display:none}.q3-tag.to::before{content:'\\2192  '}.q3-t{font-size:16.5px}
 .dash .kpis .kpi{padding:12px 18px}}
 .mc{margin:0;padding-left:18px;font-size:14px;color:var(--muted2)}.mc li{margin:4px 0}
@@ -2147,6 +2147,9 @@ color:#fff;display:grid;grid-template-columns:1.05fr 1fr;gap:40px;align-items:ce
 .nl-row button{font:inherit;font-size:16px;font-weight:600;padding:13px 18px;border:0;border-radius:12px;background:#7ee2b8;color:#0f2a1f;cursor:pointer;white-space:nowrap}
 .nl-row button:hover{background:#9cf0cc}
 .nl-ok{margin:12px 0 0;font-size:14px;color:#7ee2b8}.nl-fine{margin:12px 0 0;font-size:12.5px;color:#a9b6e8}.nl-fine a{color:#fff}
+/* Context vs Opendoor's own history */
+table.oh td small{display:block;font-size:12px;color:var(--muted);font-weight:400;margin-top:1px}table.oh td:first-child{white-space:normal}table.oh td em{font-style:normal;color:var(--muted2);display:block}table.oh td.oh-r{width:150px;min-width:120px}.oh-t{position:relative;display:block;height:6px;border-radius:3px;background:#ece9e4;margin:0 6px}.oh-t i{position:absolute;top:50%;width:11px;height:11px;margin:-5.5px 0 0 -5.5px;border-radius:50%;background:#1d4ed8;box-shadow:0 0 0 2px #fff}.oh-e{display:flex;justify-content:space-between;font-size:11px;color:var(--muted);margin-top:4px}
+@media (max-width:640px){table.oh tr:first-child{display:none}table.oh,table.oh tbody{display:block}table.oh tr{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:4px 10px;padding:10px 0;border-bottom:1px solid #eee}table.oh td{border:0;padding:0;text-align:left!important;white-space:normal!important;font-size:13px}table.oh td:first-child,table.oh td.oh-r{grid-column:1/-1}table.oh td:first-child{font-weight:500}table.oh td.oh-r{width:auto;padding-top:4px}table.oh td[data-l]::before{content:attr(data-l);display:block;font-size:11px;color:#8a8a8a}}
 .howto{margin-top:16px;font-size:14.5px;color:var(--muted2);max-width:560px}.howto summary{cursor:pointer;font-weight:500;color:var(--ink);list-style:none;display:inline-flex;align-items:center;gap:6px}.howto summary::-webkit-details-marker{display:none}.howto summary::before{content:'+';display:inline-grid;place-items:center;width:18px;height:18px;border-radius:50%;border:1px solid #cfc9bf;font-size:13px;line-height:1;color:var(--muted2)}.howto[open] summary::before{content:'\\2212'}.howto p{margin:10px 0 0;line-height:1.55}
 @media (min-width:901px){.hero>div:last-child{padding-top:92px}}
 .nl-cta{display:inline-flex;align-items:center;gap:8px;margin-top:18px;font-size:16px;font-weight:600;color:#fff;background:#1d4ed8;
@@ -2346,14 +2349,65 @@ def _how_to_read():
             'It is an independent summary of public numbers, not a forecast, a recommendation or investment advice.</p></details>')
 
 
+def _own_history_card(res):
+    """Latest reported quarter against Opendoor's own high and low over the quarters in the Quarterly results table.
+    Context only: nothing here is scored."""
+    q = res["quarters"]
+    idx = {r["quarter_end"]: i for i, r in enumerate(q)}
+    win = q[-8:]   # the same quarters as the Quarterly results table
+
+    def days_inv(r):
+        i = idx[r["quarter_end"]]
+        p = q[i - 1] if i else None
+        if not p or not 80 <= _days(p["quarter_end"], r["quarter_end"]) <= 100:
+            return None
+        if None in (p.get("inventory_musd"), r.get("inventory_musd"), r.get("revenue_musd"), r.get("gross_profit_musd")):
+            return None
+        cogs = r["revenue_musd"] - r["gross_profit_musd"]
+        return (p["inventory_musd"] + r["inventory_musd"]) / 2 / cogs * _days(p["quarter_end"], r["quarter_end"]) if cogs > 0 else None
+    specs = [("Contribution margin", lambda r: r.get("contribution_margin_pct"), lambda v: f"{v:.1f}%", True),
+             ("Gross margin", lambda r: r["gross_profit_musd"] / r["revenue_musd"] * 100
+              if r.get("gross_profit_musd") is not None and r.get("revenue_musd") else None, lambda v: f"{v:.1f}%", True),
+             ("Days of inventory", days_inv, lambda v: f"{v:.0f} days", False),
+             ("Homes listed 120+ days", lambda r: r.get("aged_120_pct"), lambda v: f"{v:.0f}%", False),
+             ("Revenue, quarter", lambda r: r.get("revenue_musd"), lambda v: f"${v:,.0f}M", True)]
+    e = html.escape
+    rows = ""
+    for name, get, f, up in specs:
+        pts = [(r["quarter_end"], get(r)) for r in win]
+        pts = [(d, v) for d, v in pts if v is not None]
+        if len(pts) < 3:
+            continue
+        cur_d, cur = pts[-1]
+        lo_d, lo = min(pts, key=lambda x: x[1])
+        hi_d, hi = max(pts, key=lambda x: x[1])
+        pos = 50 if hi == lo else (cur - lo) / (hi - lo) * 100
+        best, worst = (hi, lo) if up else (lo, hi)
+        tag = ("<em>best of the period</em>" if cur == best else "<em>worst of the period</em>" if cur == worst else "")
+        rows += (f'<tr><td>{e(name)}<small>{len(pts)} quarters, {_qlabel(pts[0][0])} to {_qlabel(cur_d)}; '
+                 f'{"higher" if up else "lower"} is better</small></td>'
+                 f'<td data-l="Latest"><b>{f(cur)}</b><small>{_qlabel(cur_d)}{tag}</small></td>'
+                 f'<td data-l="Low">{f(lo)}<small>{_qlabel(lo_d)}</small></td>'
+                 f'<td data-l="High">{f(hi)}<small>{_qlabel(hi_d)}</small></td>'
+                 f'<td class="oh-r" aria-hidden="true"><span class="oh-t"><i style="left:{pos:.0f}%"></i></span>'
+                 f'<span class="oh-e"><span>low</span><span>high</span></span></td></tr>')
+    if not rows:
+        return ""
+    return ('<div class="card" id="own-history"><div class="hd"><div><h2>Context vs Opendoor\'s own history</h2>'
+            '<p class="sub">The latest reported quarter against Opendoor\'s own high and low over the quarters in the '
+            'Quarterly results table. These are Opendoor\'s own past numbers, not peer comparisons, and are not scored.</p></div></div>'
+            f'<div class="bd scroll" style="padding-top:4px"><table class="oh"><tr><th>Metric</th><th>Latest</th><th>Low</th>'
+            f'<th>High</th><th>Where it sits</th></tr>{rows}</table></div>'
+            '<div class="ft">Housing conditions already influence Unit economics and Execution; this is context only.</div></div>')
+
+
 def _dashboard(res, change, change_sub, ospark, kpi_html):
     """The top of the page in one card: score and why it moved, data status, live numbers, the five biggest moves,
     and what the next report will change. Every figure here also appears, in full, further down the page."""
     e, s = html.escape, res["score"]
     tone = _tone(s["overall"])
-    why_short, why_full = _why_moved(res, short=True), _why_moved(res)
-    moved = (f'<div class="d-moved"><p>{why_short}</p>'
-             f'<details><summary>Full detail</summary>{why_full}</details></div>' if why_short else "")
+    why_short = _why_moved(res, short=True)
+    moved = f'<div class="d-moved"><p>{why_short}</p></div>' if why_short else ""
     pills = ""
     for _, short, asof, _, old, _ in _fresh_rows(res):
         if asof:
@@ -3446,6 +3500,7 @@ def write_html(res, path):
 
 <div class="card"><div class="hd"><div><h2>Score by pillar</h2><p class="sub">Each pillar is the average of its metrics, 0–10</p></div></div>
 <div class="bd">{bars}<p class="decomp">How the {s['overall']:.2f} adds up (pillar score x weight): {decomp}.</p></div></div>
+{_own_history_card(res)}
 {_fresh_card(res)}
 
 <p class="section" id="pillars">What drives each score</p>
