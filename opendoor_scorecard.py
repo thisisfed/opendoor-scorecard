@@ -1981,7 +1981,7 @@ font-size:14.5px;line-height:1.5;color:var(--muted2)}
 .mv-dir{display:inline-block;font-weight:600;border-radius:8px;padding:1px 9px;margin:0 2px}
 .mv-dir.up{background:#e6f4ea;color:#0f9f6e}.mv-dir.down{background:#fdeceb;color:#e5484d}.mv-dir.flat{background:#f1efec;color:var(--muted2)}
 /* dashboard: the top card */
-.dash .d-top{display:grid;grid-template-columns:3fr 1fr;gap:0;padding:0}.dash .d-main{padding:24px 28px 22px;min-width:0}.dash .d-side{padding:24px 28px 22px;min-width:0}
+.dash .d-top{display:grid;grid-template-columns:3fr 1fr;gap:0;padding:0}.dash .d-main{padding:24px 28px 22px;min-width:0}.dash .d-side{padding:4px 28px 4px;margin:20px 0 20px -1px;min-width:0}
 .d-k{margin:0 0 6px;font-size:13px;font-weight:500;color:var(--muted2)}.d-k span{font-weight:400;color:var(--muted)}
 .dash .score{align-items:center;gap:12px}.dash .score .mini i{display:none}.dash .score .num{font-size:clamp(60px,8vw,96px)}
 .d-chg{display:inline-flex;flex-direction:column;align-items:flex-start;gap:3px;margin-left:4px}.d-chg small{font-size:12px;color:var(--muted)}
@@ -2031,7 +2031,7 @@ padding:6px 0;border-bottom:1px solid var(--line);font-size:13.5px}.d-pills li:l
 .q3-same{margin:12px 0 0;font-size:13px;color:var(--muted2)}.q3-same b{color:var(--ink);font-weight:500}
 .d-call.q3.done{background:#f6fbf8}.d-call.q3.done .rb-dot{background:#10b981}
 .q3-l li.rep{grid-template-columns:minmax(0,1fr) auto auto}
-@media (max-width:900px){.dash .d-top{grid-template-columns:1fr;gap:0;padding:0}.dash .d-main{padding:20px 18px 18px}.dash .d-side{border-left:0;border-top:1px solid var(--line);padding:14px 18px 18px}
+@media (max-width:900px){.dash .d-top{grid-template-columns:1fr;gap:0;padding:0}.dash .d-main{padding:20px 18px 18px}.dash .d-side{border-left:0;border-top:1px solid var(--line);padding:14px 18px 18px;margin:0}
 .mv5{grid-template-columns:repeat(2,minmax(0,1fr))}.d-cols{grid-template-columns:1fr;gap:12px}.d-sec,.d-call{padding:14px 18px 18px}.d-call.q3{padding:16px 16px 18px}.q3-gs{grid-template-columns:1fr}.q3-l li{display:flex;gap:6px}.q3-m{flex:1 1 auto}.q3-tag.old,.q3-ar{display:none}.q3-tag.to::before{content:'\\2192  '}.q3-t{font-size:16.5px}
 .dash .kpis .kpi{padding:12px 18px}}
 .mc{margin:0;padding-left:18px;font-size:14px;color:var(--muted2)}.mc li{margin:4px 0}
@@ -2150,6 +2150,7 @@ color:#fff;display:grid;grid-template-columns:1.05fr 1fr;gap:40px;align-items:ce
 /* Context vs Opendoor's own history */
 table.oh td small{display:block;font-size:12px;color:var(--muted);font-weight:400;margin-top:1px}table.oh td:first-child{white-space:normal}table.oh td em{font-style:normal;color:var(--muted2);display:block}table.oh td.oh-r{width:150px;min-width:120px}.oh-t{position:relative;display:block;height:6px;border-radius:3px;background:#ece9e4;margin:0 6px}.oh-t i{position:absolute;top:50%;width:11px;height:11px;margin:-5.5px 0 0 -5.5px;border-radius:50%;background:#1d4ed8;box-shadow:0 0 0 2px #fff}.oh-e{display:flex;justify-content:space-between;font-size:11px;color:var(--muted);margin-top:4px}
 @media (max-width:640px){table.oh tr:first-child{display:none}table.oh,table.oh tbody{display:block}table.oh tr{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:4px 10px;padding:10px 0;border-bottom:1px solid #eee}table.oh td{border:0;padding:0;text-align:left!important;white-space:normal!important;font-size:13px}table.oh td:first-child,table.oh td.oh-r{grid-column:1/-1}table.oh td:first-child{font-weight:500}table.oh td.oh-r{width:auto;padding-top:4px}table.oh td[data-l]::before{content:attr(data-l);display:block;font-size:11px;color:#8a8a8a}}
+.sc-bar{display:flex;align-items:center;justify-content:space-between;gap:10px 16px;flex-wrap:wrap;margin:0 0 14px}.sc-lab{margin:0;font-size:13.5px;font-weight:500;color:#1d4ed8;background:#e3ebfd;border-radius:999px;padding:4px 12px}.sc-act{display:flex;align-items:center;gap:8px;flex-wrap:wrap;margin-left:auto}.sc-act button,.sc-strip button{font:inherit;font-size:13px;border:1px solid var(--line);background:#fff;border-radius:10px;padding:6px 12px;cursor:pointer;color:var(--ink)}.sc-act button:hover:not(:disabled),.sc-strip button:hover{border-color:#b9b3aa}.sc-act button:disabled{opacity:.45;cursor:default}.sc-copy{border-color:#c9d6f5!important;color:#1d4ed8!important}.sc-msg{font-size:12.5px;color:var(--muted2);word-break:break-all}.sc-strip{display:flex;align-items:center;justify-content:space-between;gap:10px 16px;flex-wrap:wrap;margin:0 0 14px;padding:12px 18px;border:1px solid #c9d6f5;background:#f3f6fd;border-radius:20px;font-size:14.5px;color:var(--muted2)}.sc-strip p{margin:0}.sc-strip b{color:var(--ink)}.sc-strip a{color:#1d4ed8}.sc-tag{display:inline-block;margin-right:6px;font-size:12px;font-weight:600;color:#1d4ed8;background:#e3ebfd;border-radius:999px;padding:2px 9px}
 .howto{margin-top:16px;font-size:14.5px;color:var(--muted2);max-width:560px}.howto summary{cursor:pointer;font-weight:500;color:var(--ink);list-style:none;display:inline-flex;align-items:center;gap:6px}.howto summary::-webkit-details-marker{display:none}.howto summary::before{content:'+';display:inline-grid;place-items:center;width:18px;height:18px;border-radius:50%;border:1px solid #cfc9bf;font-size:13px;line-height:1;color:var(--muted2)}.howto[open] summary::before{content:'\\2212'}.howto p{margin:10px 0 0;line-height:1.55}
 @media (min-width:901px){.hero>div:last-child{padding-top:92px}}
 .nl-cta{display:inline-flex;align-items:center;gap:8px;margin-top:18px;font-size:16px;font-weight:600;color:#fff;background:#1d4ed8;
@@ -2648,6 +2649,11 @@ PRESETS = [("This page", None),
 
 SCENARIO_INPUTS = [("rev_nowcast_yoy", "Revenue YoY, latest quarter"), ("contrib_margin", "Contribution margin"),
                    ("coe_vs_guide", "Homes sold vs Opendoor's expectation")]
+# short, stable names for shared scenario links (?growth=20&rev_yoy=15): weights by pillar, inputs in percent
+URL_PILLAR = {"Growth": "growth", "Unit economics": "unit", "Profitability": "profit", "Execution": "exec",
+              "Balance sheet": "balance", "Dilution": "dilution", "Valuation": "value", "Momentum": "momentum",
+              "Housing market": "housing"}
+URL_INPUT = {"rev_nowcast_yoy": "rev_yoy", "contrib_margin": "cm", "coe_vs_guide": "homes_vs_exp"}
 
 
 def _scenario_card(res):
@@ -2659,7 +2665,8 @@ def _scenario_card(res):
     cm_last = cm_rows[-1]["contribution_margin_pct"] / 100 if cm_rows else None
     items = {i["key"]: i for p in s["pillars"] for i in p["metrics"]}
     data = {"published": s["overall"], "grades": GRADES, "pending": pending, "cmLast": cm_last,
-            "pillars": [{"n": p["name"], "w": p["weight"], "s": p["score"],
+            "url": URL_INPUT,
+            "pillars": [{"n": p["name"], "u": URL_PILLAR.get(p["name"], p["name"].lower()), "w": p["weight"], "s": p["score"],
                          "ms": [{"k": i["key"], "v": i["value"], "b": i["bad"], "g": i["good"]}
                                 for i in p["metrics"] if i["score"] is not None]} for p in s["pillars"]]}
     ins = ""
@@ -2687,12 +2694,17 @@ def _scenario_card(res):
             'inputs or the pillar weights; the same thresholds and arithmetic re-score it here. The published score doesn\'t change.</p></div>'
             f'<div class="right"><span class="wp-score">{s["overall"]:.2f}</span><p class="sub wp-grade">grade {e(s["grade"])}, as published</p></div></div>'
             f'<div class="bd" data-scen=\'{html.escape(json.dumps(data, separators=(",", ":")))}\'>'
+            f'<div class="sc-bar"><p class="sc-lab" hidden>Custom scenario — published score is {s["overall"]:.2f}</p>'
+            '<div class="sc-act"><button type="button" class="sc-copy">Copy scenario link</button>'
+            '<button type="button" class="sc-reset" disabled>Reset to published</button>'
+            '<span class="sc-msg" role="status" aria-live="polite"></span></div></div>'
             f'<p class="tool-h">Inputs</p><div class="presets">{sbtn}</div><p class="scen-note">Today\'s published inputs</p>'
             f'<div class="ins">{ins}</div>{derived}'
             f'<p class="tool-h">Pillar weights</p><div class="presets">{wbtn}</div><div class="sliders">{sliders}</div>'
             '<p class="sc-pil"></p></div>'
             '<div class="ft">Presets are hypothetical inputs set around Opendoor\'s own guidance, not forecasts, and disappear once '
             'that quarter is reported. Weights are scaled to add up to 100%, so only their sizes relative to each other matter. '
+            'Every change is kept in the page address, so a copied link opens the same scenario; weights in a link are scaled the same way. '
             'A pillar with no score is left out, as on the rest of the page.</div></div>')
 
 
@@ -3183,7 +3195,11 @@ def _why_moved(res, short=False):
             gist = "no pillar moved."
         else:
             gist = "mainly " + moved[0][2] + (f" ({moved[0][3]})" if moved[0][3] else "")
-            gist += (f"; {moved[1][2]}." if len(moved) > 1 else ".")
+            if len(moved) > 1:
+                gist += f"; then {moved[1][2]}" + (f" ({moved[1][3]})" if moved[1][3] else "")
+            gist += "."
+        if new:
+            gist += f' New data: {new[0]}' + (f" and {new[1]}" if len(new) > 1 else "") + "."
         return f'<span class="mv-dir {tone}">{arrow}{e(word)}</span> since {e(since)}: {e(gist)}'
 
     return (f'<p class="moved"><b>Why it moved.</b> <span class="mv-dir {tone}">{arrow}{e(word)}</span>{e(head)} '
@@ -3786,8 +3802,13 @@ a recommendation or investment advice.</p></footer>
       var w = [], t = 0, ws = 0, moved = [];
       sliders.forEach(function (s, k) {{ w[k] = parseFloat(s.value); }});
       var sum = w.reduce(function (a, b) {{ return a + b; }}, 0);
+      // shown shares always add up to exactly 100% (largest remainder); the score itself uses the unrounded shares
+      var raw = w.map(function (x) {{ return sum ? x / sum * 100 : 0; }}), pc = raw.map(Math.floor);
+      var left = sum ? 100 - pc.reduce(function (a, b) {{ return a + b; }}, 0) : 0;
+      raw.map(function (x, k) {{ return [x - pc[k], k]; }}).sort(function (a, b) {{ return b[0] - a[0] || a[1] - b[1]; }})
+        .slice(0, left).forEach(function (x) {{ pc[x[1]] += 1; }});
       D.pillars.forEach(function (p, k) {{
-        sliders[k].parentNode.querySelector(".sl-v").textContent = (sum ? w[k] / sum * 100 : 0).toFixed(0) + "%";
+        sliders[k].parentNode.querySelector(".sl-v").textContent = pc[k] + "%";
         if (!p.ms.length) return;
         var pts = p.ms.map(function (m) {{ return lin(m.k in ov ? ov[m.k] : m.v, m.b, m.g); }});
         var ps = r(fsum(pts) / pts.length, 1);
@@ -3801,7 +3822,94 @@ a recommendation or investment advice.</p></footer>
       gradeEl.textContent = "grade " + grade(v) + (asPub ? ", as published" :
         " (" + (d >= 0 ? "+" : "\u2212") + Math.abs(d).toFixed(2) + " vs published " + D.published.toFixed(2) + ")");
       pilEl.textContent = moved.length ? "Pillars that move: " + moved.join("; ") : "";
+      sync(v, grade(v));
     }}
+    // shared links: the scenario lives in the query string; nothing is written while the page is as published
+    var labEl = sc.querySelector(".sc-lab"), resetEl = sc.querySelector(".sc-reset"), msgEl = sc.querySelector(".sc-msg");
+    var keys = D.pillars.map(function (p) {{ return p.u; }}).concat(Object.keys(D.url).map(function (k) {{ return D.url[k]; }}));
+    var strip = null;
+    function nf(x) {{ return String(Math.round(x * 10) / 10); }}
+    function custom() {{
+      var c = false;
+      sliders.forEach(function (sl, k) {{ if (parseFloat(sl.value) !== page[k]) c = true; }});
+      ins.forEach(function (i) {{ if (i.getAttribute("data-k") in ov) c = true; }});
+      return c;
+    }}
+    function sync(v, g) {{
+      var c = custom(), q = new URLSearchParams(location.search), before = q.toString();
+      keys.forEach(function (k) {{ q.delete(k); }});
+      if (c) {{
+        sliders.forEach(function (sl, k) {{ if (parseFloat(sl.value) !== page[k]) q.set(D.pillars[k].u, nf(parseFloat(sl.value))); }});
+        ins.forEach(function (i) {{ var k = i.getAttribute("data-k"); if (k in ov) q.set(D.url[k], nf(parseFloat(i.value))); }});
+      }}
+      var after = q.toString();
+      if (after !== before && window.history && history.replaceState)
+        history.replaceState(null, "", location.pathname + (after ? "?" + after : "") + location.hash);
+      labEl.hidden = !c; resetEl.disabled = !c;
+      if (strip) {{
+        if (c) strip.querySelector("b").textContent = v.toFixed(2) + " (grade " + g + ")";
+        else {{ strip.remove(); strip = null; }}
+      }}
+    }}
+    function reset() {{
+      ov = {{}};
+      sliders.forEach(function (sl, k) {{ sl.value = page[k]; }});
+      ins.forEach(function (i) {{ i.value = parseFloat(i.getAttribute("data-pub")).toFixed(1); }});
+      sc.querySelectorAll(".pre,.spre").forEach(function (b) {{ b.classList.remove("on"); }});
+      var p0 = sc.querySelector('.pre[data-w=""]'), s0 = sc.querySelector(".spre");
+      if (p0) p0.classList.add("on");
+      if (s0) {{ s0.classList.add("on"); noteEl.textContent = s0.getAttribute("data-note"); }}
+      msgEl.textContent = "";
+      calc();
+    }}
+    resetEl.addEventListener("click", reset);
+    sc.querySelector(".sc-copy").addEventListener("click", function () {{
+      var url = location.href, c = custom();
+      function ok() {{ msgEl.textContent = c ? "Link copied" : "Link copied (published view; change something to share a scenario)"; }}
+      function fallback() {{
+        var t = document.createElement("textarea"); t.value = url; t.setAttribute("readonly", ""); t.style.position = "fixed"; t.style.opacity = "0";
+        document.body.appendChild(t); t.select();
+        var done = false; try {{ done = document.execCommand("copy"); }} catch (err) {{}}
+        t.remove();
+        if (done) ok(); else msgEl.textContent = url;
+      }}
+      if (navigator.clipboard && window.isSecureContext) navigator.clipboard.writeText(url).then(ok, fallback); else fallback();
+    }});
+    // apply a shared scenario from the address, ignoring anything that isn't a sensible number
+    (function () {{
+      var q = new URLSearchParams(location.search), used = false, w = sliders.length ? [] : null;
+      D.pillars.forEach(function (p, k) {{
+        if (!q.has(p.u)) return;
+        var v = parseFloat(q.get(p.u));
+        if (!isFinite(v) || v < 0 || v > 100) return;
+        if (v > parseFloat(sliders[k].max)) sliders[k].max = String(Math.ceil(v));
+        sliders[k].value = v; used = true;
+      }});
+      var tot = 0; sliders.forEach(function (sl) {{ tot += parseFloat(sl.value); }});
+      if (!tot) sliders.forEach(function (sl, k) {{ sl.value = page[k]; }});
+      var inUsed = false;
+      ins.forEach(function (i) {{
+        var k = i.getAttribute("data-k"), n = D.url[k];
+        if (!n || !q.has(n)) return;
+        var v = parseFloat(q.get(n));
+        if (!isFinite(v) || v < -100 || v > 500) return;
+        i.value = v.toFixed(1); setInput(k, v / 100); used = true; inUsed = true;
+      }});
+      if (!used) return;
+      if (custom()) {{
+        sc.querySelectorAll(".pre").forEach(function (b) {{ b.classList.remove("on"); }});
+        if (inUsed) {{ sc.querySelectorAll(".spre").forEach(function (b) {{ b.classList.remove("on"); }}); noteEl.textContent = "From a shared link"; }}
+        var dash = document.getElementById("score");
+        if (dash) {{
+          strip = document.createElement("div"); strip.className = "sc-strip";
+          strip.innerHTML = '<p><span class="sc-tag">Custom scenario</span> This link opens a scenario scoring <b></b>. '
+            + "Published score is " + D.published.toFixed(2) + '. <a href="#weights-play">See the scenario</a></p>'
+            + '<button type="button">Reset to published</button>';
+          strip.querySelector("button").addEventListener("click", reset);
+          dash.parentNode.insertBefore(strip, dash);
+        }}
+      }}
+    }})();
     ins.forEach(function (i) {{ i.addEventListener("input", function () {{
       var v = parseFloat(i.value);
       if (isNaN(v)) return;
