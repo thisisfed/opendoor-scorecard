@@ -1990,7 +1990,8 @@ table.trk td,table.psh td{border:0;padding:0;text-align:left!important;white-spa
 table.trk td:first-child,table.psh td:first-child{grid-column:1/-1;font-weight:500;min-width:0}
 table.trk td[data-l]::before,table.psh td[data-l]::before{content:attr(data-l);display:block;font-size:11px;color:#8a8a8a}
 table.imp-grid td:first-child,table.imp-grid th:first-child{position:sticky;left:0;background:#fff;z-index:1}}
-.moved{margin:12px 0 0;padding:10px 14px;border-radius:12px;background:#f6f4f1;font-size:14.5px;line-height:1.5;color:var(--muted2);max-width:900px}
+.moved{margin:16px 0 0;padding:14px 18px;border-radius:14px;background:rgba(255,255,255,.75);border:1px solid var(--line);
+font-size:14.5px;line-height:1.5;color:var(--muted2)}
 .moved b{color:var(--ink,#23201d);font-weight:500}
 .mc{margin:0;padding-left:18px;font-size:14px;color:var(--muted2)}.mc li{margin:4px 0}
 /* wide tables on phones: scroll sideways, keep the first column in view */
@@ -3155,11 +3156,12 @@ def write_html(res, path):
 </section>
 
 {_results_banner(res)}
+{_why_moved(res)}
 <div class="card" id="score"><div class="hd stack"><div><h2>Overall score</h2><p class="sub">Weighted across nine pillars</p></div>
 <div class="right">{change}<p class="sub">{e(change_sub)}</p></div></div>
 <div class="bd"><div class="score"><span class="num">{s['overall']:.2f}</span><span class="of">/ 10</span>
 <span class="grade badge {tone}">{e(s['grade'])}</span>{ospark}</div>
-<p class="verdict">{e(s['verdict'])}</p><p class="why">{e(s['why'])}</p>{_why_moved(res)}</div>
+<p class="verdict">{e(s['verdict'])}</p><p class="why">{e(s['why'])}</p></div>
 <div class="kpis">{kpi_html}</div></div>
 
 {_move_card(res)}
