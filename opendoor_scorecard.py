@@ -2151,8 +2151,8 @@ color:#fff;display:grid;grid-template-columns:1.05fr 1fr;gap:40px;align-items:ce
 table.oh td small{display:block;font-size:12px;color:var(--muted);font-weight:400;margin-top:1px}table.oh td:first-child{white-space:normal}table.oh td em{font-style:normal;color:var(--muted2);display:block}table.oh td.oh-r{width:150px;min-width:120px}.oh-t{position:relative;display:block;height:6px;border-radius:3px;background:#ece9e4;margin:0 6px}.oh-t i{position:absolute;top:50%;width:11px;height:11px;margin:-5.5px 0 0 -5.5px;border-radius:50%;background:#1d4ed8;box-shadow:0 0 0 2px #fff}.oh-e{display:flex;justify-content:space-between;font-size:11px;color:var(--muted);margin-top:4px}
 @media (max-width:640px){table.oh tr:first-child{display:none}table.oh,table.oh tbody{display:block}table.oh tr{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:4px 10px;padding:10px 0;border-bottom:1px solid #eee}table.oh td{border:0;padding:0;text-align:left!important;white-space:normal!important;font-size:13px}table.oh td:first-child,table.oh td.oh-r{grid-column:1/-1}table.oh td:first-child{font-weight:500}table.oh td.oh-r{width:auto;padding-top:4px}table.oh td[data-l]::before{content:attr(data-l);display:block;font-size:11px;color:#8a8a8a}}
 .sc-bar{display:flex;align-items:center;justify-content:space-between;gap:10px 16px;flex-wrap:wrap;margin:0 0 14px}.sc-lab{margin:0;font-size:13.5px;font-weight:500;color:#1d4ed8;background:#e3ebfd;border-radius:999px;padding:4px 12px}.sc-act{display:flex;align-items:center;gap:8px;flex-wrap:wrap;margin-left:auto}.sc-act button,.sc-strip button{font:inherit;font-size:13px;border:1px solid var(--line);background:#fff;border-radius:10px;padding:6px 12px;cursor:pointer;color:var(--ink)}.sc-act button:hover:not(:disabled),.sc-strip button:hover{border-color:#b9b3aa}.sc-act button:disabled{opacity:.45;cursor:default}.sc-copy{border-color:#c9d6f5!important;color:#1d4ed8!important}.sc-msg{font-size:12.5px;color:var(--muted2);word-break:break-all}.sc-strip{display:flex;align-items:center;justify-content:space-between;gap:10px 16px;flex-wrap:wrap;margin:0 0 14px;padding:12px 18px;border:1px solid #c9d6f5;background:#f3f6fd;border-radius:20px;font-size:14.5px;color:var(--muted2)}.sc-strip p{margin:0}.sc-strip b{color:var(--ink)}.sc-strip a{color:#1d4ed8}.sc-tag{display:inline-block;margin-right:6px;font-size:12px;font-weight:600;color:#1d4ed8;background:#e3ebfd;border-radius:999px;padding:2px 9px}
-.howto{margin-top:16px;font-size:14.5px;color:var(--muted2);max-width:560px}.howto summary{cursor:pointer;font-weight:500;color:var(--ink);list-style:none;display:inline-flex;align-items:center;gap:6px}.howto summary::-webkit-details-marker{display:none}.howto summary::before{content:'+';display:inline-grid;place-items:center;width:18px;height:18px;border-radius:50%;border:1px solid #cfc9bf;font-size:13px;line-height:1;color:var(--muted2)}.howto[open] summary::before{content:'\\2212'}.howto p{margin:10px 0 0;line-height:1.55}
-@media (min-width:901px){.hero>div:last-child{padding-top:92px}}
+.howto{display:flex;align-items:center;gap:6px;margin-top:16px;padding:0;border:0;background:none;font:inherit;font-size:14.5px;font-weight:500;color:var(--ink);cursor:pointer}.howto::before{content:'+';display:inline-grid;place-items:center;width:18px;height:18px;border-radius:50%;border:1px solid #cfc9bf;font-size:13px;line-height:1;color:var(--muted2)}.howto[aria-expanded=true]::before{content:'\\2212'}.howto-body{font-size:14.5px;color:var(--muted2);max-width:560px}.howto-body p{margin:0;line-height:1.55}.hero>.howto-body{margin-top:-8px}
+@media (min-width:901px){.hero>.hero-r{padding-top:92px}.hero{row-gap:0}.hero>.howto-body{grid-column:2;margin-top:12px}}
 .nl-cta{display:inline-flex;align-items:center;gap:8px;margin-top:18px;font-size:16px;font-weight:600;color:#fff;background:#1d4ed8;
 padding:11px 18px;border-radius:12px;text-decoration:none;box-shadow:0 6px 20px rgba(29,78,216,.28)}.nl-cta:hover{background:#1e40af}
 .nl-strip{display:flex;justify-content:space-between;align-items:center;gap:16px;margin-top:28px;padding:18px 22px;border-radius:16px;
@@ -2342,12 +2342,18 @@ def _how_to_read():
         return xs[0] if len(xs) == 1 else ", ".join(xs[:-1]) + " and " + xs[-1]
     wtxt = "; ".join(f"{_and(n)} {w}%{' each' if len(n) > 1 else ''}" for w, n in sorted(tiers.items(), reverse=True))
     bands = ", ".join(f"{g} from {t:.1f}" for t, g, _ in GRADES if t > 0) + f", {GRADES[-1][1]} below"
-    return ('<details class="howto"><summary>How to read this scorecard</summary>'
+    # a button plus a separate panel, so opening it adds a row under the hero instead of growing the column upward
+    # (the hero is bottom-aligned; a growing column would push the headline down)
+    btn = ('<button type="button" class="howto" aria-expanded="false" aria-controls="howto" '
+           'onclick="var b=document.getElementById(\'howto\');b.hidden=!b.hidden;this.setAttribute(\'aria-expanded\',String(!b.hidden))">'
+           'How to read this scorecard</button>')
+    body = ('<div class="howto-body" id="howto" hidden>'
             '<p>Opendoor is rated on nine pillars, from growth and unit economics to dilution, valuation and the housing market. '
             'Each metric earns 0 to 10 points on a straight line between two published levels, and a pillar is the average of its metrics. '
             f'The overall score is the weighted average of the pillars ({html.escape(wtxt)}), '
             f'and the grade follows from it: {bands}. '
-            'It is an independent summary of public numbers, not a forecast, a recommendation or investment advice.</p></details>')
+            'It is an independent summary of public numbers, not a forecast, a recommendation or investment advice.</p></div>')
+    return btn, body
 
 
 def _own_history_card(res):
@@ -3505,9 +3511,10 @@ def write_html(res, path):
 <section class="hero">
 <div class="asof"><span class="dot"></span>Updated {e(_d(res['generated']))}, {e(res['generated'][11:16])} UK<i>Prices to {e(_d(px['date']))}</i><i>Opendoor tracker as of {e(_d(asof))}, refreshed weekly</i></div>
 <h1>Opendoor,<br>scored.<br>Every weekday.</h1>
-<div><p class="lede">An independent scorecard that grades Opendoor 0–10 on nine pillars, rebuilt every weekday from SEC filings, the share price, housing data from its markets and Opendoor's own public tracker.</p>
+<div class="hero-r"><p class="lede">An independent scorecard that grades Opendoor 0–10 on nine pillars, rebuilt every weekday from SEC filings, the share price, housing data from its markets and Opendoor's own public tracker.</p>
 {'<a class="nl-cta" href="#subscribe">Get the weekly email, free <span>&rarr;</span></a>' if NEWSLETTER_USER else ''}
-{_how_to_read()}</div>
+{_how_to_read()[0]}</div>
+{_how_to_read()[1]}
 </section>
 
 {_dashboard(res, change, change_sub, ospark, kpi_html)}
