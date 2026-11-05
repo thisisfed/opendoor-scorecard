@@ -1977,6 +1977,39 @@ font-size:14.5px;line-height:1.5;color:var(--muted2)}
 .moved b{color:var(--ink,#23201d);font-weight:500}
 .mv-dir{display:inline-block;font-weight:600;border-radius:8px;padding:1px 9px;margin:0 2px}
 .mv-dir.up{background:#e6f4ea;color:#0f9f6e}.mv-dir.down{background:#fdeceb;color:#e5484d}.mv-dir.flat{background:#f1efec;color:var(--muted2)}
+/* dashboard: the top card */
+.dash .d-top{display:grid;grid-template-columns:minmax(0,1fr) 300px;gap:32px;padding:24px 28px 22px}
+.d-k{margin:0 0 6px;font-size:13px;font-weight:500;color:var(--muted2)}.d-k span{font-weight:400;color:var(--muted)}
+.dash .score{align-items:center;gap:12px}.dash .score .mini i{display:none}.dash .score .num{font-size:clamp(60px,8vw,96px)}
+.d-chg{display:inline-flex;flex-direction:column;align-items:flex-start;gap:3px;margin-left:4px}.d-chg small{font-size:12px;color:var(--muted)}
+.dash .verdict{margin-top:14px}.dash .why{font-size:16px}
+.d-moved{margin-top:14px;padding:10px 14px;border-radius:12px;background:#f6f4f1;font-size:14.5px;line-height:1.5;color:var(--muted2)}
+.d-moved>p{margin:0}.d-moved summary{cursor:pointer;color:#1d4ed8;font-size:13px;margin-top:6px}
+.d-moved .moved{margin:8px 0 0;padding:0;border:0;background:none;font-size:13.5px}
+.d-side{border-left:1px solid var(--line);padding-left:24px}
+.d-pills{list-style:none;margin:0;padding:0}.d-pills li{display:flex;justify-content:space-between;align-items:center;gap:10px;
+padding:6px 0;border-bottom:1px solid var(--line);font-size:13.5px}.d-pills li:last-child{border-bottom:0}
+.d-src small{display:block;font-size:11.5px;color:var(--muted)}.d-pills .badge{font-size:12px;padding:2px 8px}
+.d-more{display:inline-block;margin-top:8px;font-size:13px;color:#1d4ed8}
+.dash .kpis .kpi{padding:14px 28px}.dash .kpis .kpi .v{font-size:24px}
+.d-sec{border-top:1px solid var(--line);padding:16px 28px 20px}
+.d-h{display:flex;justify-content:space-between;align-items:baseline;gap:6px 16px;flex-wrap:wrap;margin-bottom:10px}
+.d-h .d-k{margin:0}.d-hint{margin:0;font-size:13px;color:var(--muted)}.d-hint a{color:#1d4ed8;margin-left:6px}
+.mv5{display:grid;grid-template-columns:repeat(5,minmax(0,1fr));gap:10px}
+.mv5-t{border:1px solid var(--line);border-radius:12px;padding:10px 12px;display:flex;flex-direction:column;gap:4px}
+.mv5-n{margin:0;font-size:13.5px;font-weight:500;line-height:1.3}.mv5-n small{display:block;font-weight:400;font-size:11.5px;color:var(--muted)}
+.mv5-v{margin:0;font-size:15px}.mv5-v small{font-size:12px;color:var(--muted);margin-left:6px}
+.mv5-f{margin:0;font-size:12px;color:var(--muted)}.mv5-l{margin:auto 0 0;font-size:15px;font-weight:600;color:#0f9f6e}
+.d-call{border-top:1px solid var(--line);padding:16px 28px 20px;background:#fbfaf8}
+.d-ct{margin:0 0 12px;font-size:14.5px;color:var(--muted2);display:flex;gap:8px;align-items:baseline;flex-wrap:wrap}
+.d-ct b{color:var(--ink);font-weight:600}.d-ct .rb-dot,.d-call .rb-dot{margin-top:0;align-self:center}
+.d-cols{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:18px}
+.d-ch{margin:0 0 6px;font-size:14px;font-weight:500}.d-ch small{display:block;font-weight:400;font-size:12px;color:var(--muted)}
+.d-cols ul{margin:0;padding:0;list-style:none;font-size:13.5px;color:var(--muted2)}.d-cols li{padding:2px 0}.d-cols li b{color:var(--ink);font-weight:500}
+.d-call.done{display:flex;gap:10px;align-items:center}.d-call.done p{margin:0;font-size:14.5px;color:var(--muted2)}.d-call.done b{color:var(--ink);font-weight:500}
+@media (max-width:900px){.dash .d-top{grid-template-columns:1fr;gap:18px;padding:20px 18px}.d-side{border-left:0;padding-left:0;border-top:1px solid var(--line);padding-top:14px}
+.mv5{grid-template-columns:repeat(2,minmax(0,1fr))}.d-cols{grid-template-columns:1fr;gap:12px}.d-sec,.d-call{padding:14px 18px 18px}
+.dash .kpis .kpi{padding:12px 18px}}
 .mc{margin:0;padding-left:18px;font-size:14px;color:var(--muted2)}.mc li{margin:4px 0}
 /* wide tables on phones: scroll sideways, keep the first column in view */
 table.dil td:first-child,table.dil th:first-child,table.mk td:first-child,table.mk th:first-child,table.mv td:first-child,
@@ -2180,7 +2213,8 @@ def _what_if_text(s):
             f"{w['pillar_from']:.1f}, and the overall score would be {w['overall_to']:.2f} ({w['overall_change']:+.2f}). ")
 
 
-def _fresh_card(res):
+def _fresh_rows(res):
+    """Each source: (name, short name, data-to text, date, out of date?, how often it updates)."""
     ex, px, acc = res["extra"], res["price"], res.get("accountable") or {}
     today = res["generated"][:10]
     last_qe = _quarter_end_before(today)
@@ -2189,18 +2223,24 @@ def _fresh_card(res):
     dq = (ex.get("dilution") or {}).get("quarter")
     mort = (ex.get("mortgage") or {}).get("date")
     hous = (ex.get("housing") or {}).get("month")
-    rows = [
-        ("Balance sheet and cash flow (10-Q)", bs_q and _qlabel(bs_q), bs_q, bs_q and bs_q < last_qe, "quarterly"),
-        ("Earnings release (homes, margins, adj. figures)", rel_q and _qlabel(rel_q), rel_q, rel_q and rel_q < last_qe, "quarterly"),
-        ("Potential new shares (10-Q table)", dq and _qlabel(dq), dq, dq and dq < last_qe, "quarterly"),
-        ("Opendoor's tracker", acc.get("as_of") and _d(acc["as_of"]), acc.get("as_of"),
+    return [
+        ("Balance sheet and cash flow (10-Q)", "Balance sheet (10-Q)", bs_q and _qlabel(bs_q), bs_q, bs_q and bs_q < last_qe, "quarterly"),
+        ("Earnings release (homes, margins, adj. figures)", "Earnings release", rel_q and _qlabel(rel_q), rel_q,
+         rel_q and rel_q < last_qe, "quarterly"),
+        ("Potential new shares (10-Q table)", "Share table (10-Q)", dq and _qlabel(dq), dq, dq and dq < last_qe, "quarterly"),
+        ("Opendoor's tracker", "Opendoor's tracker", acc.get("as_of") and _d(acc["as_of"]), acc.get("as_of"),
          acc.get("as_of") and _days(acc["as_of"], today) > 14, "weekly"),
-        ("Share price", _d(px["date"]), px["date"], _days(px["date"], today) > 5, "every weekday"),
-        ("Mortgage rate", mort and f"week of {_d(mort)}", mort, mort and _days(mort, today) > 14, "weekly"),
-        ("Housing in Opendoor's markets", hous and _month(hous), hous and hous + "-01", hous and _days(hous + "-01", today) > 95, "monthly"),
+        ("Share price", "Share price", _d(px["date"]), px["date"], _days(px["date"], today) > 5, "every weekday"),
+        ("Mortgage rate", "Mortgage rate", mort and f"week of {_d(mort)}", mort, mort and _days(mort, today) > 14, "weekly"),
+        ("Housing in Opendoor's markets", "Housing data", hous and _month(hous), hous and hous + "-01",
+         hous and _days(hous + "-01", today) > 95, "monthly"),
     ]
+
+
+def _fresh_card(res):
+    today = res["generated"][:10]
     body = ""
-    for name, asof, date_, old, every in rows:
+    for name, _, asof, date_, old, every in _fresh_rows(res):
         if not asof:
             continue
         age = _days(str(date_)[:10], today)
@@ -2254,6 +2294,53 @@ def _targets_card(res):
 
 
 NEWSLETTER_USER = os.environ.get("BUTTONDOWN_USERNAME", "").strip()  # set as a repository variable to switch the signup on
+
+
+def _dashboard(res, change, change_sub, ospark, kpi_html):
+    """The top of the page in one card: score and why it moved, data status, live numbers, the five biggest moves,
+    and what the next report will change. Every figure here also appears, in full, further down the page."""
+    e, s = html.escape, res["score"]
+    tone = _tone(s["overall"])
+    why_short, why_full = _why_moved(res, short=True), _why_moved(res)
+    moved = (f'<div class="d-moved"><p>{why_short}</p>'
+             f'<details><summary>Full detail</summary>{why_full}</details></div>' if why_short else "")
+    pills = ""
+    for _, short, asof, _, old, _ in _fresh_rows(res):
+        if asof:
+            pills += (f'<li><span class="d-src">{e(short)}<small>{e(asof)}</small></span>'
+                      f'{_badge("Over a quarter old" if old else "Current", "amber" if old else "green")}</li>')
+    lev = s.get("leverage") or {}
+    by = {r["key"]: r for r in lev.get("rows", [])}
+    tiles = ""
+    for k in lev.get("top", []):
+        r = by[k]
+        tiles += (f'<div class="mv5-t"><p class="mv5-n">{e(NAMES.get(k, r["label"])[:1].upper() + NAMES.get(k, r["label"])[1:])}<small>{e(r["pillar"])}</small></p>'
+                  f'<p class="mv5-v">{e(fmt(r["value"], r["fmt"]))}<small>{r["points"]:.1f} pts</small></p>'
+                  f'<p class="mv5-f">Full marks at {e(fmt(r["good"], r["fmt"]))}</p><p class="mv5-l">+{r["to_full"]:.2f}</p></div>')
+    gap_b = next((g for g in lev.get("grades", []) if g["grade"] == "B"), None)
+    moves = (f'<div class="d-sec"><div class="d-h"><p class="d-k">Five biggest single moves</p>'
+             f'<p class="d-hint">Overall score if each reached full marks, alone'
+             + (f'. B starts at {gap_b["at"]:.2f}, {gap_b["gap"]:.2f} away' if gap_b else "")
+             + ' <a href="#move">How the score moves</a></p></div><div class="mv5">' + tiles + '</div></div>') if tiles else ""
+    ri = _results_info(res)
+    call = ""
+    if ri and ri["state"] == "done":
+        call = (f'<div class="d-call done"><span class="rb-dot"></span><p><b>{e(ri["title"])}.</b> {e(ri["note"])}</p></div>')
+    elif ri:
+        cols = "".join(f'<div><p class="d-ch">{e(h)}<small>{e(sub)}</small></p><ul>'
+                       + "".join(f'<li><b>{e(n)}</b>{(" " + e(d)) if d else ""}</li>' for n, d in items) + '</ul></div>'
+                       for h, sub, items in ri["cols"])
+        call = (f'<div class="d-call"><p class="d-ct"><span class="rb-dot"></span><b>{e(ri["title"])}</b> {e(ri["when"])}. '
+                f'Until then the quarterly figures are {e(ri["latest"])}.</p><div class="d-cols">{cols}</div></div>')
+    return (f'<div class="card dash" id="score"><div class="d-top"><div class="d-main">'
+            f'<p class="d-k">Overall score <span>weighted across nine pillars</span></p>'
+            f'<div class="score"><span class="num">{s["overall"]:.2f}</span><span class="of">/ 10</span>'
+            f'<span class="grade badge {tone}">{e(s["grade"])}</span>'
+            f'<span class="d-chg">{change}<small>{e(change_sub)}</small></span>{ospark}</div>'
+            f'<p class="verdict">{e(s["verdict"])}</p><p class="why">{e(s["why"])}</p>{moved}</div>'
+            f'<div class="d-side"><p class="d-k">Data status</p><ul class="d-pills">{pills}</ul>'
+            f'<a class="d-more" href="#freshness">Every source and its age</a></div></div>'
+            f'<div class="kpis">{kpi_html}</div>{moves}{call}</div>')
 
 
 def _subscribe_card():
@@ -2564,6 +2651,45 @@ def _move_card(res):
             'The list ranks arithmetic, not likelihood: some inputs, such as the share price, are not in management\'s hands.</div></div>')
 
 
+def _results_info(res):
+    """State of the next report and which scored metrics it moves: None, or a dict for the dashboard callout."""
+    nr = NEXT_RESULTS
+    if not nr.get("quarter"):
+        return None
+    today = res["generated"][:10]
+    latest = res["quarters"][-1]["quarter_end"]
+    ql = _qlabel(nr["quarter"])
+    if latest >= nr["quarter"]:
+        if _days(nr["date"], today) > 10:
+            return None
+        bs_in = ((res["extra"].get("pro_forma") or {}).get("as_of") or "") >= nr["quarter"]
+        return {"state": "done", "title": f"{ql} results are in the score",
+                "note": ("The balance sheet, share count and stock pay are updated too (10-Q filed)." if bs_in else
+                         "Balance sheet, share count and stock pay still use the previous quarter until the 10-Q is filed, "
+                         "usually within days.")}
+    if _days(nr["date"], today) > 21:
+        return None
+    pil = {p["name"]: [i for i in p["metrics"] if i["score"] is not None] for p in res["score"]["pillars"]}
+
+    def group(keys):
+        out = []
+        for name, items in pil.items():
+            hit = [i for i in items if i["key"] in keys]
+            if hit:
+                out.append((name, f"all {len(hit)}" if len(hit) == len(items) and len(hit) > 1 else
+                            ", ".join(SHORT.get(i["key"], i["label"]) for i in hit)))
+        return out
+    same = [(n, "") for n, items in pil.items() if items and not any(i["key"] in FROM_RELEASE + FROM_10Q for i in items)]
+    when = ("tonight, after the US close (about 21:00 UK)" if today == nr["date"] else
+            f"on {_d(nr['date'])}, after the US close (about 21:00 UK)" if today < nr["date"] else
+            f"were due {_d(nr['date'])}; in on the first evening run after the release reaches the SEC site")
+    return {"state": "upcoming" if today <= nr["date"] else "due", "title": f"What updates with {ql} results", "when": when,
+            "latest": _qlabel(latest),
+            "cols": [("With the earnings release", "the first evening run after it", group(FROM_RELEASE)),
+                     ("With the 10-Q", "often a few days later", group(FROM_10Q)),
+                     ("Not affected", "plus the tracker metrics, weekly", same)]}
+
+
 def _results_banner(res):
     nr = NEXT_RESULTS
     if not nr.get("quarter"):
@@ -2853,7 +2979,7 @@ NAMES = {"rev_nowcast_yoy": "revenue YoY", "coe_q4_yoy": "homes sold this quarte
          "cuts_yoy": "price cuts vs a year ago", "list_price_yoy": "asking prices vs a year ago"}
 
 
-def _why_moved(res):
+def _why_moved(res, short=False):
     """One short paragraph under the score: how much it moved since the previous day, which pillars did it and the
     metrics behind them, and what new data arrived. Built only from this run and the previous day's run."""
     prev, s = res.get("previous") or {}, res["score"]
@@ -2863,6 +2989,9 @@ def _why_moved(res):
     e = html.escape
     since = _d(prev.get("generated") or ch["since"])
     if ch.get("method_changed"):
+        if short:
+            return (f'<span class="mv-dir flat">Method updated</span> since {since}: the scoring changed (v{METHOD}), '
+                    'so this is not a like-for-like move.')
         return (f'<p class="moved"><b>Why it changed.</b> The scoring method was updated (v{METHOD}) since {since}, '
                 'so the change is not like-for-like. See Method changes.</p>')
     # values from the previous run: the snapshot, or the metric history for that day
@@ -2889,15 +3018,17 @@ def _why_moved(res):
             ov = pv.get(i["key"])
             what = (f'{NAMES.get(i["key"], i["label"])} {fmt(ov, i["fmt"])} to {fmt(i["value"], i["fmt"])}'
                     if ov is not None else NAMES.get(i["key"], i["label"]))
-            mets.append((abs(i["score"] - o), f'{what} ({i["score"] - o:+.1f} pts)'))
-        mets = [t for _, t in sorted(mets, reverse=True)[:2]]
+            mets.append((abs(i["score"] - o), f'{what} ({i["score"] - o:+.1f} pts)', what))
+        mets = sorted(mets, reverse=True)[:2]
         moved.append((abs(p["score"] - a) * p["weight"] / wsum,
-                      f'{p["name"]} {a:.1f} to {p["score"]:.1f}' + (f': {", ".join(mets)}' if mets else "")))
+                      f'{p["name"]} {a:.1f} to {p["score"]:.1f}' + (f': {", ".join(t for _, t, _ in mets)}' if mets else ""),
+                      f'{p["name"]} {a:.1f} to {p["score"]:.1f}', mets[0][2] if mets else ""))
     d = ch["overall"]
     tone = "flat" if abs(d) < 0.005 else ("up" if d > 0 else "down")
     word = "Unchanged" if tone == "flat" else ("Up" if d > 0 else "Down") + f" {abs(d):.2f}"
     head = f" since {since}."
-    body = "; ".join(t for _, t in sorted(moved, reverse=True)[:3]) + "." if moved else \
+    moved.sort(key=lambda m: -m[0])
+    body = "; ".join(m[1] for m in moved[:3]) + "." if moved else \
         "No pillar moved: the new data did not shift any metric enough to change a pillar's score."
     # what new data the run brought
     st, now = prev.get("stamps") or {}, _stamps(res)
@@ -2916,6 +3047,14 @@ def _why_moved(res):
         new.append("a new month of housing data")
     tail = f' New since then: {", ".join(new)}.' if new else ""
     arrow = {"up": "&#8599; ", "down": "&#8600; ", "flat": ""}[tone]
+    if short:  # one sentence: the biggest pillar move and what drove it, plus the next one
+        if not moved:
+            gist = "no pillar moved."
+        else:
+            gist = "mainly " + moved[0][2] + (f" ({moved[0][3]})" if moved[0][3] else "")
+            gist += (f"; {moved[1][2]}." if len(moved) > 1 else ".")
+        return f'<span class="mv-dir {tone}">{arrow}{e(word)}</span> since {e(since)}: {e(gist)}'
+
     return (f'<p class="moved"><b>Why it moved.</b> <span class="mv-dir {tone}">{arrow}{e(word)}</span>{e(head)} '
             f'{e(body)}{e(tail)}</p>')
 
@@ -3211,16 +3350,8 @@ def write_html(res, path):
 {'<a class="nl-cta" href="#subscribe">Get the weekly email, free <span>&rarr;</span></a>' if NEWSLETTER_USER else ''}</div>
 </section>
 
-{_results_banner(res)}
-{_why_moved(res)}
-<div class="card" id="score"><div class="hd stack"><div><h2>Overall score</h2><p class="sub">Weighted across nine pillars</p></div>
-<div class="right">{change}<p class="sub">{e(change_sub)}</p></div></div>
-<div class="bd"><div class="score"><span class="num">{s['overall']:.2f}</span><span class="of">/ 10</span>
-<span class="grade badge {tone}">{e(s['grade'])}</span>{ospark}</div>
-<p class="verdict">{e(s['verdict'])}</p><p class="why">{e(s['why'])}</p></div>
-<div class="kpis">{kpi_html}</div></div>
+{_dashboard(res, change, change_sub, ospark, kpi_html)}
 
-{_move_card(res)}
 {_subscribe_card()}
 
 <div class="card"><div class="hd"><div><h2>Score by pillar</h2><p class="sub">Each pillar is the average of its metrics, 0–10</p></div></div>
@@ -3236,6 +3367,7 @@ def write_html(res, path):
 {deep}
 
 <p class="section" id="analyst">Analyst view</p>
+{_move_card(res)}
 <div class="grid2">{_track_card(res)}{_per_share_card(res)}</div>
 {_implied_card(res)}
 
