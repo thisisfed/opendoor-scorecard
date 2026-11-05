@@ -51,7 +51,7 @@ jobs:
         env:
           POSITION_PASSPHRASE: ${{ secrets.POSITION_PASSPHRASE }}
           POSITION_SHARES: ${{ secrets.POSITION_SHARES }}
-          POSITION_COST_GBP: ${{ secrets.POSITION_COST_GBP }}
+          POSITION_COST_USD: ${{ secrets.POSITION_COST_USD }}
         run: |
           if [ -n "$POSITION_PASSPHRASE" ]; then
             pip install --quiet cryptography && python3 position_page.py

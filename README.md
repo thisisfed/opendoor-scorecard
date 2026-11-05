@@ -138,8 +138,9 @@ Set three repository secrets (Settings > Secrets and variables > Actions > New r
 
 - `POSITION_PASSPHRASE`: the passphrase for the page. Make it long (four or five random words); it is the only lock.
 - `POSITION_SHARES`: how many shares you hold, e.g. `1250.5`
-- `POSITION_COST_GBP`: everything you have paid for them in pounds, fees included, e.g. `4800`
+- `POSITION_COST_USD`: everything you have paid for them in dollars, fees included, e.g. `6200`
 
-After a top-up, update the last two. Money you add is taken out of the day's figure, so a purchase never shows as a
-gain. The pound/dollar rate is FRED series DEXUSUK. If you change the passphrase, the day-by-day log starts again.
+After a top-up, update the last two. The page shows value and gain or loss in pounds: the dollar gain (value less
+cost) at each day's rate, so it moves with the pound as well as the share price. The day's figure is the change in
+that total, so a purchase never shows as a gain. The pound/dollar rate is FRED series DEXUSUK. If you change the passphrase, the day-by-day log starts again.
 Without the secrets the step does nothing.

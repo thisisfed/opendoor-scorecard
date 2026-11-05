@@ -4,11 +4,12 @@
 Runs after the scorecard. It reads three repository secrets:
   POSITION_PASSPHRASE  the passphrase that unlocks the page (use a long one: it is the only thing protecting the page)
   POSITION_SHARES      how many shares you hold now, e.g. 1250.5
-  POSITION_COST_GBP    everything you have paid for them, in pounds, fees included, e.g. 4800
+  POSITION_COST_USD    everything you have paid for them, in dollars, fees included, e.g. 6200
 
 Each run adds a line for the latest close: price in dollars, the pound/dollar rate (FRED series DEXUSUK, dollars per
-pound), the value in pounds, the day's gain or loss and the total. Money you add (a top-up raises POSITION_COST_GBP)
-is taken out of the day's figure, so a purchase never shows as a gain.
+pound), the value in pounds, and the gain or loss in pounds: the dollar gain or loss (value less cost) at that day's
+rate. The day's figure is the change in that total, so money you add (a top-up raises POSITION_COST_USD) never shows
+as a gain, and the days add up to the total.
 
 Nothing readable leaves this script. The log and the page both carry the same blob, encrypted with AES-256-GCM under a
 key derived from the passphrase (PBKDF2-SHA256, 310,000 rounds); the page decrypts it in your browser. The repository
@@ -75,30 +76,34 @@ def fx_on(series, day):
     return best
 
 
-def entry(day, price, fx, fx_day, shares, cost, prev, seed=False):
-    val = shares * price / fx
-    e = {"d": day, "px": round(price, 4), "fx": round(fx, 4), "fxd": fx_day, "sh": shares, "cost": round(cost, 2),
-         "val": round(val, 2), "tot": round(val - cost, 2), "day": None, "dayfx": None}
+def entry(day, price, fx, fx_day, shares, cost_usd, prev, seed=False):
+    """One close. Cost is in dollars; pound figures use that day's rate (fx = dollars per pound)."""
+    val_usd = shares * price
+    gain_usd = val_usd - cost_usd
+    e = {"d": day, "px": round(price, 4), "fx": round(fx, 4), "fxd": fx_day, "sh": shares,
+         "cost_usd": round(cost_usd, 2), "val_usd": round(val_usd, 2), "tot_usd": round(gain_usd, 2),
+         "cost": round(cost_usd / fx, 2), "val": round(val_usd / fx, 2), "tot": round(gain_usd / fx, 2),
+         "day": None, "dayfx": None}
     if seed:
         e["seed"] = True
     if prev:
-        # the day's gain: change in value, less any money put in since the last close
-        e["day"] = round((val - prev["val"]) - (cost - prev["cost"]), 2)
-        # the part of it that came from the pound/dollar rate alone
-        e["dayfx"] = round(shares * price * (1 / fx - 1 / prev["fx"]), 2)
+        # the day's gain in pounds: the change in the pound total, so a top-up (cost and value up together) adds nothing
+        e["day"] = round(e["tot"] - prev["tot"], 2)
+        # the part that came from the pound/dollar rate alone: yesterday's dollar gain, revalued at today's rate
+        e["dayfx"] = round(prev["tot_usd"] * (1 / fx - 1 / prev["fx"]), 2)
     return e
 
 
 def main():
     pw = os.environ.get("POSITION_PASSPHRASE", "")
-    sh_s, cost_s = os.environ.get("POSITION_SHARES", ""), os.environ.get("POSITION_COST_GBP", "")
+    sh_s, cost_s = os.environ.get("POSITION_SHARES", ""), os.environ.get("POSITION_COST_USD", "")
     if not (pw and sh_s and cost_s):
         print("Position page: secrets not set, skipped.")
         return 0
     try:
-        shares, cost = float(sh_s.replace(",", "")), float(cost_s.replace(",", "").replace("£", ""))
+        shares, cost = float(sh_s.replace(",", "")), float(cost_s.replace(",", "").replace("$", ""))
     except ValueError:
-        print("Position page: POSITION_SHARES and POSITION_COST_GBP must be plain numbers; skipped.")
+        print("Position page: POSITION_SHARES and POSITION_COST_USD must be plain numbers; skipped.")
         return 0
     if len(pw) < 12:
         print("Position page: warning, the passphrase is short; a long one is much harder to guess.")
@@ -109,7 +114,7 @@ def main():
     if os.path.exists(LOG):
         try:
             blob = json.load(open(LOG))
-            entries = decrypt(blob, pw)["entries"]
+            entries = [x for x in decrypt(blob, pw)["entries"] if "cost_usd" in x]   # lines from the pound-cost version are dropped
             salt = base64.b64decode(blob["salt"])
         except Exception:
             print("Position page: the old log would not open with this passphrase (changed?); starting a new one.")
@@ -231,20 +236,21 @@ function chart(E) {
     '<polyline points="' + line("cost") + '" fill="none" stroke="var(--muted)" stroke-dasharray="4 4" stroke-width="1.5"/>' +
     '<polyline points="' + line("val") + '" fill="none" stroke="var(--blue)" stroke-width="2.4" stroke-linejoin="round"/>' +
     '<text x="' + L + '" y="' + (H - 6) + '">' + dlab(E[0].d) + '</text><text x="' + (W - R) + '" y="' + (H - 6) + '" text-anchor="end">' + dlab(E[E.length - 1].d) + '</text></svg>' +
-    '<p class="note"><span style="color:var(--blue)">—</span> value &nbsp; <span>- -</span> money put in</p>';
+    '<p class="note"><span style="color:var(--blue)">—</span> value &nbsp; <span>- -</span> money put in, at each day\'s rate</p>';
 }
 function render(D) {
   var E = D.entries, L = E[E.length - 1], P = E.length > 1 ? E[E.length - 2] : null;
-  var avg = L.cost / L.sh, be = avg * L.fx;
-  var day = L.day === null ? null : L.day, dayp = day === null || !P ? null : day / (P.val + (L.cost - P.cost));
+  var usd = function (v) { return "$" + Math.abs(v).toLocaleString("en-US", {minimumFractionDigits: 2, maximumFractionDigits: 2}); };
+  var avg = L.cost_usd / L.sh;
+  var day = L.day === null ? null : L.day, dayp = day === null || !P ? null : day / P.val;
   var h = '<div class="card"><div class="big">' +
     '<div class="k"><p class="l">Value now</p><p class="v">' + gbp(L.val) + '</p><p class="s">close ' + dlab(L.d) + '</p></div>' +
-    '<div class="k ' + cls(L.tot) + '"><p class="l">Total gain or loss</p><p class="v">' + gbp(L.tot, true) + '</p><p class="s">' + pct(L.tot / L.cost) + ' on ' + gbp(L.cost) + ' put in</p></div>' +
+    '<div class="k ' + cls(L.tot) + '"><p class="l">Total gain or loss</p><p class="v">' + gbp(L.tot, true) + '</p><p class="s">' + pct(L.tot_usd / L.cost_usd) + ' on ' + usd(L.cost_usd) + ' put in (' + gbp(L.cost) + ' today)</p></div>' +
     '<div class="k ' + (day === null ? "" : cls(day)) + '"><p class="l">Day</p><p class="v">' + (day === null ? "n/a" : gbp(day, true)) + '</p><p class="s">' +
-      (day === null ? "from the next close" : pct(dayp) + (L.dayfx !== null ? ", of which the pound/dollar rate " + gbp(L.dayfx, true) : "")) + '</p></div></div>' +
+      (day === null ? "from the next close" : pct(dayp) + (L.dayfx !== null && Math.abs(L.dayfx) >= 0.005 ? ", of which the pound/dollar rate " + gbp(L.dayfx, true) : "")) + '</p></div></div>' +
     '<div class="facts"><div><b>' + L.sh.toLocaleString("en-GB", {maximumFractionDigits: 4}) + '</b><span>shares</span></div>' +
-    '<div><b>£' + avg.toFixed(3) + '</b><span>average cost a share</span></div>' +
-    '<div><b>$' + L.px.toFixed(2) + '</b><span>last close, breakeven $' + be.toFixed(2) + '</span></div>' +
+    '<div><b>$' + avg.toFixed(3) + '</b><span>average cost a share, your breakeven</span></div>' +
+    '<div><b>$' + L.px.toFixed(2) + '</b><span>last close</span></div>' +
     '<div><b>$' + L.fx.toFixed(4) + '</b><span>per £1, ' + dlab(L.fxd) + '</span></div></div></div>' +
     '<div class="card"><p class="l" style="margin:0 0 8px;font-weight:600">Value and money put in</p>' + chart(E) + '</div>';
   var rows = E.slice().reverse().map(function (e) {
@@ -253,7 +259,8 @@ function render(D) {
       '<td data-l="Total" class="' + cls(e.tot) + '">' + gbp(e.tot, true) + '</td></tr>'; }).join("");
   h += '<div class="card"><p style="margin:0 0 8px;font-weight:600">Day by day</p><div class="scroll"><table class="days"><thead><tr><th>Close</th><th>Price</th><th>$ per £</th><th>Value</th><th>Day</th><th>Total</th></tr></thead><tbody>' + rows + '</tbody></table></div>' +
     '<p class="note">Values use each close and the Federal Reserve noon rate for the pound (FRED series DEXUSUK) for that day or the latest before it. ' +
-    'Money you add is taken out of the day\'s figure. ' + (E.some(function (e) { return e.seed; }) ? "* The first day is worked out from the scorecard's previous close, assuming the same holding. " : "") +
+    'Your cost is in dollars; the pound figures convert the dollar value and gain at each day\'s rate, so the total moves with the pound as well as the share price. ' +
+    'The day\'s figure is the change in the pound total, so money you add never counts as a gain. ' + (E.some(function (e) { return e.seed; }) ? "* The first day is worked out from the scorecard's previous close, assuming the same holding. " : "") +
     'Updated ' + (D.updated || "").replace("T", " ") + ' UK. Not advice.</p></div>';
   document.getElementById("out").innerHTML = h; document.getElementById("out").hidden = false;
   document.getElementById("gate").hidden = true; document.getElementById("lock").hidden = false;
