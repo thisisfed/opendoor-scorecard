@@ -1990,6 +1990,8 @@ table.trk td,table.psh td{border:0;padding:0;text-align:left!important;white-spa
 table.trk td:first-child,table.psh td:first-child{grid-column:1/-1;font-weight:500;min-width:0}
 table.trk td[data-l]::before,table.psh td[data-l]::before{content:attr(data-l);display:block;font-size:11px;color:#8a8a8a}
 table.imp-grid td:first-child,table.imp-grid th:first-child{position:sticky;left:0;background:#fff;z-index:1}}
+.moved{margin:12px 0 0;padding:10px 14px;border-radius:12px;background:#f6f4f1;font-size:14.5px;line-height:1.5;color:var(--muted2);max-width:900px}
+.moved b{color:var(--ink,#23201d);font-weight:500}
 .mc{margin:0;padding-left:18px;font-size:14px;color:var(--muted2)}.mc li{margin:4px 0}
 /* wide tables on phones: scroll sideways, keep the first column in view */
 table.dil td:first-child,table.dil th:first-child,table.mk td:first-child,table.mk th:first-child,table.mv td:first-child,
@@ -2782,6 +2784,83 @@ def _per_share_card(res):
             'prices (see the stress table in Details).</div></div>')
 
 
+NAMES = {"rev_nowcast_yoy": "revenue YoY", "coe_q4_yoy": "homes sold this quarter vs a year ago",
+         "contracts_qoq": "contracts vs the quarter before", "contrib_margin": "contribution margin",
+         "contrib_trend": "margin vs the quarter before", "days_inventory": "days of inventory", "gross_margin": "gross margin",
+         "aged_inventory": "homes listed 120+ days", "net_margin_2q": "GAAP net margin", "adj_ebitda_m": "Adj. EBITDA margin",
+         "ani_margin": "Adj. net income margin", "coe_vs_guide": "homes sold vs Opendoor's expectation",
+         "contracts_vs_proj": "contracts vs projection", "clearance": "sale speed vs the market",
+         "fallout": "contracts that fell through", "cash_vs_notes": "cash vs notes", "home_debt_ltv": "home-backed debt vs homes",
+         "runway_q": "cash runway", "share_yoy": "share count vs a year ago", "sbc_pct": "stock pay / revenue",
+         "dilution_live": "potential new shares live", "ps": "price / sales", "pb": "price / book", "ret_1y": "1-year return",
+         "range_pos": "place in the 52-week range", "vs_ma200": "price vs 200-day average", "mortgage_rate": "mortgage rate",
+         "mortgage_13w": "mortgage rate change over 13 weeks", "dom_yoy": "days on market vs a year ago",
+         "cuts_yoy": "price cuts vs a year ago", "list_price_yoy": "asking prices vs a year ago"}
+
+
+def _why_moved(res):
+    """One short paragraph under the score: how much it moved since the previous day, which pillars did it and the
+    metrics behind them, and what new data arrived. Built only from this run and the previous day's run."""
+    prev, s = res.get("previous") or {}, res["score"]
+    ch = res.get("change")
+    if not prev or not ch:
+        return ""
+    e = html.escape
+    since = _d(prev.get("generated") or ch["since"])
+    if ch.get("method_changed"):
+        return (f'<p class="moved"><b>Why it changed.</b> The scoring method was updated (v{METHOD}) since {since}, '
+                'so the change is not like-for-like. See Method changes.</p>')
+    # values from the previous run: the snapshot, or the metric history for that day
+    pv = prev.get("values") or {}
+    if not pv:
+        day = (prev.get("generated") or "")[:10]
+        row = next((r for r in res.get("metric_history") or [] if r.get("run_date") == day), {})
+        pv = {k: float(v) for k, v in row.items() if k not in ("run_date", "overall") and v not in ("", None)}
+    pts = prev.get("points") or {}
+    wsum = s.get("weights_used") or 100
+    moved = []
+    for p in s["pillars"]:
+        a = (prev.get("pillars") or {}).get(p["name"])
+        if a is None:
+            a = (ch.get("pillars") or {}).get(p["name"])
+            a = None if a is None or p["score"] is None else p["score"] - a
+        if a is None or p["score"] is None or abs(p["score"] - a) < 0.05:
+            continue
+        mets = []
+        for i in p["metrics"]:
+            o = pts.get(i["key"])
+            if o is None or i["score"] is None or abs(i["score"] - o) < 0.05:
+                continue
+            ov = pv.get(i["key"])
+            what = (f'{NAMES.get(i["key"], i["label"])} {fmt(ov, i["fmt"])} to {fmt(i["value"], i["fmt"])}'
+                    if ov is not None else NAMES.get(i["key"], i["label"]))
+            mets.append((abs(i["score"] - o), f'{what} ({i["score"] - o:+.1f} pts)'))
+        mets = [t for _, t in sorted(mets, reverse=True)[:2]]
+        moved.append((abs(p["score"] - a) * p["weight"] / wsum,
+                      f'{p["name"]} {a:.1f} to {p["score"]:.1f}' + (f': {", ".join(mets)}' if mets else "")))
+    d = ch["overall"]
+    head = ("Unchanged" if abs(d) < 0.005 else ("Up" if d > 0 else "Down") + f" {abs(d):.2f}") + f" since {since}."
+    body = "; ".join(t for _, t in sorted(moved, reverse=True)[:3]) + "." if moved else \
+        "No pillar moved: the new data did not shift any metric enough to change a pillar's score."
+    # what new data the run brought
+    st, now = prev.get("stamps") or {}, _stamps(res)
+    new = []
+    if st.get("quarter") and now["quarter"] and now["quarter"] > st["quarter"]:
+        new.append(f'{_qlabel(now["quarter"])} results')
+    if st.get("balance_sheet") and now["balance_sheet"] and now["balance_sheet"] > st["balance_sheet"]:
+        new.append("the 10-Q balance sheet")
+    if st.get("price_date") and now["price_date"] and now["price_date"] > st["price_date"] and st.get("price"):
+        new.append(f'share price ${st["price"]:.2f} to ${now["price"]:.2f} ({(now["price"] / st["price"] - 1) * 100:+.1f}%)')
+    if st.get("tracker") and now["tracker"] and now["tracker"] > st["tracker"]:
+        new.append(f'Opendoor\'s tracker to {_d(now["tracker"])}')
+    if st.get("mortgage") and now["mortgage"] and now["mortgage"] > st["mortgage"]:
+        new.append("the weekly mortgage rate")
+    if st.get("housing") and now["housing"] and now["housing"] > st["housing"]:
+        new.append("a new month of housing data")
+    tail = f' New since then: {", ".join(new)}.' if new else ""
+    return f'<p class="moved"><b>Why it moved.</b> {e(head)} {e(body)}{e(tail)}</p>'
+
+
 WEIGHT_WHY = {
     "Growth": "Scale drives operating leverage; uses Opendoor's live tracker as well as reported revenue.",
     "Unit economics": "Whether each home earns money and sells quickly decides everything else.",
@@ -3080,7 +3159,7 @@ def write_html(res, path):
 <div class="right">{change}<p class="sub">{e(change_sub)}</p></div></div>
 <div class="bd"><div class="score"><span class="num">{s['overall']:.2f}</span><span class="of">/ 10</span>
 <span class="grade badge {tone}">{e(s['grade'])}</span>{ospark}</div>
-<p class="verdict">{e(s['verdict'])}</p><p class="why">{e(s['why'])}</p></div>
+<p class="verdict">{e(s['verdict'])}</p><p class="why">{e(s['why'])}</p>{_why_moved(res)}</div>
 <div class="kpis">{kpi_html}</div></div>
 
 {_move_card(res)}
@@ -3452,6 +3531,15 @@ def update_history(res, path):
     return prev, rows
 
 
+def _stamps(r):
+    """When each kind of input was last refreshed, to say what new data a run brought."""
+    fr = (r.get("extra") or {}).get("fresh") or {}
+    date = lambda k: (fr.get(k) or {}).get("date")
+    return {"quarter": (r.get("quarters") or [{}])[-1].get("quarter_end"), "price_date": (r.get("price") or {}).get("date"),
+            "price": (r.get("price") or {}).get("price"), "tracker": (r.get("accountable") or {}).get("as_of"),
+            "mortgage": date("mortgage_rate"), "housing": date("dom_yoy"), "balance_sheet": (r.get("extra") or {}).get("pro_forma", {}).get("as_of")}
+
+
 def update_estimates_log(res, path):
     """Every run before a quarter is reported records this page's revenue estimate for it; once the release is in,
     the last estimate made before it is settled against the reported figure. Kept in the repo, never rewritten."""
@@ -3634,7 +3722,7 @@ def main():
         now = dt.datetime.now(ZoneInfo("Europe/London")).replace(tzinfo=None)
     except Exception:
         now = dt.datetime.now()
-    res = {"generated": now.isoformat(timespec="minutes"), "ticker": TICKER, "price": px,
+    res = {"generated": now.isoformat(timespec="minutes"), "ticker": TICKER, "price": px, "method": METHOD,
            "extra": extra, "metrics": m, "score": score(m, extra), "quarters": q, "accountable": acc, "log": log,
            "contracts_all": (acc_raw or {}).get("contracts"), "short_interest": short}
     if a.shares and a.avg_cost:
@@ -3669,8 +3757,12 @@ def main():
         try:
             old = json.load(open(old_path))
             if old.get("generated", "")[:10] != res["generated"][:10]:
-                res["previous"] = {"generated": old.get("generated"),
-                                   "points": {i["key"]: i["score"] for p in old["score"]["pillars"] for i in p["metrics"]}}
+                res["previous"] = {"generated": old.get("generated"), "overall": old["score"].get("overall"),
+                                   "method": old.get("method", METHOD),
+                                   "points": {i["key"]: i["score"] for p in old["score"]["pillars"] for i in p["metrics"]},
+                                   "values": {i["key"]: i["value"] for p in old["score"]["pillars"] for i in p["metrics"]},
+                                   "pillars": {p["name"]: p["score"] for p in old["score"]["pillars"]},
+                                   "stamps": _stamps(old)}
             else:
                 res["previous"] = old.get("previous")
         except Exception:
