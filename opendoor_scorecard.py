@@ -2439,6 +2439,76 @@ details.more.in{border-top:0;margin-top:6px}details.more.in>summary{padding:10px
 .howto{min-height:44px;margin-top:6px}.mv-all>summary{display:flex;align-items:center;min-height:44px}
 .imp-in select,.in-f input{min-height:44px}.imp-cash{min-height:44px}
 }
+/* ===== finishing pass ===== */
+.sr{position:absolute;width:1px;height:1px;overflow:hidden;clip:rect(0 0 0 0);white-space:nowrap}
+/* score card: a little more air around the score, grade and why */
+.dash .d-main{padding:32px 36px 30px}
+.dash .score{margin-top:10px}
+.d-moved{margin-top:22px;padding:13px 16px;border-left:3px solid var(--line2);border-radius:4px 12px 12px 4px}
+.dash .verdict{margin-top:24px}
+/* holding it up / back: two small panels */
+.dv-wrap{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:12px;margin-top:22px;max-width:900px}
+.dv-p{border:1px solid var(--line);border-radius:14px;padding:12px 14px 6px;background:var(--card)}
+.dv-p.up{background:linear-gradient(180deg,var(--good-bg),var(--card) 64px)}
+.dv-p.dn{background:linear-gradient(180deg,var(--bad-bg),var(--card) 64px)}
+.dv-h{display:flex;align-items:center;gap:8px;margin:0 0 4px;font-size:13px;font-weight:600;letter-spacing:.01em;color:var(--ink);cursor:help}
+.dv-i{display:inline-grid;place-items:center;width:22px;height:22px;border-radius:7px;font-size:13px}
+.dv-p.up .dv-i{background:var(--good-bg);color:var(--good)}.dv-p.dn .dv-i{background:var(--bad-bg);color:var(--bad)}
+.dv-p ul{list-style:none;margin:0;padding:0}
+.dv-p li+li{border-top:1px solid var(--line)}
+.dv-p li a{display:grid;grid-template-columns:minmax(0,1fr) 64px 34px;align-items:center;gap:10px;min-height:42px;text-decoration:none;color:var(--ink);font-size:14.5px;font-weight:500}
+.dv-p li a:hover .dv-n{text-decoration:underline;text-underline-offset:3px}
+.dv-n{overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.dv-bar{display:block;height:5px;border-radius:3px;background:var(--track);overflow:hidden}.dv-bar i{display:block;height:100%;border-radius:3px}
+.dv-p.up .dv-bar i{background:#34d399}.dv-p.dn .dv-bar i{background:#f07470}
+.dv-p li b{text-align:right;font-size:16px;font-weight:600;font-variant-numeric:tabular-nums}
+.dv-p.up li b{color:var(--good)}.dv-p.dn li b{color:var(--bad)}
+/* key blocks get room; detail stays dense */
+.hero{padding-top:72px;padding-bottom:64px}
+.card.q3{margin-top:28px;padding:26px 30px 28px}
+.mv5-sec{padding:24px 36px 28px}.mv5-sec .d-h{margin-bottom:14px}
+.pv{margin-top:6px;padding:26px;border-radius:24px;background:var(--glass);border:1px solid var(--line)}
+.pv .sec-tools{margin-top:0}
+.pv .decomp{margin:18px 4px 0}
+/* pillar cards: score and weight lead, strong and weak readable before opening */
+.pc{position:relative;overflow:hidden}
+.pc:before{content:"";position:absolute;left:0;top:0;bottom:0;width:4px;background:var(--line2)}
+.pc.t-green:before{background:#34d399}.pc.t-amber:before{background:#f5b53f}.pc.t-red:before{background:#f07470}
+.pc.strong{background:linear-gradient(180deg,var(--good-bg),var(--card) 76px)}
+.pc.weak{background:linear-gradient(180deg,var(--bad-bg),var(--card) 76px)}
+.pc[open].strong,.pc[open].weak{background:var(--card)}
+.pc>summary{padding:20px 22px 16px 24px;gap:10px}
+.pc-n{font-size:17.5px}
+.pc-w{background:none;padding:0;font-size:12.5px;color:var(--muted)}.pc-w b{font-size:16px;font-weight:600;color:var(--ink);margin-right:2px}
+.pc-s{font-size:48px;font-weight:600;letter-spacing:-.04em}
+.pc-bar{position:relative;height:8px;overflow:visible;background:var(--track)}
+.pc-bar i{position:relative;z-index:1}
+.pc-bar em{position:absolute;top:-3px;bottom:-3px;width:2px;margin-left:-1px;background:var(--card);z-index:2;border-radius:1px}
+.pc-mid .pmv{font-size:13px;font-weight:600;padding:4px 10px}
+.pmv.up{color:var(--good);background:var(--good-bg)}.pmv.dn{color:var(--bad);background:var(--bad-bg)}.pmv.fl{color:var(--muted);background:var(--soft)}
+.pc-body{padding-left:24px}
+@media (max-width:900px){.dash .d-main{padding:24px 20px 22px}.mv5-sec{padding:20px 20px 22px}}
+@media (max-width:640px){
+.hero{padding:20px 0 26px}
+.dash .d-main{padding:24px 18px 20px}
+.d-moved{margin-top:16px}
+.dash .verdict{margin-top:18px}
+.dv-wrap{grid-template-columns:1fr;gap:10px;margin-top:18px}
+.dv-p{padding:10px 12px 4px}
+.dv-p li a{grid-template-columns:minmax(0,1fr) 72px 34px;min-height:44px;font-size:15px}
+.card.q3{margin-top:20px;padding:20px 16px}
+.mv5-sec{padding:18px 18px 20px}
+.pv{padding:12px;margin-left:-4px;margin-right:-4px;border-radius:20px}
+.pc>summary{padding:15px 14px 13px 17px;gap:8px}
+.pc-s{font-size:38px}
+.pc-w b{font-size:14px}
+.pc .pmv.fl{display:inline-block}
+.pc-mid .pmv{font-size:12px;padding:3px 8px}
+.pc-body{padding:0 16px 10px 18px}
+.pc-more{min-height:32px}
+.jump a{min-height:44px}
+}
+@media (max-width:640px){.pc-mid{flex-wrap:nowrap;align-items:baseline}.pc-mid .pmv{margin-left:auto;align-self:center;white-space:nowrap}}
 """
 
 
@@ -2690,12 +2760,18 @@ def _drivers(s):
             for p in s["pillars"] if p["score"] is not None]
     up = sorted([r for r in rows if r[2] > 0], key=lambda r: -r[2])[:3]
     dn = sorted([r for r in rows if r[2] < 0], key=lambda r: r[2])[:3]
-    chip = lambda r, cls: (f'<a class="dv {cls}" href="#p-{_slug(r[0])}">{html.escape(r[0])}<b>{r[1]:.1f}</b></a>')
+
+    def panel(items, cls, title, hint, arrow):
+        li = "".join(f'<li><a href="#p-{_slug(r[0])}"><span class="dv-n">{html.escape(r[0])}</span>'
+                     f'<span class="dv-bar" aria-hidden="true"><i style="width:{max(0, min(10, r[1])) * 10:.0f}%"></i></span>'
+                     f'<b>{r[1]:.1f}</b></a></li>' for r in items)
+        return (f'<div class="dv-p {cls}"><p class="dv-h" title="{hint}"><span class="dv-i" aria-hidden="true">{arrow}</span>{title}</p>'
+                f'<ul>{li}</ul></div>')
     out = ""
     if up:
-        out += '<div class="dv-row"><span class="dv-k" title="Pillars ordered by how far they sit above the overall score, times their weight">Holding it up</span>' + "".join(chip(r, "up") for r in up) + '</div>'
+        out += panel(up, "up", "Holding it up", "Pillars ordered by how far they sit above the overall score, times their weight", "&#8599;")
     if dn:
-        out += '<div class="dv-row"><span class="dv-k" title="Pillars ordered by how far they sit below the overall score, times their weight">Holding it back</span>' + "".join(chip(r, "dn") for r in dn) + '</div>'
+        out += panel(dn, "dn", "Holding it back", "Pillars ordered by how far they sit below the overall score, times their weight", "&#8600;")
     return f'<div class="dv-wrap">{out}</div>' if out else ""
 
 
@@ -3746,7 +3822,9 @@ def write_html(res, path):
             return '<i class="pmv"></i>'
         d = pch[name]
         cls, txt = ("up", f"+{d:.1f}") if d > 0.05 else ("dn", f"\u2212{-d:.1f}") if d < -0.05 else ("fl", "0.0")
-        return f'<i class="pmv {cls}" title="Change since {e(_d(ch["since"]))}">{txt}</i>'
+        arrow = {"up": "&#8599; ", "dn": "&#8600; ", "fl": ""}[cls]
+        return (f'<i class="pmv {cls}" title="{"No change" if cls == "fl" else "Change"} since {e(_d(ch["since"]))}">'
+                f'{arrow}{txt}<span class="sr"> since {e(_d(ch["since"]))}</span></i>')
     decomp = " + ".join(f'{e(p["name"])} {p["contribution"]:.2f}' for p in s["pillars"] if p.get("contribution") is not None)
     cards = ""
     ser = _series(res)  # sparkline data per metric
@@ -3780,10 +3858,12 @@ def write_html(res, path):
                        for i in p["metrics"])
         sc = "n/a" if p["score"] is None else f"{p['score']:.1f}"
         n_m = sum(1 for i in p["metrics"] if i["score"] is not None)
-        cards += (f'<details class="pc t-{_tone(p["score"])}" id="p-{_slug(p["name"])}"><summary>'
-                  f'<span class="pc-top"><span class="pc-n">{e(p["name"])}</span><span class="pc-w">{p["weight"]}%<span class="wl"> weight</span></span></span>'
+        lvl = "" if p["score"] is None else " strong" if p["score"] >= 6.5 else " weak" if p["score"] < 4 else ""
+        cards += (f'<details class="pc t-{_tone(p["score"])}{lvl}" id="p-{_slug(p["name"])}"><summary>'
+                  f'<span class="pc-top"><span class="pc-n">{e(p["name"])}</span><span class="pc-w"><b>{p["weight"]}%</b><span class="wl"> weight</span></span></span>'
                   f'<span class="pc-mid"><span class="pc-s">{sc}</span><span class="pc-of">/ 10</span>{mv(p["name"])}</span>'
-                  f'<span class="pc-bar" aria-hidden="true"><i class="fill {_tone(p["score"])}" style="width:{(p["score"] or 0) * 10:.0f}%"></i></span>'
+                  f'<span class="pc-bar" aria-hidden="true"><i class="fill {_tone(p["score"])}" style="width:{(p["score"] or 0) * 10:.0f}%"></i>'
+                  f'<em style="left:40%"></em><em style="left:65%"></em></span>'
                   f'<span class="pc-q">{e(p["question"])}</span>'
                   f'<span class="pc-more"><span class="pc-open">{n_m} metric{"" if n_m == 1 else "s"}<span class="wl">, show them</span></span>'
                   f'<span class="pc-close">Hide the metrics</span><span class="chev" aria-hidden="true"></span></span></summary>'
@@ -3875,11 +3955,11 @@ def write_html(res, path):
 {_q3_card(res)}
 
 {_sh("pillars", "What drives each score", "Nine pillars, each the average of its metrics on a 0 to 10 scale. Open one to see every metric, its latest data and the points it earns.")}
-<div class="sec-tools"><button type="button" class="tool-b pc-all" aria-pressed="false">Open all pillars</button>
+<div class="pv"><div class="sec-tools"><button type="button" class="tool-b pc-all" aria-pressed="false">Open all pillars</button>
 <button type="button" class="tool-b scale-tog" aria-pressed="false">Show each metric's 0 and 10 point values</button>
 <a href="#thresholds">All thresholds in one table</a><a href="#weights-play">Try your own weights</a></div>
 <div class="pgrid">{cards}</div>
-<p class="decomp">How the {s['overall']:.2f} adds up (pillar score x weight): {decomp}.</p>
+<p class="decomp">How the {s['overall']:.2f} adds up (pillar score x weight): {decomp}.</p></div>
 {_own_history_card(res)}
 {_fresh_card(res)}
 {_subscribe_card()}
