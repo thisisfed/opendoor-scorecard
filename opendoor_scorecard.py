@@ -1812,31 +1812,6 @@ def _contracts_svg(rows):
     return "".join(out)
 
 
-def _history_svg(hist):
-    pts = [(h["run_at"][:10], float(h["overall"])) for h in hist if h.get("overall") not in (None, "", "None")]
-    if len(pts) < 2:
-        return '<p class="note">The chart appears after the second day of scores.</p>'
-    W, H, L, R, T, B = 1000, 220, 34, 16, 16, 30
-    x = lambda i: L + i * (W - L - R) / (len(pts) - 1)
-    y = lambda v: T + (1 - v / 10) * (H - T - B)
-    out = [f'<svg viewBox="0 0 {W} {H}" width="100%" role="img" aria-label="Overall score over time">',
-           '<defs><linearGradient id="fill2" x1="0" x2="0" y1="0" y2="1"><stop offset="0" stop-color="#1d4ed8" stop-opacity=".14"/>'
-           '<stop offset="1" stop-color="#1d4ed8" stop-opacity="0"/></linearGradient></defs>']
-    for t in (0, 5, 10):
-        out.append(f'<line x1="{L}" x2="{W - R}" y1="{y(t):.1f}" y2="{y(t):.1f}" stroke="{LINE}" stroke-dasharray="{"0" if t == 0 else "2 4"}"/>'
-                   f'<text x="{L - 10}" y="{y(t) + 4:.1f}" text-anchor="end" class="tick">{t}</text>')
-    xy = [(x(i), y(v)) for i, (_, v) in enumerate(pts)]
-    line = _smooth(xy) if len(xy) > 2 else "M" + " L".join(f"{a:.1f},{b:.1f}" for a, b in xy)
-    out.append(f'<path d="{line} L{xy[-1][0]:.1f},{y(0):.1f} L{xy[0][0]:.1f},{y(0):.1f} Z" fill="url(#fill2)"/>')
-    out.append(f'<path d="{line}" fill="none" stroke="{BLUE}" stroke-width="2.6" stroke-linecap="round" stroke-linejoin="round"/>')
-    for i, (d, v) in enumerate(pts):
-        out.append(f'<circle cx="{x(i):.1f}" cy="{y(v):.1f}" r="3.5" fill="{BLUE}"><title>{d}: {v:.2f}</title></circle>')
-    first, last = _d(pts[0][0]), _d(pts[-1][0])
-    out.append(f'<text x="{L}" y="{H - 8}" class="tick">{first}</text><text x="{W - R}" y="{H - 8}" text-anchor="end" class="tick">{last}</text>')
-    out.append("</svg>")
-    return "".join(out)
-
-
 FAVICON_SVG = """<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 64 64">
 <defs><linearGradient id="g" x1="0" y1="0" x2="1" y2="1"><stop offset="0" stop-color="#c8aaff"/>
 <stop offset=".55" stop-color="#a0c3ff"/><stop offset="1" stop-color="#eba0fa"/></linearGradient></defs>
@@ -1955,6 +1930,13 @@ h1{font-size:clamp(46px,8.4vw,92px);line-height:1;font-weight:500;letter-spacing
 .m:last-child{border-bottom:0}.m .lab{color:var(--muted2)}
 .mini{display:flex;align-items:center;gap:6px;margin-top:4px}.mini svg{flex:0 0 auto}.mini i{font-style:normal;font-size:11.5px;color:var(--muted)}
 .mini-a{font-size:12px;color:#1d4ed8;display:inline-block;margin-top:2px}
+.hbox{position:relative}.hchart{display:block;touch-action:pan-y}.hchart .tick{font-size:12px;fill:#786e64}
+.htip{position:absolute;pointer-events:none;background:#fff;border:1px solid var(--line);border-radius:10px;padding:8px 11px;
+box-shadow:0 6px 18px rgba(35,32,29,.10);font-size:13px;white-space:nowrap}.htip b{display:block;font-weight:600}
+.htip span{display:block;color:var(--muted2)}
+.hnow{font-size:26px;font-weight:600;letter-spacing:-.02em;vertical-align:middle;margin-right:6px}
+.hnote{margin:10px 0 0;font-size:13px;color:var(--muted)}
+
 .score .mini{margin:0 0 10px 14px;align-self:flex-end}
 .si{margin-top:10px;padding:10px 12px;border-radius:10px;background:#f6f4f1;font-size:13.5px;color:var(--muted2);line-height:1.45}
 .si b{color:var(--ink,#23201d);font-weight:500}.si small{display:block;font-size:11.5px;color:var(--muted);margin-top:3px}
@@ -2620,41 +2602,111 @@ def _results_banner(res):
             'which update weekly.</li></ul></div></div>')
 
 
-def _mini(series, caption):
-    """A tiny sparkline (with its caption), or just the caption while there are fewer than two points."""
-    vals = [v for v in series if v is not None]
-    if len(vals) < 2:
+def _fmtv(v, kind):
+    """A value as the sparkline tooltips show it."""
+    if kind == "pctv":   # already in percent
+        return f"{v:.1f}%"
+    if kind == "days":
+        return f"{v:.0f} days"
+    if kind == "x":
+        return f"{v:.2f}x"
+    if kind == "pct":
+        return f"{v * 100:+.1f}%"
+    return f"{v:.2f}"
+
+
+def _mini(values, caption, labels=None, kind=""):
+    """A tiny sparkline with its caption; each point shows its date and exact value on hover. With fewer than two
+    points, just the caption."""
+    pairs = [(labels[k] if labels else "", v) for k, v in enumerate(values) if v is not None]
+    if len(pairs) < 2:
         return f'<span class="mini"><i>{html.escape(caption)}</i></span>'
     W, H, P = 84, 20, 3
+    vals = [v for _, v in pairs]
     lo, hi = min(vals), max(vals)
     span = (hi - lo) or 1.0
     pts = [(P + k * (W - 2 * P) / (len(vals) - 1), H - P - (v - lo) / span * (H - 2 * P)) for k, v in enumerate(vals)]
     x, y = pts[-1]
-    return (f'<span class="mini"><svg viewBox="0 0 {W} {H}" width="{W}" height="{H}" aria-hidden="true">'
+    dots = "".join(f'<circle cx="{a:.1f}" cy="{b:.1f}" r="4" fill="transparent"><title>{html.escape(l)}: {_fmtv(v, kind)}</title></circle>'
+                   for (a, b), (l, v) in zip(pts, pairs))
+    summary = ", ".join(f"{l} {_fmtv(v, kind)}" for l, v in pairs)
+    return (f'<span class="mini"><svg viewBox="0 0 {W} {H}" width="{W}" height="{H}" role="img" aria-label="{html.escape(summary)}">'
             f'<polyline points="{" ".join(f"{a:.1f},{b:.1f}" for a, b in pts)}" fill="none" stroke="{BLUE}" stroke-width="1.6" '
-            f'stroke-linejoin="round" stroke-linecap="round"/><circle cx="{x:.1f}" cy="{y:.1f}" r="2.4" fill="{BLUE}"/></svg>'
+            f'stroke-linejoin="round" stroke-linecap="round"/><circle cx="{x:.1f}" cy="{y:.1f}" r="2.4" fill="{BLUE}"/>{dots}</svg>'
             f'<i>{html.escape(caption)}</i></span>')
 
 
 def _series(res):
-    """Where each sparkline comes from: quarterly figures, the weekly tracker, or this page's own run history."""
+    """Where each sparkline comes from: quarterly figures, the weekly tracker, or this page's own run history.
+    Each entry: (values, caption, point labels, value kind)."""
     ex, acc = res["extra"], res.get("accountable") or {}
     mh = res.get("metric_history") or []
-    since = f"since {_d(mh[0]['run_date'])}" if mh else ""
-    runs = lambda k: [float(r[k]) for r in mh if r.get(k) not in (None, "")]
-    ue = (ex.get("ue_history") or [])[-6:]
     out = {}
+    ue = (ex.get("ue_history") or [])[-6:]
     if ue:
-        out["contrib_margin"] = ([r["cm"] for r in ue], f"{_qlabel(ue[0]['quarter'])} to {_qlabel(ue[-1]['quarter'])}: "
-                                 + ", ".join("%.1f%%" % r["cm"] for r in ue))
+        out["contrib_margin"] = ([r["cm"] for r in ue], f"{_qlabel(ue[0]['quarter'])} to {_qlabel(ue[-1]['quarter'])}, by quarter",
+                                 [_qlabel(r["quarter"]) for r in ue], "pctv")
+        di = [r for r in ue if r.get("days_inv") is not None]
+        if di:
+            out["days_inventory"] = ([r["days_inv"] for r in di], f"{_qlabel(di[0]['quarter'])} to {_qlabel(di[-1]['quarter'])}, by quarter",
+                                     [_qlabel(r["quarter"]) for r in di], "days")
     cy = acc.get("coe_yoy_series") or []
     if cy:
-        out["coe_q4_yoy"] = ([v for _, v in cy], f"through the quarter, week by week")
+        out["coe_q4_yoy"] = ([v for _, v in cy], "quarter to date vs a year earlier, week by week (tracker)",
+                             [_d(d) for d, _ in cy], "pct")
     cv = acc.get("contracts_vs_proj_series") or []
     if cv:
-        out["contracts_vs_proj"] = ([v for _, v in cv], "rolling 4 weeks, last 13 weeks")
-    out["cash_vs_notes"] = (runs("cash_vs_notes"), f"run by run, {since}" if len(runs("cash_vs_notes")) > 1 else f"history starts {since[6:]}")
+        out["contracts_vs_proj"] = ([v for _, v in cv], "rolling 4 weeks, last 13 weeks", [_d(d) for d, _ in cv], "pct")
+    # figures that only exist run by run: from this page's own daily metric history
+    for k in ("cash_vs_notes", "ps", "pb"):
+        rows = [(r["run_date"], float(r[k])) for r in mh if r.get(k) not in (None, "")]
+        cap = (f"daily, since {_d(rows[0][0])}" if len(rows) > 1 else
+               f"history starts {_d(rows[0][0])}" if rows else "history builds daily")
+        out[k] = ([v for _, v in rows], cap, [_d(d) for d, _ in rows], "x")
     return out
+
+
+def _score_chart(res):
+    """Overall score, one point per weekday, over shaded grade bands; hover or tap for the exact values."""
+    hist = [h for h in (res.get("history") or []) if h.get("overall") not in (None, "", "None")]
+    s = res["score"]
+    pts = [{"d": h["run_at"][:10], "v": float(h["overall"]), "g": h.get("grade") or _grade_of(float(h["overall"])),
+            "p": float(h["price"]) if h.get("price") not in (None, "", "None") else None, "m": h.get("method") or METHOD}
+           for h in hist]
+    W, H, L, R, T, B = 1000, 260, 34, 40, 14, 30
+    n = len(pts)
+    x = lambda i: L + (i * (W - L - R) / (n - 1) if n > 1 else (W - L - R) / 2)
+    y = lambda v: T + (1 - v / 10) * (H - T - B)
+    out = [f'<svg viewBox="0 0 {W} {H}" width="100%" class="hchart" role="img" aria-label="Overall score over time, one point per weekday">']
+    # grade bands, faint, labelled on the right
+    bands = [(8.0, 10.0, "A"), (6.5, 8.0, "B"), (5.0, 6.5, "C"), (3.5, 5.0, "D"), (0.0, 3.5, "F")]
+    for lo, hi, g in bands:
+        out.append(f'<rect x="{L}" y="{y(hi):.1f}" width="{W - L - R}" height="{y(lo) - y(hi):.1f}" fill="{"#f6f4f1" if g in "ACF" else "#fbfaf8"}"/>'
+                   f'<text x="{W - R + 10}" y="{(y(lo) + y(hi)) / 2 + 4:.1f}" class="tick">{g}</text>')
+    for t in (0, 2.5, 5, 7.5, 10):
+        out.append(f'<line x1="{L}" x2="{W - R}" y1="{y(t):.1f}" y2="{y(t):.1f}" stroke="{LINE}" stroke-dasharray="{"0" if t in (0, 10) else "2 4"}"/>'
+                   f'<text x="{L - 8}" y="{y(t) + 4:.1f}" text-anchor="end" class="tick">{t:g}</text>')
+    xy = [(x(i), y(p["v"])) for i, p in enumerate(pts)]
+    if n > 1:
+        line = _smooth(xy) if n > 2 else "M" + " L".join(f"{a:.1f},{b:.1f}" for a, b in xy)
+        out.append(f'<path d="{line}" fill="none" stroke="{BLUE}" stroke-width="2.6" stroke-linecap="round" stroke-linejoin="round"/>')
+    for (a, b), p in zip(xy, pts):
+        out.append(f'<circle cx="{a:.1f}" cy="{b:.1f}" r="4" fill="#fff" stroke="{BLUE}" stroke-width="2"/>')
+    if pts:
+        out.append(f'<text x="{L}" y="{H - 8}" class="tick">{_d(pts[0]["d"])}</text>')
+        if n > 1:
+            out.append(f'<text x="{W - R}" y="{H - 8}" text-anchor="end" class="tick">{_d(pts[-1]["d"])}</text>')
+    out.append(f'<line class="hx" x1="0" x2="0" y1="{T}" y2="{H - B}" stroke="{INK}" stroke-opacity=".25" visibility="hidden"/>'
+               f'<circle class="hdot" r="6" fill="{BLUE}" stroke="#fff" stroke-width="2" visibility="hidden"/></svg>')
+    data = [[round(a, 1), round(b, 1), _d(p["d"]), p["v"], p["g"], p["p"], p["m"]] for (a, b), p in zip(xy, pts)]
+    tone = _tone(s["overall"])
+    return ('<div class="card" id="score-history"><div class="hd"><div><h2>Overall score over time</h2>'
+            '<p class="sub">One point per weekday, over the grade bands</p></div>'
+            f'<div class="right"><span class="hnow">{s["overall"]:.2f}</span> {_badge(s["grade"], tone)}<p class="sub">today</p></div></div>'
+            f'<div class="bd"><div class="hbox" data-h=\'{html.escape(json.dumps(data, separators=(",", ":")))}\' data-w="{W}">'
+            + "".join(out) + '<div class="htip" hidden></div></div>'
+            '<p class="hnote">History builds daily. Thresholds and weights are judgment calls and have not been back-tested '
+            'against returns.</p></div></div>')
 
 
 def _short_line(res):
@@ -3063,13 +3115,11 @@ def write_html(res, path):
         def extra_bits(i):
             k = i["key"]
             if k in ser:
-                link = '<a class="mini-a" href="#unit-history">By quarter</a>' if k == "contrib_margin" else ""
+                link = '<a class="mini-a" href="#unit-history">By quarter</a>' if k in ("contrib_margin", "days_inventory") else ""
                 return _mini(*ser[k]) + link
             if k == "fallout":
                 return ('<span class="how">Open contracts at the start, plus contracts signed, less homes bought, less '
                         'contracts still open at the end. <a href="#fallout">How it\'s estimated</a></span>')
-            if k == "days_inventory":
-                return '<span class="how"><a href="#unit-history">By quarter</a></span>'
             return ""
         rows = "".join(f'<div class="m">'
                        f'<span class="lab">{e(i["label"])}{note(i)}{extra_bits(i)}{tag(i)}'
@@ -3195,8 +3245,7 @@ def write_html(res, path):
 {_targets_card(res)}
 
 <p class="section" id="history">Over time</p>
-<div class="card"><div class="hd"><div><h2>Overall score over time</h2><p class="sub">One point per weekday</p></div></div>
-<div class="bd">{_history_svg(hist)}</div></div>
+{_score_chart(res)}
 
 <div class="card"><div class="hd"><div><h2>Quarterly results</h2><p class="sub">$ millions, from Opendoor's earnings releases and SEC filings</p></div></div>
 <div class="bd scroll" style="padding-top:4px"><table><tr><th>Quarter</th><th>Revenue</th><th>Net income</th><th>Adj. net income</th><th>Bought</th><th>Sold</th>
@@ -3316,6 +3365,57 @@ a recommendation or investment advice.</p></footer>
     var on = document.body.classList.toggle("show-scale");
     tog.setAttribute("aria-pressed", on ? "true" : "false");
     tog.textContent = on ? "Hide the 0 and 10 point values" : "Show each metric's 0 and 10 point values";
+  }});
+  // Score history, drawn at the box's real width (so text stays legible on phones) and redrawn on resize.
+  // Grade bands behind the line; hover or tap shows the nearest day's score, grade and share price.
+  document.querySelectorAll(".hbox").forEach(function (box) {{
+    var P = JSON.parse(box.getAttribute("data-h")), tip = box.querySelector(".htip"), NS = "http://www.w3.org/2000/svg";
+    if (!P.length) return;
+    var bands = [[8, 10, "A"], [6.5, 8, "B"], [5, 6.5, "C"], [3.5, 5, "D"], [0, 3.5, "F"]], geo = [];
+    function el(tag, at, txt) {{ var e = document.createElementNS(NS, tag); for (var k in at) e.setAttribute(k, at[k]); if (txt !== undefined) e.textContent = txt; return e; }}
+    function draw() {{
+      var W = box.clientWidth, H = W < 520 ? 200 : 250, L = 30, R = 26, T = 10, B = 24, n = P.length;
+      var x = function (i) {{ return L + (n > 1 ? i * (W - L - R) / (n - 1) : (W - L - R) / 2); }};
+      var y = function (v) {{ return T + (1 - v / 10) * (H - T - B); }};
+      var svg = el("svg", {{viewBox: "0 0 " + W + " " + H, width: W, height: H, class: "hchart", role: "img",
+                             "aria-label": "Overall score over time, one point per weekday"}});
+      bands.forEach(function (b, k) {{
+        svg.appendChild(el("rect", {{x: L, y: y(b[1]), width: W - L - R, height: y(b[0]) - y(b[1]), fill: k % 2 ? "#fbfaf8" : "#f6f4f1"}}));
+        svg.appendChild(el("text", {{x: W - R + 9, y: (y(b[0]) + y(b[1])) / 2 + 4, class: "tick"}}, b[2]));
+      }});
+      (W < 520 ? [0, 5, 10] : [0, 2.5, 5, 7.5, 10]).forEach(function (t) {{
+        svg.appendChild(el("line", {{x1: L, x2: W - R, y1: y(t), y2: y(t), stroke: "#ebe7e2", "stroke-dasharray": t % 10 ? "2 4" : "0"}}));
+        svg.appendChild(el("text", {{x: L - 7, y: y(t) + 4, "text-anchor": "end", class: "tick"}}, String(t)));
+      }});
+      geo = P.map(function (p, i) {{ return [x(i), y(p[3]), p]; }});
+      if (n > 1) svg.appendChild(el("polyline", {{points: geo.map(function (g) {{ return g[0] + "," + g[1]; }}).join(" "), fill: "none",
+        stroke: "#1d4ed8", "stroke-width": 2.4, "stroke-linejoin": "round", "stroke-linecap": "round"}}));
+      geo.forEach(function (g) {{ svg.appendChild(el("circle", {{cx: g[0], cy: g[1], r: 3.5, fill: "#fff", stroke: "#1d4ed8", "stroke-width": 2}})); }});
+      svg.appendChild(el("text", {{x: L, y: H - 6, class: "tick"}}, P[0][2]));
+      if (n > 1) svg.appendChild(el("text", {{x: W - R, y: H - 6, "text-anchor": "end", class: "tick"}}, P[n - 1][2]));
+      var hx = el("line", {{y1: T, y2: H - B, stroke: "#23201d", "stroke-opacity": .25, visibility: "hidden"}});
+      var dot = el("circle", {{r: 6, fill: "#1d4ed8", stroke: "#fff", "stroke-width": 2, visibility: "hidden"}});
+      svg.appendChild(hx); svg.appendChild(dot);
+      function show(ev) {{
+        var r = svg.getBoundingClientRect(), cx = (ev.touches ? ev.touches[0].clientX : ev.clientX) - r.left;
+        var g = geo.reduce(function (a, b) {{ return Math.abs(b[0] - cx) < Math.abs(a[0] - cx) ? b : a; }}), p = g[2];
+        hx.setAttribute("x1", g[0]); hx.setAttribute("x2", g[0]); hx.setAttribute("visibility", "visible");
+        dot.setAttribute("cx", g[0]); dot.setAttribute("cy", g[1]); dot.setAttribute("visibility", "visible");
+        tip.innerHTML = "<b>" + p[2] + "</b><span>" + p[3].toFixed(2) + " / 10, grade " + p[4] + "</span>" +
+          (p[5] !== null ? "<span>Share price $" + p[5].toFixed(2) + "</span>" : "");
+        tip.hidden = false;
+        var tw = tip.offsetWidth;
+        tip.style.left = Math.max(0, Math.min(W - tw, g[0] - tw / 2)) + "px";
+        tip.style.top = Math.max(0, g[1] - tip.offsetHeight - 14) + "px";
+      }}
+      function hide() {{ tip.hidden = true; hx.setAttribute("visibility", "hidden"); dot.setAttribute("visibility", "hidden"); }}
+      svg.addEventListener("mousemove", show); svg.addEventListener("mouseleave", hide);
+      svg.addEventListener("touchstart", show, {{passive: true}}); svg.addEventListener("touchmove", show, {{passive: true}});
+      var old = box.querySelector("svg"); box.replaceChild(svg, old);
+    }}
+    draw();
+    var last = box.clientWidth;
+    window.addEventListener("resize", function () {{ if (box.clientWidth !== last) {{ last = box.clientWidth; draw(); }} }});
   }});
   document.querySelectorAll(".nl-form").forEach(function (f) {{
     f.addEventListener("submit", function () {{ setTimeout(function () {{ f.querySelector(".nl-ok").hidden = false; }}, 300); }});
