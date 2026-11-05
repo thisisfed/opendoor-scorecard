@@ -1990,9 +1990,11 @@ table.trk td,table.psh td{border:0;padding:0;text-align:left!important;white-spa
 table.trk td:first-child,table.psh td:first-child{grid-column:1/-1;font-weight:500;min-width:0}
 table.trk td[data-l]::before,table.psh td[data-l]::before{content:attr(data-l);display:block;font-size:11px;color:#8a8a8a}
 table.imp-grid td:first-child,table.imp-grid th:first-child{position:sticky;left:0;background:#fff;z-index:1}}
-.moved{margin:16px 0 0;padding:14px 18px;border-radius:14px;background:rgba(255,255,255,.75);border:1px solid var(--line);
+.moved{margin:24px 0 0;padding:14px 18px;border-radius:14px;background:rgba(255,255,255,.75);border:1px solid var(--line);
 font-size:14.5px;line-height:1.5;color:var(--muted2)}
 .moved b{color:var(--ink,#23201d);font-weight:500}
+.mv-dir{display:inline-block;font-weight:600;border-radius:8px;padding:1px 9px;margin:0 2px}
+.mv-dir.up{background:#e6f4ea;color:#0f9f6e}.mv-dir.down{background:#fdeceb;color:#e5484d}.mv-dir.flat{background:#f1efec;color:var(--muted2)}
 .mc{margin:0;padding-left:18px;font-size:14px;color:var(--muted2)}.mc li{margin:4px 0}
 /* wide tables on phones: scroll sideways, keep the first column in view */
 table.dil td:first-child,table.dil th:first-child,table.mk td:first-child,table.mk th:first-child,table.mv td:first-child,
@@ -2840,7 +2842,9 @@ def _why_moved(res):
         moved.append((abs(p["score"] - a) * p["weight"] / wsum,
                       f'{p["name"]} {a:.1f} to {p["score"]:.1f}' + (f': {", ".join(mets)}' if mets else "")))
     d = ch["overall"]
-    head = ("Unchanged" if abs(d) < 0.005 else ("Up" if d > 0 else "Down") + f" {abs(d):.2f}") + f" since {since}."
+    tone = "flat" if abs(d) < 0.005 else ("up" if d > 0 else "down")
+    word = "Unchanged" if tone == "flat" else ("Up" if d > 0 else "Down") + f" {abs(d):.2f}"
+    head = f" since {since}."
     body = "; ".join(t for _, t in sorted(moved, reverse=True)[:3]) + "." if moved else \
         "No pillar moved: the new data did not shift any metric enough to change a pillar's score."
     # what new data the run brought
@@ -2859,7 +2863,9 @@ def _why_moved(res):
     if st.get("housing") and now["housing"] and now["housing"] > st["housing"]:
         new.append("a new month of housing data")
     tail = f' New since then: {", ".join(new)}.' if new else ""
-    return f'<p class="moved"><b>Why it moved.</b> {e(head)} {e(body)}{e(tail)}</p>'
+    arrow = {"up": "&#8599; ", "down": "&#8600; ", "flat": ""}[tone]
+    return (f'<p class="moved"><b>Why it moved.</b> <span class="mv-dir {tone}">{arrow}{e(word)}</span>{e(head)} '
+            f'{e(body)}{e(tail)}</p>')
 
 
 WEIGHT_WHY = {
