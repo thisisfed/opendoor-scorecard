@@ -3,7 +3,7 @@
 GitHub runs the scorecard every weekday evening after the US market closes and publishes the result as a
 web page you can open from anywhere. No Pi or computer needs to be on.
 
-**Your site:** `https://thisisfed.github.io/opendoor-scorecard/`
+**Your site:** `https://opendoor.thisisfed.xyz/`
 
 Each run pulls:
 - reported financials and earnings releases from the SEC;
@@ -29,7 +29,7 @@ The files are already in this repository. Three settings remain, and only the ac
 2. **Turn on the website.** Go to **Settings → Pages → Build and deployment → Source: GitHub Actions**.
 
 3. **First run.** Go to **Actions**, click **Update Opendoor scorecard → Run workflow**, then wait about a minute
-   for the green tick. Your site is now at `https://thisisfed.github.io/opendoor-scorecard/`. Bookmark it, or
+   for the green tick. Your site is now at `https://opendoor.thisisfed.xyz/`. Bookmark it, or
    add it to your phone's home screen.
 
 From then on it runs by itself every weekday at 22:30 UTC: 22:30 UK time in winter, 23:30 in summer.

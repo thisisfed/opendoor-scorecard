@@ -23,7 +23,7 @@ import urllib.request
 
 HERE = os.path.dirname(os.path.abspath(__file__))
 API = "https://api.buttondown.com/v1"
-SITE = os.environ.get("SITE_URL", "https://thisisfed.github.io/opendoor-scorecard/")
+SITE = os.environ.get("SITE_URL", "https://opendoor.thisisfed.xyz/")
 
 
 def api(method, path, key, body=None, extra=None):
