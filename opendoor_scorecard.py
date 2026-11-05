@@ -1874,7 +1874,7 @@ box-shadow:0 0 0 1px rgba(88,64,50,.16),inset 0 0 0 1px rgba(255,255,255,.3),0 2
 @media (max-width:1320px){.r3 .by{display:none}}
 /* closing line, set like the hero headline */
 .credit{margin:72px 0 0;font-size:clamp(46px,8.4vw,92px);line-height:1;font-weight:500;letter-spacing:-.034em;color:var(--ink)}
-.credit a{color:inherit;text-decoration:none;background:linear-gradient(currentColor,currentColor) 0 100%/0 2px no-repeat;transition:background-size .25s}.credit a:hover{background-size:100% 2px}
+.credit a{color:inherit;text-decoration:underline;text-decoration-thickness:.055em;text-underline-offset:.12em;text-decoration-color:rgba(32,30,28,.35);transition:color .2s,text-decoration-color .2s}.credit a:hover,.credit a:focus-visible{color:#1d4ed8;text-decoration-color:currentColor}.credit .go{display:inline-block;font-size:.5em;vertical-align:.7em;margin-left:.12em;text-decoration:none;transition:transform .2s}.credit a:hover .go{transform:translate(.08em,-.08em)}
 .wrap{max-width:1280px;margin:0 auto;padding:0 24px 120px}
 .hero{display:grid;grid-template-columns:1.3fr 1fr;gap:40px;align-items:end;padding:64px 0 56px;position:relative}
 .asof{position:absolute;top:28px;right:0;text-align:right;font-size:14px;font-weight:500}
@@ -3571,7 +3571,7 @@ The thresholds and weights are judgement calls and have not been back-tested aga
 {e(mort.get('source') or 'Freddie Mac')} (mortgage rate), Realtor.com (housing in Opendoor's markets). Download the <a href="history.csv">score history</a> or <a href="scorecard.json">all the data</a>.</p>
 <p><b>Independent project</b>, not affiliated with or endorsed by Opendoor Technologies Inc. A structured summary of public numbers, not a forecast,
 a recommendation or investment advice.</p></footer>
-<p class="credit">An idea by<br><a href="https://thisisfed.xyz" target="_blank" rel="noopener" title="thisisfed.xyz">Federico R.&nbsp;T. Ferrari.</a></p>
+<p class="credit">An idea by<br><a href="https://thisisfed.xyz" target="_blank" rel="noopener" title="thisisfed.xyz">Federico R.&nbsp;T. Ferrari<span class="go" aria-hidden="true">&#8599;</span></a></p>
 </div>
 <script>
 (function () {{
