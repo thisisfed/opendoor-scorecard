@@ -271,6 +271,7 @@ label.rem{display:flex;align-items:center;gap:8px;min-height:44px;font-size:14px
 .facts div{border-top:1px solid var(--line);padding-top:8px}.facts b{display:block;font-size:17px;font-weight:600}.facts span{font-size:12.5px;color:var(--muted)}
 table{width:100%;border-collapse:collapse;font-size:14px}th{font-size:12px;font-weight:500;color:var(--muted);text-align:right;padding:8px 10px;border-bottom:1px solid var(--line)}
 td{text-align:right;padding:9px 10px;border-bottom:1px solid var(--line);white-space:nowrap}th:first-child,td:first-child{text-align:left}
+tbody[hidden]{display:none!important}.more-days{margin-top:12px}
 .scroll{overflow-x:auto}.note{font-size:13px;color:var(--muted);margin:12px 0 0}
 svg text{font-size:12px;fill:var(--muted)}
 .top{display:flex;justify-content:space-between;align-items:flex-start;gap:12px}
@@ -349,13 +350,22 @@ function render(D) {
   var rows = E.slice().reverse().map(function (e) {
     return '<tr><td>' + dlab(e.d) + (e.seed || e.bf ? " *" : "") + '</td><td data-l="Close">$' + e.px.toFixed(2) + '</td><td data-l="$ per £">' + e.fx.toFixed(4) + '</td>' +
       '<td data-l="Value">' + gbp(e.val) + '</td><td data-l="Day" class="' + (e.day === null ? "" : cls(e.day)) + '">' + (e.day === null ? "–" : gbp(e.day, true)) + '</td>' +
-      '<td data-l="Total" class="' + cls(e.tot) + '">' + gbp(e.tot, true) + '</td></tr>'; }).join("");
-  h += '<div class="card"><p style="margin:0 0 8px;font-weight:600">Day by day</p><div class="scroll"><table class="days"><thead><tr><th>Close</th><th>Price</th><th>$ per £</th><th>Value</th><th>Day</th><th>Total</th></tr></thead><tbody>' + rows + '</tbody></table></div>' +
+      '<td data-l="Total" class="' + cls(e.tot) + '">' + gbp(e.tot, true) + '</td></tr>'; });
+  var older = rows.length - 7;   // the last 7 closes show; earlier days sit behind a toggle
+  h += '<div class="card"><p style="margin:0 0 8px;font-weight:600">Day by day</p><div class="scroll"><table class="days"><thead><tr><th>Close</th><th>Price</th><th>$ per £</th><th>Value</th><th>Day</th><th>Total</th></tr></thead><tbody>' + rows.slice(0, 7).join("") + '</tbody>' +
+    (older > 0 ? '<tbody id="older" hidden>' + rows.slice(7).join("") + '</tbody>' : '') + '</table></div>' +
+    (older > 0 ? '<button type="button" class="ghost more-days" id="more-days" aria-expanded="false" aria-controls="older" data-n="' + older + '">Show ' + older + ' earlier day' + (older === 1 ? '' : 's') + '</button>' : '') +
     '<p class="note">Values use each close and the dollars-per-pound rate for that day or the latest before it, from ' + (L.src || 'the Federal Reserve (FRED DEXUSUK)') + '. ' +
     'Your cost is in dollars; the pound figures convert the dollar value and gain at each day\'s rate, so the total moves with the pound as well as the share price. ' +
     'The day\'s figure is the change in the pound total, so money you add never counts as a gain. ' + (E.some(function (e) { return e.seed || e.bf; }) ? "* Days before the daily log began are worked out from that day\'s close and rate, assuming today\'s holding throughout; the first is the gain since buying. " : "") +
     'Updated ' + (D.updated ? dlab(D.updated) + " " + D.updated.slice(11, 16) : "") + ' UK. Not advice.</p></div>';
   document.getElementById("out").innerHTML = h; document.getElementById("out").hidden = false;
+  var md = document.getElementById("more-days");
+  if (md) md.addEventListener("click", function () {
+    var t = document.getElementById("older"), open = t.hidden, n = +md.dataset.n;
+    t.hidden = !open; md.setAttribute("aria-expanded", open ? "true" : "false");
+    md.textContent = open ? "Hide earlier days" : "Show " + n + " earlier day" + (n === 1 ? "" : "s");
+  });
   live(D, L);
   document.getElementById("gate").hidden = true; document.getElementById("lock").hidden = false;
 }
