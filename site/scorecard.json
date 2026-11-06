@@ -1,5 +1,5 @@
 {
-  "generated": "2026-11-06T02:38",
+  "generated": "2026-11-06T09:37",
   "ticker": "OPEN",
   "price": {
     "date": "2026-11-05",
@@ -3429,19 +3429,19 @@
       "total_debt_musd": 3062.0,
       "shares_m": 929.213532,
       "potential_dilution_m": 398.249,
-      "aged_120_pct": 18.0,
-      "homes_sold": 2728.0,
-      "homes_purchased": 4865.0,
-      "homes_in_inventory": 7596.0,
-      "homes_under_contract": 1780.0,
-      "homes_under_contract_py": 526.0,
-      "contribution_margin_pct": 3.3,
       "adj_ebitda_musd": -31.0,
       "adj_net_income_musd": -66.0,
-      "writedown_cur_musd": 53.0,
+      "aged_120_pct": 18.0,
+      "contribution_margin_pct": 3.3,
       "direct_selling_musd": -35.0,
       "holding_cur_musd": -4.0,
-      "holding_prior_musd": -7.0
+      "holding_prior_musd": -7.0,
+      "homes_in_inventory": 7596.0,
+      "homes_purchased": 4865.0,
+      "homes_sold": 2728.0,
+      "homes_under_contract": 1780.0,
+      "homes_under_contract_py": 526.0,
+      "writedown_cur_musd": 53.0
     }
   ],
   "accountable": {
@@ -3996,9 +3996,7 @@
     "  shares_m           <- us-gaap:CommonStockSharesOutstanding",
     "  potential_dilution_m <- us-gaap:AntidilutiveSecuritiesExcludedFromComputationOfEarningsPerShareAmount",
     "Earnings releases (sec.gov 8-K exhibit 99.1):",
-    "  release 2026-11-05 (q32026formxex991earningsre.htm): 17 figures, 120+ days 18%",
     "Potential shares by type (10-Q / 10-K anti-dilutive table):",
-    "  10-Q 2026-09-30: 398.2M potential shares: market_rsus 107.6, warrants 99.6, rsus 27.6, converts 159.5, options 2.8, espp 1.1",
     "housing (Realtor.com): 12 of 12 markets, 2026-10; median days on market 64 (+0.9% YoY)",
     "mortgage rate 7.18% (week of 2026-11-05)",
     "float unavailable (HTTP Error 429: Too Many Requests); short interest shown against shares outstanding",
@@ -4676,7 +4674,7 @@
       "method": "2"
     },
     {
-      "run_at": "2026-11-06T02:38",
+      "run_at": "2026-11-06T09:37",
       "price_date": "2026-11-05",
       "price": "1.79",
       "tracker_as_of": "2026-10-31",
