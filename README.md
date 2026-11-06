@@ -139,6 +139,9 @@ Set three repository secrets (Settings > Secrets and variables > Actions > New r
 - `POSITION_PASSPHRASE`: the passphrase for the page. Make it long (four or five random words); it is the only lock.
 - `POSITION_SHARES`: how many shares you hold, e.g. `1250.5`
 - `POSITION_COST_USD`: everything you have paid for them in dollars, fees included, e.g. `6200`
+- `POSITION_FINNHUB_KEY` (optional): a free API key from finnhub.io. While the page is open it then streams live
+  trades, pre-market and after-hours included, and works out value and gain from each one. The key is stored only inside
+  the encrypted blob.
 - `POSITION_OPENED` (optional): the day you opened the position, e.g. `2026-10-14`. The days before the log began are
   filled in once from daily closes and rates, assuming today's holding throughout, and marked on the page.
 

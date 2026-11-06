@@ -5,6 +5,8 @@ Runs after the scorecard. It reads three repository secrets:
   POSITION_PASSPHRASE  the passphrase that unlocks the page (use a long one: it is the only thing protecting the page)
   POSITION_SHARES      how many shares you hold now, e.g. 1250.5
   POSITION_COST_USD    everything you have paid for them, in dollars, fees included, e.g. 6200
+  POSITION_FINNHUB_KEY optional: a free finnhub.io API key. The page then streams live trades, pre-market and
+                       after-hours included, while it is open. The key travels inside the encrypted blob only.
   POSITION_OPENED      optional: the day you opened the position, e.g. 2026-10-14. The days before the log began are
                        then filled in from daily closes, assuming today's holding throughout (marked on the page).
 
@@ -221,6 +223,9 @@ def main():
             print(f"Position page: filled in {len(filled)} days from {filled[0]['d']}.")
     entries = rechain(entries)
     data = {"entries": entries[-400:], "updated": sc.get("generated"), "ticker": "OPEN"}
+    live_key = os.environ.get("POSITION_FINNHUB_KEY", "").strip()
+    if live_key:
+        data["live"] = {"provider": "finnhub", "key": live_key}
     blob = encrypt(data, pw, salt)
     with open(LOG, "w") as fh:
         json.dump(blob, fh)
@@ -268,6 +273,14 @@ td{text-align:right;padding:9px 10px;border-bottom:1px solid var(--line);white-s
 .scroll{overflow-x:auto}.note{font-size:13px;color:var(--muted);margin:12px 0 0}
 svg text{font-size:12px;fill:var(--muted)}
 .top{display:flex;justify-content:space-between;align-items:flex-start;gap:12px}
+.live .lv-top{display:flex;justify-content:space-between;align-items:baseline;gap:8px 16px;flex-wrap:wrap;margin-bottom:12px}
+.lv-h{margin:0;font-weight:600;display:flex;align-items:center;gap:8px}.lv-h span#lv-sess{font-weight:400;color:var(--muted2)}
+.lv-t{margin:0;font-size:13px;color:var(--muted)}
+.lv-dot{width:9px;height:9px;border-radius:50%;background:#2fb67c;box-shadow:0 0 0 0 rgba(47,182,124,.5);animation:pulse 2s ease-out infinite}
+.live.off .lv-dot{background:var(--muted);animation:none}
+@keyframes pulse{0%{box-shadow:0 0 0 0 rgba(47,182,124,.5)}70%{box-shadow:0 0 0 9px rgba(47,182,124,0)}100%{box-shadow:0 0 0 0 rgba(47,182,124,0)}}
+@keyframes tick{0%{background:var(--soft)}100%{background:var(--card)}}.live.tick{animation:tick .6s ease-out}
+@media (prefers-reduced-motion:reduce){.lv-dot,.live.tick{animation:none}}
 @media (max-width:640px){.big{grid-template-columns:1fr}.facts{grid-template-columns:1fr 1fr}.k .v{font-size:28px}.card{padding:18px 16px}
 table.days thead{display:none}table.days,table.days tbody{display:block}table.days tr{display:grid;grid-template-columns:repeat(3,1fr);gap:4px 8px;padding:10px 0;border-bottom:1px solid var(--line)}
 table.days td{border:0;padding:0;text-align:left}table.days td:first-child{grid-column:1/-1;font-weight:600}table.days td::before{content:attr(data-l);display:block;font-size:11px;color:var(--muted)}}
@@ -316,7 +329,12 @@ function render(D) {
   var usd = function (v) { return "$" + Math.abs(v).toLocaleString("en-US", {minimumFractionDigits: 2, maximumFractionDigits: 2}); };
   var avg = L.cost_usd / L.sh;
   var day = L.day === null ? null : L.day, dayp = day === null || !P ? null : day / P.val;
-  var h = '<div class="card"><div class="big">' +
+  var h = (D.live ? '<div class="card live" id="live"><div class="lv-top"><p class="lv-h"><span class="lv-dot"></span>Live <span id="lv-sess">connecting</span></p>' +
+      '<p class="lv-t" id="lv-t"></p></div><div class="big">' +
+      '<div class="k"><p class="l">Price now</p><p class="v" id="lv-px">\u2013</p><p class="s" id="lv-pxs"></p></div>' +
+      '<div class="k" id="lv-k1"><p class="l">Since the reference close</p><p class="v" id="lv-day">\u2013</p><p class="s" id="lv-days"></p></div>' +
+      '<div class="k" id="lv-k2"><p class="l">Total, live</p><p class="v" id="lv-tot">\u2013</p><p class="s" id="lv-tots"></p></div></div></div>' : '') +
+    '<div class="card"><div class="big">' +
     '<div class="k"><p class="l">Value now</p><p class="v">' + gbp(L.val) + '</p><p class="s">close ' + dlab(L.d) + '</p></div>' +
     '<div class="k ' + cls(L.tot) + '"><p class="l">Total gain or loss</p><p class="v">' + gbp(L.tot, true) + '</p><p class="s">' + pct(L.tot_usd / L.cost_usd) + ' on ' + usd(L.cost_usd) + ' put in (' + gbp(L.cost) + ' today)</p></div>' +
     '<div class="k ' + (day === null ? "" : cls(day)) + '"><p class="l">Day</p><p class="v">' + (day === null ? "n/a" : gbp(day, true)) + '</p><p class="s">' +
@@ -336,7 +354,68 @@ function render(D) {
     'The day\'s figure is the change in the pound total, so money you add never counts as a gain. ' + (E.some(function (e) { return e.seed || e.bf; }) ? "* Days before the daily log began are worked out from that day\'s close and rate, assuming today\'s holding throughout; the first is the gain since buying. " : "") +
     'Updated ' + (D.updated ? dlab(D.updated) + " " + D.updated.slice(11, 16) : "") + ' UK. Not advice.</p></div>';
   document.getElementById("out").innerHTML = h; document.getElementById("out").hidden = false;
+  if (D.live && D.live.key) live(D, L);
   document.getElementById("gate").hidden = true; document.getElementById("lock").hidden = false;
+}
+// ---- live prices: Finnhub trades over a websocket (pre-market and after-hours included), the quote endpoint for the
+// reference close. Pound figures use the logged rate unless a live pound/dollar tick arrives.
+var LIVE = null;
+function session(ms) {
+  var f = new Intl.DateTimeFormat("en-GB", {timeZone: "America/New_York", weekday: "short", hour: "2-digit", minute: "2-digit", hour12: false});
+  var p = {}; f.formatToParts(new Date(ms)).forEach(function (x) { p[x.type] = x.value; });
+  var m = (+p.hour % 24) * 60 + +p.minute;
+  if (p.weekday === "Sat" || p.weekday === "Sun") return "closed";
+  return m >= 240 && m < 570 ? "pre" : m >= 570 && m < 960 ? "regular" : m >= 960 && m < 1200 ? "after" : "closed";
+}
+var SESS = {pre: "pre-market", regular: "market open", after: "after-hours", closed: "market closed"};
+function live(D, L) {
+  if (LIVE) return; LIVE = {px: null, t: null, fx: L.fx, fxLive: false, q: null, ws: null, tries: 0};
+  var key = D.live.key, sym = D.ticker || "OPEN";
+  function q() { return fetch("https://finnhub.io/api/v1/quote?symbol=" + sym + "&token=" + encodeURIComponent(key))
+    .then(function (r) { return r.json(); }).then(function (j) { if (j && j.c) { LIVE.q = j; if (LIVE.px === null) { LIVE.px = j.c; LIVE.t = j.t * 1000; } draw(); } })
+    .catch(function () {}); }
+  function draw() {
+    if (LIVE.px === null) return;
+    var s = session(Date.now()), fx = LIVE.fx, sh = L.sh;
+    // reference: in the regular session the previous close; outside it the latest regular close
+    var ref = LIVE.q ? (s === "regular" ? LIVE.q.pc : LIVE.q.c) : L.px, refLab = LIVE.q ? (s === "regular" ? "previous close" : "last regular close") : "close " + dlab(L.d);
+    var chg = LIVE.px - ref, dayG = sh * chg / fx, totG = (sh * LIVE.px - L.cost_usd) / fx;
+    document.getElementById("lv-sess").textContent = SESS[s];
+    document.getElementById("live").classList.toggle("off", s === "closed");
+    document.getElementById("lv-px").textContent = "$" + LIVE.px.toFixed(LIVE.px < 10 ? 4 : 2);
+    document.getElementById("lv-pxs").textContent = (chg >= 0 ? "+" : "\u2212") + "$" + Math.abs(chg).toFixed(4) + " (" + pct(chg / ref) + ") vs the " + refLab + " $" + ref.toFixed(2);
+    var k1 = document.getElementById("lv-k1"), k2 = document.getElementById("lv-k2");
+    k1.querySelector(".l").textContent = "Since the " + refLab;
+    document.getElementById("lv-day").textContent = gbp(dayG, true); k1.className = "k " + cls(dayG);
+    document.getElementById("lv-days").textContent = pct(chg / ref) + " on " + sh.toLocaleString("en-GB", {maximumFractionDigits: 4}) + " shares";
+    document.getElementById("lv-tot").textContent = gbp(totG, true); k2.className = "k " + cls(totG);
+    document.getElementById("lv-tots").textContent = "value " + gbp(sh * LIVE.px / fx) + ", $" + fx.toFixed(4) + " per \u00a31" + (LIVE.fxLive ? " live" : " (" + dlab(L.fxd) + ")");
+  }
+  function ago() {
+    var el = document.getElementById("lv-t"); if (!el || !LIVE.t) return;
+    var sec = Math.max(0, Math.round((Date.now() - LIVE.t) / 1000));
+    var hm = new Date(LIVE.t).toLocaleTimeString("en-GB", {hour: "2-digit", minute: "2-digit", second: "2-digit"});
+    el.textContent = "last trade " + hm + " UK, " + (sec < 60 ? sec + " s ago" : sec < 3600 ? Math.round(sec / 60) + " min ago" : Math.round(sec / 3600) + " h ago");
+    var sEl = document.getElementById("lv-sess"); if (sEl && LIVE.px !== null) sEl.textContent = SESS[session(Date.now())];
+  }
+  function connect() {
+    var ws = new WebSocket("wss://ws.finnhub.io?token=" + encodeURIComponent(key)); LIVE.ws = ws;
+    ws.onopen = function () { LIVE.tries = 0; ws.send(JSON.stringify({type: "subscribe", symbol: sym})); ws.send(JSON.stringify({type: "subscribe", symbol: "OANDA:GBP_USD"})); };
+    ws.onmessage = function (ev) {
+      var m; try { m = JSON.parse(ev.data); } catch (e) { return; }
+      if (m.type !== "trade" || !m.data) return;
+      m.data.forEach(function (t) {
+        if (t.s === sym && (!LIVE.t || t.t >= LIVE.t)) { LIVE.px = t.p; LIVE.t = t.t; }
+        else if (t.s === "OANDA:GBP_USD" && t.p > 0.5 && t.p < 3) { LIVE.fx = t.p; LIVE.fxLive = true; }
+      });
+      draw(); ago();
+      var c = document.getElementById("live"); if (c) { c.classList.remove("tick"); void c.offsetWidth; c.classList.add("tick"); }
+    };
+    ws.onclose = function () { var w = Math.min(30000, 1000 * Math.pow(2, LIVE.tries++)); setTimeout(connect, w); };
+    ws.onerror = function () { try { ws.close(); } catch (e) {} };
+  }
+  q(); connect(); setInterval(ago, 1000); setInterval(q, 60000);
+  document.addEventListener("visibilitychange", function () { if (!document.hidden) q(); });
 }
 document.getElementById("f").addEventListener("submit", async function (ev) {
   ev.preventDefault(); var err = document.getElementById("err"); err.textContent = "Unlocking…";

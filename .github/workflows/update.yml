@@ -53,6 +53,7 @@ jobs:
           POSITION_SHARES: ${{ secrets.POSITION_SHARES }}
           POSITION_COST_USD: ${{ secrets.POSITION_COST_USD }}
           POSITION_OPENED: ${{ secrets.POSITION_OPENED }}
+          POSITION_FINNHUB_KEY: ${{ secrets.POSITION_FINNHUB_KEY }}
         run: |
           if [ -n "$POSITION_PASSPHRASE" ]; then
             pip install --quiet cryptography && python3 position_page.py
