@@ -64,9 +64,9 @@ def _fetch(url, timeout):
 def fx_series(start):
     """Dollars per pound by day, oldest first: ([(date, rate)], source). FRED's DEXUSUK (Federal Reserve noon rate) first,
     then the ECB reference rate via Frankfurter if FRED does not answer."""
-    for attempt in (1, 2):
+    for attempt in (1,):   # FRED often does not answer GitHub's runners; do not wait long before the fallback
         try:
-            txt = _fetch(f"https://fred.stlouisfed.org/graph/fredgraph.csv?id=DEXUSUK&cosd={start}", 60)
+            txt = _fetch(f"https://fred.stlouisfed.org/graph/fredgraph.csv?id=DEXUSUK&cosd={start}", 25)
             out = []
             for line in txt.strip().splitlines()[1:]:
                 d, v = (line.split(",") + [""])[:2]
@@ -294,7 +294,7 @@ var gbp = function (v, sign) { var s = Math.abs(v).toLocaleString("en-GB", {mini
   return (v < 0 ? "−" : sign && v > 0 ? "+" : "") + "£" + s; };
 var pct = function (v) { return (v < 0 ? "−" : "+") + Math.abs(v * 100).toFixed(2) + "%"; };
 var cls = function (v) { return v > 0.004 ? "up" : v < -0.004 ? "dn" : ""; };
-var dlab = function (d) { var t = new Date(d + "T12:00:00Z"); return t.toLocaleDateString("en-GB", {day: "numeric", month: "short", year: "numeric"}); };
+var dlab = function (d) { var p = String(d).slice(0, 10).split("-"); return p.length === 3 ? p[2] + "/" + p[1] + "/" + p[0] : String(d); };
 function chart(E) {
   if (E.length < 2) return '<p class="note">The chart starts once there are two days in the log.</p>';
   var W = Math.round(Math.min(840, Math.max(300, window.innerWidth - 72))), H = W < 520 ? 200 : 220, L = 56, R = 12, T = 12, B = 26, vs = [];
@@ -334,7 +334,7 @@ function render(D) {
     '<p class="note">Values use each close and the dollars-per-pound rate for that day or the latest before it, from ' + (L.src || 'the Federal Reserve (FRED DEXUSUK)') + '. ' +
     'Your cost is in dollars; the pound figures convert the dollar value and gain at each day\'s rate, so the total moves with the pound as well as the share price. ' +
     'The day\'s figure is the change in the pound total, so money you add never counts as a gain. ' + (E.some(function (e) { return e.seed || e.bf; }) ? "* Days before the daily log began are worked out from that day\'s close and rate, assuming today\'s holding throughout; the first is the gain since buying. " : "") +
-    'Updated ' + (D.updated || "").replace("T", " ") + ' UK. Not advice.</p></div>';
+    'Updated ' + (D.updated ? dlab(D.updated) + " " + D.updated.slice(11, 16) : "") + ' UK. Not advice.</p></div>';
   document.getElementById("out").innerHTML = h; document.getElementById("out").hidden = false;
   document.getElementById("gate").hidden = true; document.getElementById("lock").hidden = false;
 }

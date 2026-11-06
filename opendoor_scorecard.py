@@ -84,33 +84,33 @@ HOUSING_SERIES = {"dom": "MEDDAYONMAR", "listings": "ACTLISCOU", "cuts": "PRIRED
 TARGETS = [
     {"what": "Adjusted net income positive by the end of 2026, measured on a twelve-month go-forward basis",
      "key": "adj_net_income_musd", "label": "Adj. net income", "by": "2026-12-31",
-     "said": "Q4 2025 release (Feb 19, 2026); repeated in the Q2 2026 release (Aug 4, 2026)"},
+     "said": "Q4 2025 release (19/02/2026); repeated in the Q2 2026 release (04/08/2026)"},
     {"what": "Adjusted EBITDA profitable on a twelve-month go-forward basis from Q2 2026",
      "key": "adj_ebitda_musd", "label": "Adj. EBITDA", "by": "2026-06-30",
-     "said": "Q1 2026 release (May 7, 2026); repeated in the Q2 2026 release (Aug 4, 2026)"},
+     "said": "Q1 2026 release (07/05/2026); repeated in the Q2 2026 release (04/08/2026)"},
 ]
 # Quarterly guidance as Opendoor worded it, newest last. Each item: (wording, what to check, kind, target, better)
 # kind: min (at least), max (at most), range (lo, hi), approx (target, tolerance), abs_max (within +/- of zero).
 # better: +1 when a higher figure is better (so landing above counts as "beat"), -1 when lower is better, 0 when only
 # accuracy matters. Guidance that can't be checked from reported quarterly figures (a monthly exit rate, say) is left out.
 GUIDANCE = [
-    {"quarter": "2025-09-30", "said": "Q2 2025 release (Aug 5, 2025)", "items": [
+    {"quarter": "2025-09-30", "said": "Q2 2025 release (05/08/2025)", "items": [
         ("Revenue of $800M to $875M", "revenue_musd", "range", (800.0, 875.0), 1),
         ("Contribution profit of $22M to $29M", "contribution_profit_musd", "range", (22.0, 29.0), 1),
         ("Adj. EBITDA of -$28M to -$21M", "adj_ebitda_musd", "range", (-28.0, -21.0), 1)]},
-    {"quarter": "2025-12-31", "said": "Q3 2025 release (Nov 6, 2025)", "items": [
+    {"quarter": "2025-12-31", "said": "Q3 2025 release (06/11/2025)", "items": [
         ("Homes purchased up at least 35% on the quarter", "homes_purchased_qoq", "min", 0.35, 1),
         ("Revenue down about 35% on the quarter", "revenue_qoq", "approx", (-0.35, 0.02), 1),
         ("Contribution margin below Q3 2025's 2.2%", "contribution_margin", "max", 2.2, 0),
         ("Adj. EBITDA loss in the high $40Ms to mid $50Ms", "adj_ebitda_musd", "range", (-56.0, -46.0), 1)]},
-    {"quarter": "2026-03-31", "said": "Q4 2025 release (Feb 19, 2026)", "items": [
+    {"quarter": "2026-03-31", "said": "Q4 2025 release (19/02/2026)", "items": [
         ("Revenue down about 10% on the quarter", "revenue_qoq", "approx", (-0.10, 0.02), 1),
         ("Adj. EBITDA loss in the low to mid $30Ms", "adj_ebitda_musd", "range", (-36.0, -30.0), 1)]},
-    {"quarter": "2026-06-30", "said": "Q1 2026 release (May 7, 2026)", "items": [
+    {"quarter": "2026-06-30", "said": "Q1 2026 release (07/05/2026)", "items": [
         ("Revenue up about 25% on the quarter before", "revenue_qoq", "approx", (0.25, 0.02), 1),
         ("Contribution margin in the middle of the 5% to 7% range", "contribution_margin", "range", (5.5, 6.5), 1),
         ("Adj. EBITDA breakeven, plus or minus a few million", "adj_ebitda_musd", "abs_max", 5.0, 1)]},
-    {"quarter": "2026-09-30", "said": "Q2 2026 release (Aug 4, 2026)", "items": [
+    {"quarter": "2026-09-30", "said": "Q2 2026 release (04/08/2026)", "items": [
         ("Revenue up at least 20% year on year", "revenue_yoy", "min", 0.20, 1),
         ("Contribution margin around 4% to 4.5%", "contribution_margin", "range", (4.0, 4.5), 1),
         ("Contribution profit more than double year on year", "contribution_profit_mult", "min", 2.0, 1),
@@ -1722,10 +1722,10 @@ def _smooth(pts):
 
 
 def _d(iso):
-    """'2026-10-24' -> 'Oct 24, 2026'; leaves anything else alone."""
+    """'2026-10-24' -> '24/10/2026' (day first); leaves anything else alone."""
     try:
         d = dt.date.fromisoformat(str(iso)[:10])
-        return f"{d.strftime('%b')} {d.day}, {d.year}"
+        return d.strftime("%d/%m/%Y")
     except ValueError:
         return str(iso)
 

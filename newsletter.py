@@ -39,7 +39,7 @@ def api(method, path, key, body=None, extra=None):
 # ---------------------------------------------------------------- writing the emails
 def _d(iso):
     d = dt.date.fromisoformat(iso[:10])
-    return f"{d.strftime('%a')} {d.day} {d.strftime('%b')}"
+    return f"{d.strftime('%a')} {d.strftime('%d/%m/%Y')}"
 
 
 def _q(iso):
