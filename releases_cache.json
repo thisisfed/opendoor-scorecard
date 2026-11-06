@@ -24,7 +24,7 @@
  "0001801169-25-000073": {
   "file": "q22025formxex991earningsre.htm",
   "filed": "2025-08-05",
-  "parser": 3,
+  "parser": 4,
   "quarter_end": "2025-06-30",
   "values": {
    "adj_ebitda_musd": 23.0,
@@ -46,7 +46,7 @@
  "0001801169-25-000090": {
   "file": "q32025formxex991earningsre.htm",
   "filed": "2025-11-06",
-  "parser": 3,
+  "parser": 4,
   "quarter_end": "2025-09-30",
   "values": {
    "adj_ebitda_musd": -33.0,
@@ -70,7 +70,7 @@
  "0001801169-26-000009": {
   "file": "q42025formxex991earningsre.htm",
   "filed": "2026-02-19",
-  "parser": 3,
+  "parser": 4,
   "quarter_end": "2025-12-31",
   "values": {
    "adj_ebitda_musd": -43.0,
@@ -95,7 +95,7 @@
  "0001801169-26-000013": {
   "file": "q12026formxex991earningsre.htm",
   "filed": "2026-05-07",
-  "parser": 3,
+  "parser": 4,
   "quarter_end": "2026-03-31",
   "values": {
    "adj_ebitda_musd": -31.0,
@@ -121,7 +121,7 @@
  "0001801169-26-000019": {
   "file": "q22026formxex991earningsre.htm",
   "filed": "2026-08-04",
-  "parser": 3,
+  "parser": 4,
   "quarter_end": "2026-06-30",
   "values": {
    "adj_ebitda_musd": -4.0,
@@ -147,7 +147,7 @@
  "0001801169-26-000027": {
   "file": "q32026formxex991earningsre.htm",
   "filed": "2026-11-05",
-  "parser": 3,
+  "parser": 4,
   "quarter_end": "2026-09-30",
   "values": {
    "adj_ebitda_musd": -31.0,
@@ -164,6 +164,7 @@
    "homes_under_contract": 1780.0,
    "homes_under_contract_py": 526.0,
    "inventory_musd": 2568.0,
+   "market_aged_120_pct": 30.0,
    "net_income_musd": -218.0,
    "revenue_musd": 1022.0,
    "writedown_cur_musd": 53.0
