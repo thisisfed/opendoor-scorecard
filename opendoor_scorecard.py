@@ -638,12 +638,14 @@ def _first_number(cells):
     return n[0] if n else None
 
 
-RELEASE_PARSER = 3  # bump to re-read cached releases with a newer parser
+RELEASE_PARSER = 4  # bump to re-read cached releases with a newer parser
 # "% of homes on the market over 120 Days declined from 10% to 9% quarter-over-quarter, compared to 27% for
 # the overall market." The table header that names the same metric has no figure, so it never matches.
 AGED_RE = re.compile(r"homes on the market (?:for )?(?:over|more than|greater than) 120 days[^.%]{0,60}?"
                      r"(?:from \d+(?:\.\d+)?% )?(?:to|at|was|of)\s+(\d+(?:\.\d+)?)\s?%", re.I)
-MARKET_AGED_RE = re.compile(r"compared (?:to|with) (\d+(?:\.\d+)?)\s?% for the (?:overall|broader|wider) market", re.I)
+# Q3 2026 wording: "compared with 51% a year earlier and 30% for the overall market", so take the figure
+# right before "for the overall market" rather than the first one after "compared".
+MARKET_AGED_RE = re.compile(r"(\d+(?:\.\d+)?)\s?% for the (?:overall|broader|wider) market", re.I)
 
 
 def _page_text(page):
@@ -660,7 +662,7 @@ def parse_release(page):
     m = AGED_RE.search(text)
     if m:
         out["aged_120_pct"] = float(m.group(1))
-        mk = MARKET_AGED_RE.search(text, m.end(), m.end() + 200)
+        mk = MARKET_AGED_RE.search(text, m.end(), m.end() + 300)
         if mk:
             out["market_aged_120_pct"] = float(mk.group(1))
     for cells in p.rows:
