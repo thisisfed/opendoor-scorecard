@@ -26,6 +26,7 @@ import csv
 import datetime as dt
 import json
 import os
+import re
 import secrets
 import sys
 import urllib.request
@@ -146,8 +147,74 @@ def rechain(entries):
     return out
 
 
+def parse_trades(text):
+    """POSITION_TRADES: one buy per line (or separated by ';'), day first, then shares, then the price paid per share
+    in dollars, e.g. '14/10/2026 1000 1.60'. Negative shares record a sale. Anything after '#' is ignored.
+    Returns [(iso date, shares, price)] sorted by date."""
+    out = []
+    for n, raw in enumerate(re.split(r"[\n;]+", text or ""), 1):
+        line = raw.split("#")[0].strip()
+        if not line:
+            continue
+        tok = [t.strip(",").lstrip("$") for t in line.split() if t not in ("@", "x", "at")]
+        try:
+            ds = tok[0]
+            if "/" in ds:
+                d, m, y = ds.split("/")
+                day = dt.date(int(y), int(m), int(d)).isoformat()
+            else:
+                day = dt.date.fromisoformat(ds).isoformat()
+            shares, price = float(tok[1].replace(",", "")), float(tok[2].replace(",", ""))
+        except (IndexError, ValueError):
+            raise ValueError(f"POSITION_TRADES line {n} is not 'DD/MM/YYYY shares price'")
+        if price <= 0 or shares == 0:
+            raise ValueError(f"POSITION_TRADES line {n}: shares and price must be non-zero, price positive")
+        out.append((day, shares, price))
+    return sorted(out)
+
+
+def holding(trades, day):
+    """Shares held and dollar cost after every trade up to and including day (sales at the average cost)."""
+    sh = cost = 0.0
+    for d, n, px in trades:
+        if d > day:
+            break
+        if n > 0:
+            sh, cost = sh + n, cost + n * px
+        elif sh > 0:
+            left = max(0.0, sh + n)
+            cost, sh = cost * left / sh, left
+    return round(sh, 6), round(cost, 2)
+
+
+def from_trades(trades, pday, price, series, src, close_rows):
+    """Every close from the first trade to today, with the holding on each day taken from the trade list."""
+    first = trades[0][0]
+    days = sorted({d: c for d, c in close_rows if first <= d < pday}.items()) + [(pday, price)]
+    out, prev = [], None
+    for d, c in days:
+        sh, cost = holding(trades, d)
+        h = fx_on(series, d)
+        if sh <= 0 or not h:
+            continue
+        e = entry(d, c, h[1], h[0], sh, cost, prev)
+        e["src"] = src
+        out.append(e)
+        prev = e
+    return out
+
+
 def main():
     pw = os.environ.get("POSITION_PASSPHRASE", "")
+    trades = []
+    try:
+        trades = parse_trades(os.environ.get("POSITION_TRADES", ""))
+    except ValueError as ex:
+        print(f"Position page: {ex}; using POSITION_SHARES and POSITION_COST_USD instead.")
+    if trades and pw:
+        sh_t, cost_t = holding(trades, "9999-12-31")
+        os.environ["POSITION_SHARES"], os.environ["POSITION_COST_USD"] = repr(sh_t), repr(cost_t)
+        os.environ["POSITION_OPENED"] = trades[0][0]
     sh_s, cost_s = os.environ.get("POSITION_SHARES", ""), os.environ.get("POSITION_COST_USD", "")
     if not (pw and sh_s and cost_s):
         print("Position page: secrets not set, skipped.")
@@ -190,9 +257,20 @@ def main():
         print("Position page: no pound/dollar rate available; skipped.")
         return 0
 
+    built = None
+    if trades:
+        # the trade list gives the exact holding on every day, so the whole history is worked out again each run
+        try:
+            built = from_trades(trades, pday, price, series, src, closes(trades[0][0]))
+        except Exception as ex:
+            print(f"Position page: could not rebuild from the trade list ({str(ex)[:120]}); carrying on with the log.")
+        if built and len(built) < 2 and trades[0][0] < pday:
+            built = None                                       # closes unavailable: keep the log rather than lose history
     entries = [x for x in entries if x["d"] != pday]          # a second run on the same close replaces it
     prev = entries[-1] if entries else None
-    if prev is None:
+    if built:
+        entries, prev = built[:-1], None
+    if prev is None and not built:
         # first run: seed the previous close from the scorecard's own history, holding as today, so day one has a figure
         try:
             rows = [r for r in csv.DictReader(open(os.path.join("site", "history.csv"))) if r.get("price_date", "") < pday]
@@ -204,12 +282,15 @@ def main():
                     entries.append(prev)
         except FileNotFoundError:
             pass
-    entries.append(entry(pday, price, hit[1], hit[0], shares, cost, prev))
-    entries[-1]["src"] = src
+    if built:
+        entries.append(built[-1])
+    else:
+        entries.append(entry(pday, price, hit[1], hit[0], shares, cost, prev))
+        entries[-1]["src"] = src
     # fill in from the opening day, once: closes and rates for the days before the log began, today's holding throughout
     live = [x for x in entries if not x.get("seed") and not x.get("bf")]
     first_live = live[0]["d"] if live else pday
-    if opened and opened < first_live and not any(x.get("bf") for x in entries):
+    if not built and opened and opened < first_live and not any(x.get("bf") for x in entries):
         filled = []
         for d, c in closes(opened):
             if d >= first_live:
@@ -223,8 +304,10 @@ def main():
             entries = filled + live
             print(f"Position page: filled in {len(filled)} days from {filled[0]['d']}.")
     entries = rechain(entries)
+    # the trade list, for the page's "Add shares" tool; without one, a single line built from the total so far
+    tl = [[d, n, p] for d, n, p in trades] or [[opened or entries[0]["d"], shares, round(cost / shares, 6)]]
     data = {"entries": entries[-400:], "updated": sc.get("generated"), "ticker": "OPEN", "sc": scorecard_view(sc),
-            "events": results_days(), "opened": opened or None}
+            "events": results_days(), "opened": opened or None, "trades": tl, "trades_set": bool(trades)}
     live_key = os.environ.get("POSITION_FINNHUB_KEY", "").strip()
     if live_key:
         data["live"] = {"provider": "finnhub", "key": live_key}
@@ -270,6 +353,7 @@ PAGE = r"""<!DOCTYPE html><html lang="en"><head><meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
 <meta name="robots" content="noindex,nofollow,noarchive"><meta name="referrer" content="no-referrer">
 <title>Private</title>
+<link rel="icon" href="../favicon.svg" type="image/svg+xml"><link rel="icon" href="../favicon-32.png" sizes="32x32" type="image/png"><link rel="apple-touch-icon" href="../apple-touch-icon.png">
 <script>(function(){var d=document.documentElement,t=null;try{t=localStorage.getItem("theme")}catch(e){}
 d.setAttribute("data-theme",t==="dark"||t==="light"?t:(matchMedia&&matchMedia("(prefers-color-scheme: dark)").matches?"dark":"light"))})();</script>
 <link rel="preconnect" href="https://fonts.googleapis.com"><link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
@@ -362,6 +446,24 @@ tbody[hidden]{display:none!important}.more-days{margin-top:12px}
 .sc-p{list-style:none;margin:14px 0 0;padding:0;display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:8px}
 .sc-p li{background:var(--soft);border-radius:12px;padding:10px 12px;font-size:13px;color:var(--muted)}.sc-p b{display:block;font-size:17px;color:var(--ink);font-weight:600}.sc-p b.up{color:var(--good)}.sc-p b.dn{color:var(--bad)}
 input:focus{outline:2px solid var(--blue);outline-offset:1px}
+/* add shares */
+.addf{display:grid;grid-template-columns:1.1fr 1fr 1fr 1fr;gap:12px;margin-top:14px;align-items:end}
+.addf label,.addf .fld{display:flex;flex-direction:column;gap:6px;font-size:12.5px;color:var(--muted);min-width:0}
+.addf input[aria-invalid=true]{border-color:var(--bad)}.addf input{min-height:44px;width:100%;font:inherit;font-size:16px;padding:0 12px;border:1px solid var(--line2);border-radius:12px;background:var(--card);color:var(--ink)}
+.addf .seg{align-self:stretch}.addf .seg button{flex:1;min-height:38px}
+.a-out{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:10px;margin-top:16px}
+.a-out>div{background:var(--soft);border-radius:14px;padding:12px 14px;min-width:0}
+.a-out span{display:block;font-size:12.5px;color:var(--muted)}.a-out b{display:block;font-size:18px;font-weight:600;letter-spacing:-.02em;margin-top:2px}
+.a-out small{display:block;font-size:12.5px;color:var(--muted2)}
+.a-rec{margin-top:16px;border-top:1px solid var(--line)}.a-rec summary{cursor:pointer;font-weight:600;font-size:14px;min-height:46px;display:flex;align-items:center}
+.a-rec p{font-size:13.5px;color:var(--muted2);margin:0 0 8px}
+textarea{display:block;width:100%;min-height:96px;font:13.5px/1.6 ui-monospace,SFMono-Regular,Menlo,monospace;padding:10px 12px;border:1px solid var(--line2);border-radius:12px;background:var(--card);color:var(--ink);resize:vertical}
+textarea:focus{outline:2px solid var(--blue);outline-offset:1px}
+.a-row{display:flex;flex-wrap:wrap;gap:8px 16px;align-items:center;margin-top:10px;font-size:14px}.a-row a{color:var(--blue)}
+.a-row button{min-height:40px;font-size:14px;padding:0 16px}
+.trd{width:100%;border-collapse:collapse;font-size:13.5px;margin-top:6px}.trd td,.trd th{padding:6px 8px;border-bottom:1px solid var(--line);text-align:right}
+.trd th{font-weight:500;color:var(--muted);font-size:12px}.trd td:first-child,.trd th:first-child{text-align:left}
+@media (max-width:640px){.addf{grid-template-columns:1fr 1fr}.a-out{grid-template-columns:1fr 1fr}}
 /* how it's worked out */
 .how ul{margin:10px 0 0;padding-left:18px;font-size:13.5px;color:var(--muted2)}.how li{margin:4px 0}
 /* tooltips */
@@ -504,6 +606,7 @@ function render(D, key) {
       '</div></div><div class="chw" id="chw"></div>' +
       '<p class="lg"><span><i></i>Value</span><span><i class="c"></i>Money put in</span><span><i class="e"></i>Results day</span><span><i class="m"></i>Move of 10% or more</span></p></section>' +
     daysHTML(X) + scCard(D.sc, L, avg) +
+    addHTML(D) +
     // how
     '<section class="card how" aria-labelledby="w-t"><h2 id="w-t">How the figures are worked out</h2><ul>' +
       '<li>Your cost is in dollars. <b>Money put in</b> counts each dollar amount in pounds at the rate on the day it went in.</li>' +
@@ -525,7 +628,7 @@ function render(D, key) {
     md.textContent = open ? "Hide earlier days" : "Show " + n + " earlier day" + (n === 1 ? "" : "s");
   });
   var rt = null; addEventListener("resize", function () { clearTimeout(rt); rt = setTimeout(drawChart, 150); });
-  tips(); live(D, L);
+  tips(); addInit(D); live(D, L);
   $("gate").hidden = true; $("lock").hidden = false;
 }
 
@@ -558,6 +661,7 @@ function paint(q) {
   if (!q) set("h-t", "Waiting for a live price; showing the close on " + dlab(L.d) + ".");
   set("m-fx", "$" + fx.toFixed(4)); set("m-fxs", "per £1, " + (q && q.fxLive ? "live" : (/ecb|frankfurter/i.test(L.src || "") ? "ECB " : "Fed ") + dlab(L.fxd)));
   set("m-usd", usd(g$, true), cls(g$)); set("m-usdp", "(" + pct(g$ / L.cost_usd) + ")");
+  if (q && ADD) ADD.live(q.px, q.fx);
 }
 
 // ---- chart: value and money put in, hover or tap for a day, arrow keys to step
@@ -643,6 +747,71 @@ function daysHTML(X) {
     (older > 0 ? '<button type="button" class="ghost more-days" id="more-days" aria-expanded="false" aria-controls="older" data-n="' + older + '">Show ' + older + ' earlier day' + (older === 1 ? '' : 's') + '</button>' : '') +
     (X.some(function (x) { return x.est; }) ? '<p class="note"><span class="est">*</span> Estimated: days before the daily log began, worked out from that day\'s close and rate, assuming your current holding. The first is the gain since buying.</p>' : '') +
     '</section>';
+}
+
+// ---- add shares: preview a buy (new holding, average cost, money put in) and produce the trade list to save
+var REPO = "https://github.com/thisisfed/opendoor-scorecard";
+var ADD = null;
+var num = function (v, dp) { return (+v).toFixed(dp).replace(/\.?0+$/, ""); };
+var pr2 = function (v) { var s = num(v, 4); return s.indexOf(".") < 0 ? s + ".00" : s.split(".")[1].length < 2 ? s + "0" : s; };
+var tline = function (t) { return dlab(t[0]) + " " + num(t[1], 6) + " " + num(t[2], 4); };
+function addHTML(D) {
+  var T = D.trades || [];
+  return '<section class="card" aria-labelledby="a-t"><div class="ch-h"><h2 id="a-t">Add shares</h2>' +
+    tip("Preview what a buy does to your holding and average cost, then copy the updated trade list into the POSITION_TRADES secret to record it.") + '</div>' +
+    '<form class="addf" id="a-f" novalidate>' +
+      '<label>Date, DD/MM/YYYY<input type="text" id="a-d" inputmode="numeric" autocomplete="off" placeholder="DD/MM/YYYY" maxlength="10"></label>' +
+      '<div class="fld"><span id="a-ml">Buy by</span><div class="seg" role="group" aria-labelledby="a-ml">' +
+        '<button type="button" data-m="sh" aria-pressed="true">Shares</button><button type="button" data-m="gbp" aria-pressed="false">Pounds</button></div></div>' +
+      '<label><span id="a-ql">Shares</span><input type="number" id="a-q" min="0" step="any" inputmode="decimal" placeholder="e.g. 250"></label>' +
+      '<label>Price per share, $<input type="number" id="a-p" min="0" step="any" inputmode="decimal"></label>' +
+    '</form>' +
+    '<div class="a-out" id="a-out" aria-live="polite"></div>' +
+    '<details class="a-rec" id="a-rec"><summary>Record it</summary>' +
+      '<p>Your trade list, one buy per line: date, shares, price paid in dollars. Edit it if the fill was different, copy it, ' +
+      'then replace the <b>POSITION_TRADES</b> secret with it. The page updates on the next run (weekdays at 22:30 UK), or straight away if you run the update.</p>' +
+      '<textarea id="a-list" spellcheck="false" aria-label="Trade list to save"></textarea>' +
+      '<div class="a-row"><button type="button" id="a-copy">Copy list</button><a href="' + REPO + '/settings/secrets/actions" target="_blank" rel="noopener">Open the secrets</a>' +
+        '<a href="' + REPO + '/actions/workflows/update.yml" target="_blank" rel="noopener">Run the update</a><span class="muted" id="a-cs" role="status"></span></div>' +
+      (D.trades_set ? '' : '<p class="note">No trade list is saved yet, so this starts from one line built from your current total. If you bought on more than one day, put in the real buys before saving. Once POSITION_TRADES is set, the shares, cost and opened secrets are no longer used.</p>') +
+      '<table class="trd"><thead><tr><th scope="col">Bought</th><th scope="col">Shares</th><th scope="col">Price</th><th scope="col">Cost</th></tr></thead><tbody>' +
+        T.map(function (t) { return '<tr><td>' + dlab(t[0]) + '</td><td>' + (+t[1]).toLocaleString("en-GB", {maximumFractionDigits: 6}) + '</td><td>$' + pr2(t[2]) + '</td><td>' + usd(t[1] * t[2]) + '</td></tr>'; }).join("") +
+      '</tbody></table></details></section>';
+}
+function addInit(D) {
+  var L = STATE.L, mode = "sh", touched = false, px = L.px, fx = L.fx, T = D.trades || [];
+  var d = $("a-d"), q = $("a-q"), p = $("a-p"), out = $("a-out"), list = $("a-list"), edited = false;
+  d.value = dlab(ymd(Date.now())); p.value = num(px, 4);
+  function calc() {
+    var dm = /^(\d{1,2})\/(\d{1,2})\/(\d{4})$/.exec(d.value.trim()), iso = dm ? dm[3] + "-" + ("0" + dm[2]).slice(-2) + "-" + ("0" + dm[1]).slice(-2) : "";
+    if (iso) { var cd = new Date(Date.UTC(+dm[3], +dm[2] - 1, +dm[1])); if (cd.getUTCDate() !== +dm[1] || cd.getUTCMonth() !== +dm[2] - 1) iso = ""; }
+    d.setAttribute("aria-invalid", iso || !d.value ? "false" : "true");
+    var n0 = +q.value, pr = +p.value, ok = n0 > 0 && pr > 0 && iso;
+    var n = !ok ? 0 : mode === "gbp" ? Math.floor(n0 * fx / pr * 1e6) / 1e6 : n0;
+    var oldAvg = L.cost_usd / L.sh, sh = L.sh + n, cost = L.cost_usd + n * pr, avg = cost / sh, inG = L.cg + n * pr / fx;
+    var valAt = sh * pr / fx, plAt = valAt - inG;
+    out.innerHTML = !ok ? '<div style="grid-column:1/-1"><span>Enter a date as DD/MM/YYYY, ' + (mode === "gbp" ? "an amount in pounds" : "a number of shares") + ' and a price to see the effect.</span></div>' :
+      '<div><span>Holding</span><b>' + sh.toLocaleString("en-GB", {maximumFractionDigits: 4}) + '</b><small>from ' + L.sh.toLocaleString("en-GB", {maximumFractionDigits: 4}) +
+        (mode === "gbp" ? ', +' + n.toLocaleString("en-GB", {maximumFractionDigits: 4}) + ' shares' : '') + '</small></div>' +
+      '<div><span>Average cost, breakeven</span><b>$' + avg.toFixed(3) + '</b><small class="' + clsr(oldAvg - avg) + '">from $' + oldAvg.toFixed(3) + ', ' + pct(avg / oldAvg - 1) + '</small></div>' +
+      '<div><span>Money put in</span><b>' + gbp(inG) + '</b><small>+' + gbp(n * pr / fx) + ' (' + usd(n * pr) + ') at $' + fx.toFixed(4) + ' per £</small></div>' +
+      '<div><span>At $' + num(pr, 4) + ' a share</span><b class="' + cls(plAt) + '">' + gbp(plAt, true) + '</b><small>value ' + gbp(valAt) + ', ' + pct(plAt / inG) + ' on money put in</small></div>';
+    if (!edited) list.value = T.concat(ok ? [[iso, n, pr]] : []).sort(function (a, b) { return a[0] < b[0] ? -1 : a[0] > b[0] ? 1 : 0; }).map(tline).join("\n");
+  }
+  document.querySelectorAll("#a-f .seg button").forEach(function (b) { b.addEventListener("click", function () {
+    mode = b.dataset.m; document.querySelectorAll("#a-f .seg button").forEach(function (x) { x.setAttribute("aria-pressed", x === b ? "true" : "false"); });
+    set("a-ql", mode === "gbp" ? "Pounds to invest, £" : "Shares"); q.placeholder = mode === "gbp" ? "e.g. 500" : "e.g. 250"; calc(); }); });
+  [d, q].forEach(function (e) { e.addEventListener("input", function () { edited = false; calc(); }); });
+  p.addEventListener("input", function () { touched = true; edited = false; calc(); });
+  list.addEventListener("input", function () { edited = true; });
+  $("a-f").addEventListener("submit", function (e) { e.preventDefault(); });
+  $("a-copy").addEventListener("click", function () {
+    var done = function () { set("a-cs", "Copied. Paste it as the POSITION_TRADES secret."); };
+    if (navigator.clipboard && navigator.clipboard.writeText) navigator.clipboard.writeText(list.value).then(done, function () { list.select(); document.execCommand("copy"); done(); });
+    else { list.select(); document.execCommand("copy"); done(); }
+  });
+  ADD = {live: function (lp, lfx) { fx = lfx; if (!touched && lp > 0) { p.value = num(lp, 4); } calc(); }};
+  calc();
 }
 
 // ---- tooltips: one floating box, on hover, keyboard focus or tap, kept inside the screen

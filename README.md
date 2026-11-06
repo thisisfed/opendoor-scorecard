@@ -145,7 +145,15 @@ Set three repository secrets (Settings > Secrets and variables > Actions > New r
 - `POSITION_OPENED` (optional): the day you opened the position, e.g. `2026-10-14`. The days before the log began are
   filled in once from daily closes and rates, assuming today's holding throughout, and marked on the page.
 
-After a top-up, update the last two. The page shows value and gain or loss in pounds: the dollar gain (value less
-cost) at each day's rate, so it moves with the pound as well as the share price. The day's figure is the change in
-that total, so a purchase never shows as a gain. The pound/dollar rate is FRED series DEXUSUK. If you change the passphrase, the day-by-day log starts again.
+- `POSITION_TRADES` (optional, recommended): every buy, one per line: day first, shares, price paid per share in
+  dollars, e.g. `14/10/2026 1000 1.60`. A negative number of shares records a sale (at the average cost). When it is
+  set, the holding on each day comes from this list and the whole history is worked out again on every run, so
+  `POSITION_SHARES`, `POSITION_COST_USD` and `POSITION_OPENED` are no longer used. The page's "Add shares" tool
+  previews a buy and gives you the updated list to paste in.
+
+Without a trade list, update `POSITION_SHARES` and `POSITION_COST_USD` after a top-up. The page counts the money put
+in at the pound/dollar rate on the day it went in; total gain or loss is the value in pounds less that, split into the
+share price part and the exchange-rate part. The day's figure is the change in that total, so a purchase never shows
+as a gain. Rates are FRED series DEXUSUK, with the ECB rate as a fallback. If you change the passphrase, the
+day-by-day log starts again.
 Without the secrets the step does nothing.
