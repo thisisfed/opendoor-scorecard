@@ -5,6 +5,8 @@ Runs after the scorecard. It reads three repository secrets:
   POSITION_PASSPHRASE  the passphrase that unlocks the page (use a long one: it is the only thing protecting the page)
   POSITION_SHARES      how many shares you hold now, e.g. 1250.5
   POSITION_COST_USD    everything you have paid for them, in dollars, fees included, e.g. 6200
+  POSITION_OPENED      optional: the day you opened the position, e.g. 2026-10-14. The days before the log began are
+                       then filled in from daily closes, assuming today's holding throughout (marked on the page).
 
 Each run adds a line for the latest close: price in dollars, the pound/dollar rate (FRED series DEXUSUK, dollars per
 pound; the ECB rate via Frankfurter if FRED does not answer), the value in pounds, and the gain or loss in pounds: the dollar gain or loss (value less cost) at that day's
@@ -112,6 +114,35 @@ def entry(day, price, fx, fx_day, shares, cost_usd, prev, seed=False):
     return e
 
 
+def closes(start):
+    """Daily closes since start from the scorecard's own sources (Yahoo, Nasdaq, Stooq): [(date, close)]."""
+    import opendoor_scorecard as sc
+    for name, fetch in (("Yahoo", lambda: sc._yahoo("query1.finance.yahoo.com")), ("Yahoo", lambda: sc._yahoo("query2.finance.yahoo.com")),
+                        ("Nasdaq", sc._nasdaq), ("Stooq", sc._stooq)):
+        try:
+            rows = [r for r in fetch() if r[0] >= start]
+            if rows:
+                return rows
+        except Exception as ex:
+            print(f"Position page: {name} closes failed ({str(ex)[:80]}).")
+    return []
+
+
+def rechain(entries):
+    """Work out each day's change again after days are filled in. The first day's figure is its gain since buying."""
+    out, prev = [], None
+    for x in sorted(entries, key=lambda e: e["d"]):
+        e = entry(x["d"], x["px"], x["fx"], x["fxd"], x["sh"], x["cost_usd"], prev, seed=x.get("seed", False))
+        for k in ("src", "bf"):
+            if k in x:
+                e[k] = x[k]
+        if prev is None and e.get("bf"):
+            e["day"] = e["tot"]
+        out.append(e)
+        prev = e
+    return out
+
+
 def main():
     pw = os.environ.get("POSITION_PASSPHRASE", "")
     sh_s, cost_s = os.environ.get("POSITION_SHARES", ""), os.environ.get("POSITION_COST_USD", "")
@@ -139,7 +170,12 @@ def main():
             entries, salt = [], None
     salt = salt or secrets.token_bytes(16)
 
-    start = (dt.date.fromisoformat(pday) - dt.timedelta(days=40)).isoformat()
+    opened = os.environ.get("POSITION_OPENED", "").strip()[:10]
+    try:
+        dt.date.fromisoformat(opened)
+    except ValueError:
+        opened = ""
+    start = (dt.date.fromisoformat(min(opened or pday, pday)) - dt.timedelta(days=10)).isoformat()
     try:
         series, src = fx_series(start)
     except Exception as ex:  # keep going on the last known rate rather than fail the run
@@ -167,6 +203,23 @@ def main():
             pass
     entries.append(entry(pday, price, hit[1], hit[0], shares, cost, prev))
     entries[-1]["src"] = src
+    # fill in from the opening day, once: closes and rates for the days before the log began, today's holding throughout
+    live = [x for x in entries if not x.get("seed") and not x.get("bf")]
+    first_live = live[0]["d"] if live else pday
+    if opened and opened < first_live and not any(x.get("bf") for x in entries):
+        filled = []
+        for d, c in closes(opened):
+            if d >= first_live:
+                break
+            h = fx_on(series, d)
+            if h:
+                e = entry(d, c, h[1], h[0], shares, cost, None)
+                e.update(bf=True, src=src)
+                filled.append(e)
+        if filled:
+            entries = filled + live
+            print(f"Position page: filled in {len(filled)} days from {filled[0]['d']}.")
+    entries = rechain(entries)
     data = {"entries": entries[-400:], "updated": sc.get("generated"), "ticker": "OPEN"}
     blob = encrypt(data, pw, salt)
     with open(LOG, "w") as fh:
@@ -274,13 +327,13 @@ function render(D) {
     '<div><b>$' + L.fx.toFixed(4) + '</b><span>per £1, ' + dlab(L.fxd) + '</span></div></div></div>' +
     '<div class="card"><p class="l" style="margin:0 0 8px;font-weight:600">Value and money put in</p>' + chart(E) + '</div>';
   var rows = E.slice().reverse().map(function (e) {
-    return '<tr><td>' + dlab(e.d) + (e.seed ? " *" : "") + '</td><td data-l="Close">$' + e.px.toFixed(2) + '</td><td data-l="$ per £">' + e.fx.toFixed(4) + '</td>' +
+    return '<tr><td>' + dlab(e.d) + (e.seed || e.bf ? " *" : "") + '</td><td data-l="Close">$' + e.px.toFixed(2) + '</td><td data-l="$ per £">' + e.fx.toFixed(4) + '</td>' +
       '<td data-l="Value">' + gbp(e.val) + '</td><td data-l="Day" class="' + (e.day === null ? "" : cls(e.day)) + '">' + (e.day === null ? "–" : gbp(e.day, true)) + '</td>' +
       '<td data-l="Total" class="' + cls(e.tot) + '">' + gbp(e.tot, true) + '</td></tr>'; }).join("");
   h += '<div class="card"><p style="margin:0 0 8px;font-weight:600">Day by day</p><div class="scroll"><table class="days"><thead><tr><th>Close</th><th>Price</th><th>$ per £</th><th>Value</th><th>Day</th><th>Total</th></tr></thead><tbody>' + rows + '</tbody></table></div>' +
     '<p class="note">Values use each close and the dollars-per-pound rate for that day or the latest before it, from ' + (L.src || 'the Federal Reserve (FRED DEXUSUK)') + '. ' +
     'Your cost is in dollars; the pound figures convert the dollar value and gain at each day\'s rate, so the total moves with the pound as well as the share price. ' +
-    'The day\'s figure is the change in the pound total, so money you add never counts as a gain. ' + (E.some(function (e) { return e.seed; }) ? "* The first day is worked out from the scorecard's previous close, assuming the same holding. " : "") +
+    'The day\'s figure is the change in the pound total, so money you add never counts as a gain. ' + (E.some(function (e) { return e.seed || e.bf; }) ? "* Days before the daily log began are worked out from that day\'s close and rate, assuming today\'s holding throughout; the first is the gain since buying. " : "") +
     'Updated ' + (D.updated || "").replace("T", " ") + ' UK. Not advice.</p></div>';
   document.getElementById("out").innerHTML = h; document.getElementById("out").hidden = false;
   document.getElementById("gate").hidden = true; document.getElementById("lock").hidden = false;

@@ -139,6 +139,8 @@ Set three repository secrets (Settings > Secrets and variables > Actions > New r
 - `POSITION_PASSPHRASE`: the passphrase for the page. Make it long (four or five random words); it is the only lock.
 - `POSITION_SHARES`: how many shares you hold, e.g. `1250.5`
 - `POSITION_COST_USD`: everything you have paid for them in dollars, fees included, e.g. `6200`
+- `POSITION_OPENED` (optional): the day you opened the position, e.g. `2026-10-14`. The days before the log began are
+  filled in once from daily closes and rates, assuming today's holding throughout, and marked on the page.
 
 After a top-up, update the last two. The page shows value and gain or loss in pounds: the dollar gain (value less
 cost) at each day's rate, so it moves with the pound as well as the share price. The day's figure is the change in
