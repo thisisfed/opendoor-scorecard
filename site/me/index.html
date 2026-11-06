@@ -27,7 +27,7 @@ button.ghost{background:none;color:var(--ink);border:1px solid var(--line2);font
 label.rem{display:flex;align-items:center;gap:8px;min-height:44px;font-size:14px;color:var(--muted2);flex-basis:100%}
 .err{color:var(--bad);margin:10px 0 0;min-height:1.5em}
 .up{color:var(--good)}.dn{color:var(--bad)}.muted{color:var(--muted)}
-.note{font-size:13px;color:var(--muted);margin:12px 0 0}
+.note{font-size:13px;color:var(--muted);margin:12px 0 0}.foot{margin:18px 4px 0}
 /* context line */
 .ctx{margin:18px 0 0;font-size:14px;color:var(--muted2);display:flex;gap:10px;align-items:center}
 .ctx i{width:7px;height:7px;border-radius:50%;background:var(--blue);flex:none}
@@ -45,15 +45,9 @@ label.rem{display:flex;align-items:center;gap:8px;min-height:44px;font-size:14px
 .h-pl b{font-size:26px;font-weight:600;letter-spacing:-.025em}
 .pill{font-weight:600;font-size:14px;padding:2px 9px;border-radius:999px;background:var(--soft)}
 .pill.up{background:var(--good-bg)}.pill.dn{background:var(--bad-bg)}
-.split{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:10px;margin-top:20px}
-.split>div{background:var(--soft);border-radius:14px;padding:12px 14px;min-width:0}
+.h-day{margin:14px 0 0;display:flex;flex-wrap:wrap;align-items:center;gap:4px 10px;font-size:14.5px;padding:10px 14px;background:var(--soft);border-radius:12px;width:fit-content;max-width:100%}
+.h-day b{font-size:17px;font-weight:600}
 .sl{display:flex;align-items:center;gap:6px;font-size:12.5px;color:var(--muted)}
-.split b{display:block;font-size:20px;font-weight:600;letter-spacing:-.02em;margin-top:2px}
-.split small{display:block;font-size:12.5px;color:var(--muted)}
-.fxbar{display:flex;height:6px;border-radius:3px;overflow:hidden;background:var(--track);margin-top:14px}
-.fxbar i{display:block;height:100%}.fxbar .s{background:var(--blue)}.fxbar .f{background:var(--muted)}
-.fxk{display:flex;flex-wrap:wrap;gap:4px 16px;margin:6px 0 0;font-size:12.5px;color:var(--muted)}
-.fxk span::before{content:"";display:inline-block;width:8px;height:8px;border-radius:2px;margin-right:6px;background:var(--blue)}.fxk span.f::before{background:var(--muted)}
 .h-t{margin:14px 0 0;font-size:12.5px;color:var(--muted)}
 /* metrics */
 .mx{display:grid;grid-template-columns:repeat(5,minmax(0,1fr));padding:4px 6px}
@@ -88,15 +82,10 @@ table.days{width:100%;border-collapse:separate;border-spacing:0;font-size:14px;m
 .days tr.cur td:first-child{border-radius:12px 0 0 12px}.days tr.cur td:last-child{border-radius:0 12px 12px 0}
 .tag{font-size:10.5px;font-weight:600;color:var(--blue);margin-left:8px;text-transform:uppercase;letter-spacing:.05em}
 .est{color:var(--muted);text-decoration:none;cursor:help;margin-left:2px}
-tbody[hidden]{display:none!important}.more-days{margin-top:12px}
-/* scorecard box */
-.sc-top{display:flex;align-items:baseline;gap:12px;flex-wrap:wrap}.sc-o{font-size:30px;font-weight:600;letter-spacing:-.03em}
-.sc-g{font-size:14px;font-weight:600;border:1px solid var(--line2);border-radius:999px;padding:2px 10px}
-.sc-p{list-style:none;margin:14px 0 0;padding:0;display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:8px}
-.sc-p li{background:var(--soft);border-radius:12px;padding:10px 12px;font-size:13px;color:var(--muted)}.sc-p b{display:block;font-size:17px;color:var(--ink);font-weight:600}.sc-p b.up{color:var(--good)}.sc-p b.dn{color:var(--bad)}
+tbody[hidden],.addf [hidden]{display:none!important}.more-days{margin-top:12px}
 input:focus{outline:2px solid var(--blue);outline-offset:1px}
 /* add shares */
-.addf{display:grid;grid-template-columns:.9fr 1.1fr 1fr 1fr 1fr;gap:12px;margin-top:14px;align-items:end}
+.addf{display:grid;grid-template-columns:repeat(auto-fit,minmax(150px,1fr));gap:12px;margin-top:14px;align-items:end}
 .addf label,.addf .fld{display:flex;flex-direction:column;gap:6px;font-size:12.5px;color:var(--muted);min-width:0}
 .addf input[aria-invalid=true]{border-color:var(--bad)}.addf input{min-height:44px;width:100%;font:inherit;font-size:16px;padding:0 12px;border:1px solid var(--line2);border-radius:12px;background:var(--card);color:var(--ink)}
 .addf .seg{align-self:stretch}.addf .seg button{flex:1;min-height:38px}
@@ -112,10 +101,8 @@ textarea:focus{outline:2px solid var(--blue);outline-offset:1px}
 .a-row button{min-height:40px;font-size:14px;padding:0 16px}
 .trd{width:100%;border-collapse:collapse;font-size:13.5px;margin-top:6px}.trd td,.trd th{padding:6px 8px;border-bottom:1px solid var(--line);text-align:right}
 .trd th{font-weight:500;color:var(--muted);font-size:12px}.trd td:first-child,.trd th:first-child{text-align:left}
-@media (max-width:900px){.addf{grid-template-columns:1fr 1fr}.addf>:first-child{grid-column:1/-1}}
+@media (max-width:640px){.addf{grid-template-columns:1fr 1fr}.addf>:first-child{grid-column:1/-1}.trd th:nth-child(5),.trd td:nth-child(5){display:none}.trd td,.trd th{padding:6px 4px}}
 @media (max-width:640px){.a-out{grid-template-columns:1fr 1fr}}
-/* how it's worked out */
-.how ul{margin:10px 0 0;padding-left:18px;font-size:13.5px;color:var(--muted2)}.how li{margin:4px 0}
 /* tooltips */
 .tip{display:inline-grid;place-items:center;width:17px;height:17px;min-height:0;padding:0;border-radius:50%;border:1px solid var(--line2);background:none;color:var(--muted);font-size:10.5px;font-weight:600;cursor:help;position:relative;flex:none;line-height:1}
 .tip::before{content:"";position:absolute;inset:-13px}
@@ -128,8 +115,8 @@ textarea:focus{outline:2px solid var(--blue);outline-offset:1px}
 @media (max-width:760px){.mx{grid-template-columns:repeat(2,minmax(0,1fr));padding:4px 0}.mx>div{border-left:0;border-top:1px solid var(--line)}
 .mx>div:nth-child(-n+2){border-top:0}.mx>div:last-child{grid-column:1/-1}}
 @media (max-width:640px){.wrap{padding:20px 12px 64px}.card{padding:18px 16px;border-radius:18px}.hero{padding:20px 18px 18px}
-.h-v{font-size:44px}.h-pl b{font-size:22px}.split{grid-template-columns:1fr 1fr}.split>div:last-child{grid-column:1/-1}.split b{font-size:18px}
-.sc-p{grid-template-columns:1fr 1fr}.hl{padding:12px 14px 2px}
+.h-v{font-size:44px}.h-pl b{font-size:22px}
+.hl{padding:12px 14px 2px}
 .days thead{display:none}.days,.days tbody{display:block}
 .days tr{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:6px 8px;padding:12px 6px;border-bottom:1px solid var(--line)}
 .days tr.cur{background:var(--blue-bg);border-radius:12px;border-bottom-color:transparent;padding:12px 10px}.days tr.cur td{background:none}
@@ -144,7 +131,7 @@ textarea:focus{outline:2px solid var(--blue);outline-offset:1px}
 <button type="submit">Unlock</button><label class="rem"><input type="checkbox" id="rem"> Stay unlocked on this device</label></form><p class="err" id="err" role="alert"></p></div>
 <div id="out" hidden></div></div>
 <script>
-var BLOB = {"v": 1, "kdf": "PBKDF2-SHA256", "iter": 310000, "salt": "jn2xZ94PUzpKOOUbvpH3rQ==", "iv": "R/34e+PX/4gzayiv", "ct": "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"};
+var BLOB = {"v": 1, "kdf": "PBKDF2-SHA256", "iter": 310000, "salt": "jn2xZ94PUzpKOOUbvpH3rQ==", "iv": "oOZbsn3pUhg+zDyY", "ct": "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"};
 function b64(s) { return Uint8Array.from(atob(s), function (c) { return c.charCodeAt(0); }); }
 function u8(b) { return btoa(String.fromCharCode.apply(null, new Uint8Array(b))); }
 async function derive(pw) {
@@ -187,10 +174,10 @@ function enrich(E, D) {
     var p = X[i - 1] || null, flow = 0, real = 0;
     if (T) {
       while (ti < T.length && T[ti][0] <= e.d) {
-        var n = +T[ti][1], pr = +T[ti][2]; ti++;
-        if (n > 0) { var c = n * pr / e.fx; cg += c; inAll += c; flow += c; sh += n; }
+        var n = +T[ti][1], pr = +T[ti][2], g = T[ti].length > 3 && T[ti][3] > 0 ? +T[ti][3] : null; ti++;
+        if (n > 0) { var c = g !== null ? g : n * pr / e.fx; cg += c; inAll += c; flow += c; sh += n; }
         else if (sh > 0) {                      // a sale: the pounds put in leave in proportion; the rest is realised
-          var k = Math.min(-n, sh), rm = cg * k / sh, got = k * pr / e.fx;
+          var k = Math.min(-n, sh), rm = cg * k / sh, got = g !== null ? g * k / -n : k * pr / e.fx;
           real += got - rm; cg -= rm; flow -= got; sh -= k;
         }
       }
@@ -238,14 +225,9 @@ function render(D, key) {
       '<p class="h-l" id="h-l">Value now, <span id="h-vt"></span></p>' +
       '<p class="h-v" id="h-val" aria-live="polite"></p>' +
       '<div class="h-pl"><b id="h-pl"></b><span id="h-plp"></span><span class="muted" id="h-plt"></span>' +
-        tip("Value now in pounds minus the pounds you put in, each amount at the pound/dollar rate on the day it went in, plus any gain or loss already taken by selling.") + '</div>' +
-      '<div class="split">' +
-        '<div><span class="sl">Share price ' + tip("What the share price did: your dollar gain or loss, converted at today's rate.") + '</span><b id="h-stk"></b><small id="h-stks"></small></div>' +
-        '<div><span class="sl">Pound vs dollar ' + tip("What the exchange rate did: the dollars you put in are worth this much more (or less) in pounds now than on the days you bought. The two parts add up to the total.") + '</span><b id="h-fx"></b><small id="h-fxs"></small></div>' +
-        '<div><span class="sl"><span id="h-dl">Today</span> ' + tip("Change in total P&L since the reference close, including any move in the exchange rate. Money you add never counts.") + '</span><b id="h-day"></b><small id="h-days"></small></div>' +
-      '</div>' +
-      '<div class="fxbar" aria-hidden="true"><i class="s" id="h-bs"></i><i class="f" id="h-bf"></i></div>' +
-      '<p class="fxk"><span id="h-ks"></span><span class="f" id="h-kf"></span></p>' +
+        tip("Value now in pounds minus the pounds you put in, plus any gain or loss already taken by selling. Where a trade has no pound amount, it is converted at that day\'s rate.") + '</div>' +
+      '<p class="h-day"><span id="h-dl">Today</span> <b id="h-day"></b><span class="muted" id="h-days"></span>' +
+        tip("Change in your gain or loss since the reference close, in pounds. Money you add never counts.") + '</p>' +
       '<p class="h-t" id="h-t"></p>' +
     '</section>' +
     // 2. compact facts
@@ -269,18 +251,9 @@ function render(D, key) {
         ['1m:1M', '3m:3M', 'all:All'].map(function (r) { var p = r.split(":"); return '<button type="button" data-r="' + p[0] + '" aria-pressed="' + (p[0] === "all") + '">' + p[1] + '</button>'; }).join("") +
       '</div></div><div class="chw" id="chw"></div>' +
       '<p class="lg"><span><i></i>Value</span><span><i class="c"></i>Money put in</span><span><i class="e"></i>Results day</span><span><i class="m"></i>Move of 10% or more</span></p></section>' +
-    daysHTML(X) + scCard(D.sc, L, avg) +
+    daysHTML(X) +
     addHTML(D) +
-    // how
-    '<section class="card how" aria-labelledby="w-t"><h2 id="w-t">How the figures are worked out</h2><ul>' +
-      '<li>Your cost is in dollars. <b>Money put in</b> counts each dollar amount in pounds at the rate on the day it went in.</li>' +
-      '<li><b>Total P&amp;L</b> is the value in pounds minus the pounds put in. It splits into the <b>share price</b> part (your dollar gain at today\'s rate) and the <b>pound vs dollar</b> part (the rest), which always add up to the total.</li>' +
-      '<li><b>Day P&amp;L</b> is the change in total P&amp;L from one close to the next, so money you add never counts as a gain.</li>' +
-      '<li>A <b>sale</b> takes out the pounds put in for those shares in proportion (average cost); the difference from what you received, at that day\'s rate, stays in the total as realised gain or loss.</li>' +
-      '<li>Rates are the dollars per pound for each day, or the latest before it, from ' + esc(L.src || "the Federal Reserve (FRED DEXUSUK)") + '. Live figures use a live pound/dollar rate from Finnhub when one arrives, otherwise the latest daily rate.</li>' +
-      '<li>Live prices, pre-market and after-hours included, come from CNBC and Nasdaq through a small relay on thisisfed.xyz, and from Finnhub trades in the regular session.</li>' +
-      (X.some(function (x) { return x.est; }) ? '<li><span class="est">*</span> Days before the daily log began are worked out from that day\'s close and rate, assuming your current holding throughout.</li>' : '') +
-    '</ul><p class="note">Log updated ' + (D.updated ? dlab(D.updated) + " " + D.updated.slice(11, 16) : "") + ' UK. Not advice.</p></section>';
+    '<p class="note foot">Log updated ' + (D.updated ? dlab(D.updated) + " " + D.updated.slice(11, 16) : "") + ' UK. Not advice.</p>';
   $("out").innerHTML = h; $("out").hidden = false;
   paint(null);
   drawChart();
@@ -310,16 +283,10 @@ function paint(q) {
   set("h-pl", gbp(pl, true), cls(pl)); set("h-plp", pct(pl / (sold ? L.inAll : L.cg)), "pill " + clsr(pl));
   set("h-plt", sold ? "in all, vs " + gbp(L.inAll) + " put in: " + gbp(un, true) + " on shares you hold, " + gbp(L.R, true) + " realised from sales"
                     : "unrealised, vs " + gbp(L.cg) + " put in");
-  set("h-stk", gbp(stk, true), cls(stk)); set("h-stks", pct(g$ / L.cost_usd) + " in dollars");
-  set("h-fx", gbp(fxp, true), cls(fxp)); set("h-fxs", "$" + (L.cost_usd / L.cg).toFixed(4) + " per £ when bought, $" + fx.toFixed(4) + " now");
   var ref, d, dp, dl;
   if (q) { ref = q.ref; d = pl - (sh * ref / L.fx - L.cg + L.R); dp = px / ref - 1; dl = q.sess === "regular" ? "Today" : "Since the last close"; }
   else { ref = P ? P.px : null; d = L.dpl; dp = L.ret; dl = "Day, " + dlab(L.d); }
   set("h-dl", dl); set("h-day", gbp(d, true), cls(d)); set("h-days", dp == null ? "first day" : pct(dp) + " share price");
-  // where the P&L comes from, by size
-  var a = Math.abs(stk), b = Math.abs(fxp), t = a + b || 1;
-  $("h-bs").style.width = (a / t * 100) + "%"; $("h-bf").style.width = (b / t * 100) + "%";
-  set("h-ks", "Share price " + Math.round(a / t * 100) + "%"); set("h-kf", "Pound vs dollar " + Math.round(b / t * 100) + "%");
   // price line and badge
   set("h-pxv", px$(px));
   if (ref) { var c = px - ref; set("h-pxc", (c < 0 ? MINUS : "+") + "$" + Math.abs(c).toFixed(4) + " (" + pct(c / ref) + ")", clsr(c)); }
@@ -422,7 +389,7 @@ var REPO = "https://github.com/thisisfed/opendoor-scorecard";
 var ADD = null;
 var num = function (v, dp) { return (+v).toFixed(dp).replace(/\.?0+$/, ""); };
 var pr2 = function (v) { var s = num(v, 4); return s.indexOf(".") < 0 ? s + ".00" : s.split(".")[1].length < 2 ? s + "0" : s; };
-var tline = function (t) { return dlab(t[0]) + " " + num(t[1], 6) + " " + num(t[2], 4); };
+var tline = function (t) { return dlab(t[0]) + " " + num(t[1], 6) + " " + num(t[2], 4) + (t.length > 3 && t[3] > 0 ? " " + (+t[3]).toFixed(2) : ""); };
 function addHTML(D) {
   var T = D.trades || [];
   return '<section class="card" aria-labelledby="a-t"><div class="ch-h"><h2 id="a-t">Buy or sell shares</h2>' +
@@ -435,29 +402,33 @@ function addHTML(D) {
         '<button type="button" data-m="sh" aria-pressed="true">Shares</button><button type="button" data-m="gbp" aria-pressed="false">Pounds</button></div></div>' +
       '<label><span id="a-ql">Shares to buy</span><input type="number" id="a-q" min="0" step="any" inputmode="decimal" placeholder="e.g. 250"></label>' +
       '<label>Price per share, $<input type="number" id="a-p" min="0" step="any" inputmode="decimal"></label>' +
+      '<label id="a-gw"><span id="a-gl">Pounds paid, optional</span><input type="number" id="a-g" min="0" step="any" inputmode="decimal" placeholder="from your broker"></label>' +
     '</form>' +
     '<div class="a-out" id="a-out" aria-live="polite"></div>' +
     '<details class="a-rec" id="a-rec"><summary>Record it</summary>' +
-      '<p>Your trade list, one trade per line: date, shares, price per share in dollars. A sale is a negative number of shares. Edit it if the fill was different, copy it, ' +
+      '<p>Your trade list, one trade per line: date, shares, price per share in dollars, then the pounds that left (or reached) your account if you know them. A sale is a negative number of shares. Without the pounds, that day\'s exchange rate is used. Edit it if the fill was different, copy it, ' +
       'then replace the <b>POSITION_TRADES</b> secret with it. The page updates on the next run (weekdays at 22:30 UK), or straight away if you run the update.</p>' +
       '<textarea id="a-list" spellcheck="false" aria-label="Trade list to save"></textarea>' +
       '<div class="a-row"><button type="button" id="a-copy">Copy list</button><a href="' + REPO + '/settings/secrets/actions" target="_blank" rel="noopener">Open the secrets</a>' +
         '<a href="' + REPO + '/actions/workflows/update.yml" target="_blank" rel="noopener">Run the update</a><span class="muted" id="a-cs" role="status"></span></div>' +
       (D.trades_set ? '' : '<p class="note">No trade list is saved yet, so this starts from one line built from your current total. If you bought on more than one day, put in the real trades before saving. Once POSITION_TRADES is set, the shares, cost and opened secrets are no longer used.</p>') +
-      '<table class="trd"><thead><tr><th scope="col">Date</th><th scope="col">Trade</th><th scope="col">Shares</th><th scope="col">Price</th><th scope="col">Amount</th></tr></thead><tbody>' +
-        T.map(function (t) { return '<tr><td>' + dlab(t[0]) + '</td><td>' + (t[1] < 0 ? "Sell" : "Buy") + '</td><td>' + Math.abs(t[1]).toLocaleString("en-GB", {maximumFractionDigits: 6}) +
-          '</td><td>$' + pr2(t[2]) + '</td><td>' + usd(Math.abs(t[1] * t[2])) + '</td></tr>'; }).join("") +
+      '<table class="trd"><thead><tr><th scope="col">Date</th><th scope="col">Trade</th><th scope="col">Shares</th><th scope="col">Price</th><th scope="col">Dollars</th><th scope="col">Pounds</th></tr></thead><tbody>' +
+        T.map(function (t) {
+          var x = STATE.X.filter(function (e) { return e.d >= t[0]; })[0] || STATE.L, gp = t.length > 3 && t[3] > 0; return '<tr><td>' + dlab(t[0]) + '</td><td>' + (t[1] < 0 ? "Sell" : "Buy") + '</td><td>' + Math.abs(t[1]).toLocaleString("en-GB", {maximumFractionDigits: 6}) +
+          '</td><td>$' + pr2(t[2]) + '</td><td>' + usd(Math.abs(t[1] * t[2])) + '</td><td' + (gp ? '' : ' class="muted" title="Not given: worked out at that day\'s rate"') + '>' +
+          (gp ? gbp(+t[3]) : "\u2248" + gbp(Math.abs(t[1] * t[2]) / x.fx)) + '</td></tr>'; }).join("") +
       '</tbody></table></details></section>';
 }
 function addInit(D) {
   var L = STATE.L, side = "buy", mode = "sh", touched = false, px = L.px, fx = L.fx, T = D.trades || [], edited = false;
-  var d = $("a-d"), q = $("a-q"), p = $("a-p"), out = $("a-out"), list = $("a-list");
+  var d = $("a-d"), q = $("a-q"), p = $("a-p"), gI = $("a-g"), out = $("a-out"), list = $("a-list");
   var shf = function (v) { return (+v).toLocaleString("en-GB", {maximumFractionDigits: 4}); };
   var tile = function (l, v, sub, c) { return '<div><span>' + l + '</span><b' + (c ? ' class="' + c + '"' : '') + '>' + v + '</b><small>' + sub + '</small></div>'; };
   d.value = dlab(ymd(Date.now())); p.value = num(px, 4);
   function label() {
     set("a-ql", mode === "gbp" ? (side === "buy" ? "Pounds to invest, £" : "Pounds to raise, £") : (side === "buy" ? "Shares to buy" : "Shares to sell"));
     q.placeholder = mode === "gbp" ? "e.g. 500" : "e.g. 250";
+    $("a-gw").hidden = mode === "gbp"; set("a-gl", side === "buy" ? "Pounds paid, optional" : "Pounds received, optional");
   }
   function calc() {
     var dm = /^(\d{1,2})\/(\d{1,2})\/(\d{4})$/.exec(d.value.trim()), iso = dm ? dm[3] + "-" + ("0" + dm[2]).slice(-2) + "-" + ("0" + dm[1]).slice(-2) : "";
@@ -465,25 +436,25 @@ function addInit(D) {
     d.setAttribute("aria-invalid", iso || !d.value ? "false" : "true");
     var n0 = +q.value, pr = +p.value, ok = n0 > 0 && pr > 0 && iso;
     var n = !ok ? 0 : mode === "gbp" ? Math.floor(n0 * fx / pr * 1e6) / 1e6 : n0;
-    var avg = L.cost_usd / L.sh, line = null, h;
+    var avg = L.cost_usd / L.sh, line = null, h, g = !ok ? null : mode === "gbp" ? n0 : +gI.value > 0 ? +gI.value : null;
     if (!ok) {
       h = '<div style="grid-column:1/-1"><span>Enter a date as DD/MM/YYYY, ' + (mode === "gbp" ? "an amount in pounds" : "a number of shares") + ' and a price to see the effect.</span></div>';
     } else if (side === "buy") {
-      var sh = L.sh + n, cost = L.cost_usd + n * pr, nav = cost / sh, inG = L.cg + n * pr / fx, valAt = sh * pr / fx, plAt = valAt - inG + L.R;
+      var paid = g !== null ? g : n * pr / fx, sh = L.sh + n, cost = L.cost_usd + n * pr, nav = cost / sh, inG = L.cg + paid, valAt = sh * pr / fx, plAt = valAt - inG + L.R;
       h = tile("Holding", shf(sh), "from " + shf(L.sh) + (mode === "gbp" ? ", +" + shf(n) + " shares" : "")) +
         tile("Average cost, breakeven", "$" + nav.toFixed(3), "from $" + avg.toFixed(3) + ", " + pct(nav / avg - 1)) +
-        tile("Money put in", gbp(inG), "+" + gbp(n * pr / fx) + " (" + usd(n * pr) + ") at $" + fx.toFixed(4) + " per £") +
+        tile("Money put in", gbp(inG), "+" + gbp(paid) + " (" + usd(n * pr) + ")" + (g !== null ? "" : " at $" + fx.toFixed(4) + " per £")) +
         tile("At $" + num(pr, 4) + " a share", gbp(plAt, true), "value " + gbp(valAt) + ", in all", cls(plAt));
-      line = [iso, n, pr];
+      line = [iso, n, pr].concat(g !== null ? [g] : []);
     } else if (n > L.sh + 1e-9) {
       h = '<div style="grid-column:1/-1"><span class="dn">You hold ' + shf(L.sh) + ' shares, so you can sell at most that' + (mode === "gbp" ? " (about " + gbp(L.sh * pr / fx) + " at this price)" : "") + '.</span></div>';
     } else {
-      var f = n / L.sh, got = n * pr / fx, rm = L.cg * f, real = got - rm, left = L.sh - n;
+      var f = n / L.sh, got = g !== null ? g : n * pr / fx, rm = L.cg * f, real = got - rm, left = L.sh - n;
       h = tile("Holding", shf(left), "from " + shf(L.sh) + ", " + MINUS + shf(n) + " shares" + (left < 1e-9 ? ", all sold" : "")) +
-        tile("You'd receive", gbp(got), usd(n * pr) + " at $" + fx.toFixed(4) + " per £") +
+        tile("You'd receive", gbp(got), usd(n * pr) + (g !== null ? "" : " at $" + fx.toFixed(4) + " per £")) +
         tile("Realised on these shares", gbp(real, true), usd(n * (pr - avg), true) + " in dollars, vs " + gbp(rm) + " put in", cls(real)) +
         tile("Average cost, breakeven", left < 1e-9 ? "n/a" : "$" + avg.toFixed(3), left < 1e-9 ? "nothing left" : "unchanged by a sale; " + gbp(L.cg - rm) + " still in");
-      line = [iso, -n, pr];
+      line = [iso, -n, pr].concat(g !== null ? [g] : []);
     }
     out.innerHTML = h;
     if (!edited) list.value = T.concat(line ? [line] : []).sort(function (a, b) { return a[0] < b[0] ? -1 : a[0] > b[0] ? 1 : 0; }).map(tline).join("\n");
@@ -492,7 +463,7 @@ function addInit(D) {
     document.querySelectorAll("#" + id + " button").forEach(function (x) { x.setAttribute("aria-pressed", x === b ? "true" : "false"); });
     fn(b.dataset[attr]); edited = false; label(); calc(); }); }); }
   seg("a-side", "s", function (v) { side = v; }); seg("a-mode", "m", function (v) { mode = v; });
-  [d, q].forEach(function (e) { e.addEventListener("input", function () { edited = false; calc(); }); });
+  [d, q, gI].forEach(function (e) { e.addEventListener("input", function () { edited = false; calc(); }); });
   p.addEventListener("input", function () { touched = true; edited = false; calc(); });
   list.addEventListener("input", function () { edited = true; });
   $("a-f").addEventListener("submit", function (e) { e.preventDefault(); });
@@ -520,24 +491,6 @@ function tips() {
   document.addEventListener("click", function (e) { var t = e.target.closest && e.target.closest(".tip"); if (t) show(t); else hide(); });
   document.addEventListener("keydown", function (e) { if (e.key === "Escape") hide(); });
   addEventListener("scroll", function () { if (cur && !cur.matches(":focus")) hide(); }, {passive: true});
-}
-
-// The public scorecard's numbers next to the position. It lines up the facts; add, trim or hold stays your call.
-function scCard(S, L, avg) {
-  if (!S) return "";
-  var mv = S.p.filter(function (p) { return Math.abs(p.c) >= 0.05; }).sort(function (a, b) { return Math.abs(b.c) - Math.abs(a.c); }).slice(0, 3);
-  var lo = S.p.slice().sort(function (a, b) { return a.s - b.s; })[0], hi = S.p.slice().sort(function (a, b) { return b.s - a.s; })[0];
-  var d = S.from == null ? null : S.o - S.from, be = L.px / avg - 1;
-  var sgn = function (v) { return (v > 0 ? "+" : v < 0 ? "\u2212" : "") + Math.abs(v).toFixed(1); };
-  var li = mv.map(function (p) { return '<li><b class="' + (p.c > 0 ? "up" : "dn") + '">' + sgn(p.c) + '</b>' + esc(p.n) + ', now ' + p.s.toFixed(1) + '</li>'; });
-  if (!li.length) li = ['<li><b>' + hi.s.toFixed(1) + '</b>Strongest: ' + esc(hi.n) + '</li>', '<li><b>' + lo.s.toFixed(1) + '</b>Weakest: ' + esc(lo.n) + '</li>'];
-  return '<div class="card"><p style="margin:0 0 8px;font-weight:600">What the scorecard says</p>' +
-    '<div class="sc-top"><span class="sc-o">' + S.o.toFixed(2) + '</span><span class="sc-g">' + esc(S.g) + '</span>' +
-    (d === null || Math.abs(d) < 0.005 ? '' : '<span class="' + (d > 0 ? "up" : "dn") + '">' + (d > 0 ? "+" : "\u2212") + Math.abs(d).toFixed(2) +
-      ' from ' + S.from.toFixed(2) + (S.gfrom && S.gfrom !== S.g ? ' (' + esc(S.gfrom) + ')' : '') + (S.since ? ' on ' + dlab(S.since) : '') + '</span>') + '</div>' +
-    '<p class="note" style="margin-top:6px">' + esc(S.v) + ' ' + esc(S.why) + '</p>' +
-    '<ul class="sc-p">' + li.join("") + '<li><b class="' + cls(be) + '">' + pct(be) + '</b>last close vs your $' + avg.toFixed(3) + ' breakeven</li></ul>' +
-    '</div>';
 }
 
 // ---- live prices. Two feeds, the fresher wins:
