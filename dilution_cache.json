@@ -46,5 +46,21 @@
   "form": "10-Q",
   "parser": 1,
   "quarter_end": "2026-06-30"
+ },
+ "0001801169-26-000028": {
+  "dilution": {
+   "converts": 159.522,
+   "espp": 1.124,
+   "market_rsus": 107.602,
+   "options": 2.823,
+   "rsus": 27.591,
+   "total": 398.249,
+   "warrants": 99.587
+  },
+  "file": "open-20260930.htm",
+  "filed": "2026-11-05",
+  "form": "10-Q",
+  "parser": 1,
+  "quarter_end": "2026-09-30"
  }
 }

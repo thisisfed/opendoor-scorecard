@@ -143,5 +143,30 @@
    "revenue_musd": 883.0,
    "writedown_cur_musd": 14.0
   }
+ },
+ "0001801169-26-000027": {
+  "file": "q32026formxex991earningsre.htm",
+  "filed": "2026-11-05",
+  "parser": 3,
+  "quarter_end": "2026-09-30",
+  "values": {
+   "adj_ebitda_musd": -31.0,
+   "adj_net_income_musd": -66.0,
+   "aged_120_pct": 18.0,
+   "contribution_margin_pct": 3.3,
+   "direct_selling_musd": -35.0,
+   "gross_profit_musd": 38.0,
+   "holding_cur_musd": -4.0,
+   "holding_prior_musd": -7.0,
+   "homes_in_inventory": 7596.0,
+   "homes_purchased": 4865.0,
+   "homes_sold": 2728.0,
+   "homes_under_contract": 1780.0,
+   "homes_under_contract_py": 526.0,
+   "inventory_musd": 2568.0,
+   "net_income_musd": -218.0,
+   "revenue_musd": 1022.0,
+   "writedown_cur_musd": 53.0
+  }
  }
 }
