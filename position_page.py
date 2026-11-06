@@ -360,8 +360,7 @@ tbody[hidden]{display:none!important}.more-days{margin-top:12px}
 .sc-top{display:flex;align-items:baseline;gap:12px;flex-wrap:wrap}.sc-o{font-size:30px;font-weight:600;letter-spacing:-.03em}
 .sc-g{font-size:14px;font-weight:600;border:1px solid var(--line2);border-radius:999px;padding:2px 10px}
 .sc-p{list-style:none;margin:14px 0 0;padding:0;display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:8px}
-.sc-p li{background:var(--soft);border-radius:12px;padding:10px 12px;font-size:13px;color:var(--muted)}.sc-p b{display:block;font-size:17px;color:var(--ink);font-weight:600}.sc-p b.up{color:var(--good)}.sc-p b.dn{color:var(--bad)}.sc-ask a{color:var(--blue)}
-.sc-ask{margin:14px 0 0;padding:12px 14px;border-left:3px solid var(--line2);font-size:14px}
+.sc-p li{background:var(--soft);border-radius:12px;padding:10px 12px;font-size:13px;color:var(--muted)}.sc-p b{display:block;font-size:17px;color:var(--ink);font-weight:600}.sc-p b.up{color:var(--good)}.sc-p b.dn{color:var(--bad)}
 /* notes */
 textarea{display:block;width:100%;min-height:96px;margin-top:10px;font:inherit;font-size:15px;line-height:1.5;padding:12px 14px;border:1px solid var(--line2);border-radius:12px;background:var(--card);color:var(--ink);resize:vertical}
 textarea:focus,input:focus{outline:2px solid var(--blue);outline-offset:1px}
@@ -702,8 +701,7 @@ function scCard(S, L, avg) {
       ' from ' + S.from.toFixed(2) + (S.gfrom && S.gfrom !== S.g ? ' (' + esc(S.gfrom) + ')' : '') + (S.since ? ' on ' + dlab(S.since) : '') + '</span>') + '</div>' +
     '<p class="note" style="margin-top:6px">' + esc(S.v) + ' ' + esc(S.why) + '</p>' +
     '<ul class="sc-p">' + li.join("") + '<li><b class="' + cls(be) + '">' + pct(be) + '</b>last close vs your $' + avg.toFixed(3) + ' breakeven</li></ul>' +
-    '<p class="sc-ask">Add, trim or hold is your call: this box lines up the scorecard\'s numbers next to your position and makes no recommendation. ' +
-    '<a href="../#score">Full scorecard</a></p></div>';
+    '</div>';
 }
 
 // ---- live prices. Two feeds, the fresher wins:
