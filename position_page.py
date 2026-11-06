@@ -223,7 +223,7 @@ def main():
             entries = filled + live
             print(f"Position page: filled in {len(filled)} days from {filled[0]['d']}.")
     entries = rechain(entries)
-    data = {"entries": entries[-400:], "updated": sc.get("generated"), "ticker": "OPEN"}
+    data = {"entries": entries[-400:], "updated": sc.get("generated"), "ticker": "OPEN", "sc": scorecard_view(sc)}
     live_key = os.environ.get("POSITION_FINNHUB_KEY", "").strip()
     if live_key:
         data["live"] = {"provider": "finnhub", "key": live_key}
@@ -235,6 +235,20 @@ def main():
         fh.write(PAGE.replace("__BLOB__", json.dumps(blob)))
     print(f"Position page: updated for the {pday} close ({len(entries)} days in the log).")
     return 0
+
+
+def scorecard_view(sc):
+    """The public scorecard's headline numbers, for the box beside the position. Facts only, no call."""
+    try:
+        score, ch, prev = sc["score"], sc.get("change") or {}, sc.get("previous") or {}
+        pch = ch.get("pillars") or {}
+        pillars = [{"n": p["name"], "w": p["weight"], "s": p["score"], "c": round(pch.get(p["name"], 0) or 0, 1)}
+                   for p in score["pillars"]]
+        return {"o": score["overall"], "g": score["grade"], "v": score.get("verdict", ""), "why": score.get("why", ""),
+                "from": prev.get("overall"), "gfrom": ch.get("grade_from"), "since": (ch.get("since") or "")[:10],
+                "q": (prev.get("stamps") or {}).get("quarter"), "p": pillars}
+    except (KeyError, TypeError):
+        return None
 
 
 PAGE = r"""<!DOCTYPE html><html lang="en"><head><meta charset="utf-8">
@@ -271,7 +285,13 @@ label.rem{display:flex;align-items:center;gap:8px;min-height:44px;font-size:14px
 .facts div{border-top:1px solid var(--line);padding-top:8px}.facts b{display:block;font-size:17px;font-weight:600}.facts span{font-size:12.5px;color:var(--muted)}
 table{width:100%;border-collapse:collapse;font-size:14px}th{font-size:12px;font-weight:500;color:var(--muted);text-align:right;padding:8px 10px;border-bottom:1px solid var(--line)}
 td{text-align:right;padding:9px 10px;border-bottom:1px solid var(--line);white-space:nowrap}th:first-child,td:first-child{text-align:left}
-tbody[hidden]{display:none!important}.more-days{margin-top:12px}
+tbody[hidden]{display:none!important}
+.sc-top{display:flex;align-items:baseline;gap:12px;flex-wrap:wrap}.sc-o{font-size:30px;font-weight:600;letter-spacing:-.03em}
+.sc-g{font-size:14px;font-weight:600;border:1px solid var(--line2);border-radius:999px;padding:2px 10px}
+.sc-p{list-style:none;margin:14px 0 0;padding:0;display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:8px}
+.sc-p li{background:var(--soft);border-radius:12px;padding:10px 12px;font-size:13px;color:var(--muted)}.sc-p b{display:block;font-size:17px;color:var(--ink);font-weight:600}.sc-p b.up{color:var(--good)}.sc-p b.dn{color:var(--bad)}.sc-ask a{color:var(--blue)}
+.sc-ask{margin:14px 0 0;padding:12px 14px;border-left:3px solid var(--line2);font-size:14px}
+@media (max-width:640px){.sc-p{grid-template-columns:1fr 1fr}}.more-days{margin-top:12px}
 .scroll{overflow-x:auto}.note{font-size:13px;color:var(--muted);margin:12px 0 0}
 svg text{font-size:12px;fill:var(--muted)}
 .top{display:flex;justify-content:space-between;align-items:flex-start;gap:12px}
@@ -327,6 +347,25 @@ function chart(E) {
     '<text x="' + L + '" y="' + (H - 6) + '">' + dlab(E[0].d) + '</text><text x="' + (W - R) + '" y="' + (H - 6) + '" text-anchor="end">' + dlab(E[E.length - 1].d) + '</text></svg>' +
     '<p class="note"><span style="color:var(--blue)">—</span> value &nbsp; <span>- -</span> money put in, at each day\'s rate</p>';
 }
+function esc(t) { return String(t == null ? "" : t).replace(/[&<>"]/g, function (c) { return {"&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;"}[c]; }); }
+// The public scorecard's numbers next to the position. It lines up the facts; add, trim or hold stays your call.
+function scCard(S, L, avg) {
+  if (!S) return "";
+  var mv = S.p.filter(function (p) { return Math.abs(p.c) >= 0.05; }).sort(function (a, b) { return Math.abs(b.c) - Math.abs(a.c); }).slice(0, 3);
+  var lo = S.p.slice().sort(function (a, b) { return a.s - b.s; })[0], hi = S.p.slice().sort(function (a, b) { return b.s - a.s; })[0];
+  var d = S.from == null ? null : S.o - S.from, be = L.px / avg - 1;
+  var sgn = function (v) { return (v > 0 ? "+" : v < 0 ? "\u2212" : "") + Math.abs(v).toFixed(1); };
+  var li = mv.map(function (p) { return '<li><b class="' + (p.c > 0 ? "up" : "dn") + '">' + sgn(p.c) + '</b>' + esc(p.n) + ', now ' + p.s.toFixed(1) + '</li>'; });
+  if (!li.length) li = ['<li><b>' + hi.s.toFixed(1) + '</b>Strongest: ' + esc(hi.n) + '</li>', '<li><b>' + lo.s.toFixed(1) + '</b>Weakest: ' + esc(lo.n) + '</li>'];
+  return '<div class="card"><p style="margin:0 0 8px;font-weight:600">What the scorecard says</p>' +
+    '<div class="sc-top"><span class="sc-o">' + S.o.toFixed(2) + '</span><span class="sc-g">' + esc(S.g) + '</span>' +
+    (d === null || Math.abs(d) < 0.005 ? '' : '<span class="' + (d > 0 ? "up" : "dn") + '">' + (d > 0 ? "+" : "\u2212") + Math.abs(d).toFixed(2) +
+      ' from ' + S.from.toFixed(2) + (S.gfrom && S.gfrom !== S.g ? ' (' + esc(S.gfrom) + ')' : '') + (S.since ? ' on ' + dlab(S.since) : '') + '</span>') + '</div>' +
+    '<p class="note" style="margin-top:6px">' + esc(S.v) + ' ' + esc(S.why) + '</p>' +
+    '<ul class="sc-p">' + li.join("") + '<li><b class="' + cls(be) + '">' + pct(be) + '</b>last close vs your $' + avg.toFixed(3) + ' breakeven</li></ul>' +
+    '<p class="sc-ask">Add, trim or hold is your call: this box lines up the scorecard\'s numbers next to your position and makes no recommendation. ' +
+    '<a href="../#score">Full scorecard</a></p></div>';
+}
 function render(D) {
   var E = D.entries, L = E[E.length - 1], P = E.length > 1 ? E[E.length - 2] : null;
   var usd = function (v) { return "$" + Math.abs(v).toLocaleString("en-US", {minimumFractionDigits: 2, maximumFractionDigits: 2}); };
@@ -346,7 +385,7 @@ function render(D) {
     '<div><b>$' + avg.toFixed(3) + '</b><span>average cost a share, your breakeven</span></div>' +
     '<div><b>$' + L.px.toFixed(2) + '</b><span>last close</span></div>' +
     '<div><b>$' + L.fx.toFixed(4) + '</b><span>per £1, ' + dlab(L.fxd) + '</span></div></div></div>' +
-    '<div class="card"><p class="l" style="margin:0 0 8px;font-weight:600">Value and money put in</p>' + chart(E) + '</div>';
+    '<div class="card"><p class="l" style="margin:0 0 8px;font-weight:600">Value and money put in</p>' + chart(E) + '</div>' + scCard(D.sc, L, avg);
   var rows = E.slice().reverse().map(function (e) {
     return '<tr><td>' + dlab(e.d) + (e.seed || e.bf ? " *" : "") + '</td><td data-l="Close">$' + e.px.toFixed(2) + '</td><td data-l="$ per £">' + e.fx.toFixed(4) + '</td>' +
       '<td data-l="Value">' + gbp(e.val) + '</td><td data-l="Day" class="' + (e.day === null ? "" : cls(e.day)) + '">' + (e.day === null ? "–" : gbp(e.day, true)) + '</td>' +
