@@ -149,14 +149,15 @@ def rechain(entries):
 
 def parse_trades(text):
     """POSITION_TRADES: one buy per line (or separated by ';'), day first, then shares, then the price paid per share
-    in dollars, e.g. '14/10/2026 1000 1.60'. Negative shares record a sale. Anything after '#' is ignored.
-    Returns [(iso date, shares, price)] sorted by date."""
+    in dollars, then optionally the pounds paid (or received, for a sale), e.g. '14/10/2026 1000 1.60 1221.37'.
+    Negative shares record a sale. Anything after '#' is ignored.
+    Returns [(iso date, shares, price[, pounds])] sorted by date."""
     out = []
     for n, raw in enumerate(re.split(r"[\n;]+", text or ""), 1):
         line = raw.split("#")[0].strip()
         if not line:
             continue
-        tok = [t.strip(",").lstrip("$") for t in line.split() if t not in ("@", "x", "at")]
+        tok = [t.strip(",").lstrip("$£") for t in line.split() if t not in ("@", "x", "at")]
         try:
             ds = tok[0]
             if "/" in ds:
@@ -169,14 +170,23 @@ def parse_trades(text):
             raise ValueError(f"POSITION_TRADES line {n} is not 'DD/MM/YYYY shares price'")
         if price <= 0 or shares == 0:
             raise ValueError(f"POSITION_TRADES line {n}: shares and price must be non-zero, price positive")
-        out.append((day, shares, price))
+        if len(tok) > 3:
+            try:
+                gbp = float(tok[3].replace(",", ""))
+            except ValueError:
+                raise ValueError(f"POSITION_TRADES line {n}: the fourth number (pounds) is not a number")
+            if gbp <= 0:
+                raise ValueError(f"POSITION_TRADES line {n}: pounds must be positive")
+            out.append((day, shares, price, gbp))
+        else:
+            out.append((day, shares, price))
     return sorted(out)
 
 
 def holding(trades, day):
     """Shares held and dollar cost after every trade up to and including day (sales at the average cost)."""
     sh = cost = 0.0
-    for d, n, px in trades:
+    for d, n, px, *_ in trades:
         if d > day:
             break
         if n > 0:
@@ -307,8 +317,8 @@ def main():
             print(f"Position page: filled in {len(filled)} days from {filled[0]['d']}.")
     entries = rechain(entries)
     # the trade list, for the page's "Add shares" tool; without one, a single line built from the total so far
-    tl = [[d, n, p] for d, n, p in trades] or [[opened or entries[0]["d"], shares, round(cost / shares, 6)]]
-    data = {"entries": entries[-400:], "updated": sc.get("generated"), "ticker": "OPEN", "sc": scorecard_view(sc),
+    tl = [list(t) for t in trades] or [[opened or entries[0]["d"], shares, round(cost / shares, 6)]]
+    data = {"entries": entries[-400:], "updated": sc.get("generated"), "ticker": "OPEN",
             "events": results_days(), "opened": opened or None, "trades": tl, "trades_set": bool(trades)}
     live_key = os.environ.get("POSITION_FINNHUB_KEY", "").strip()
     if live_key:
@@ -335,20 +345,6 @@ def results_days():
         if len(q) >= 7 and f:
             out.append({"d": f[:10], "t": f"Q{(int(q[5:7]) + 2) // 3} {q[:4]} results"})
     return sorted(out, key=lambda e: e["d"])
-
-
-def scorecard_view(sc):
-    """The public scorecard's headline numbers, for the box beside the position. Facts only, no call."""
-    try:
-        score, ch, prev = sc["score"], sc.get("change") or {}, sc.get("previous") or {}
-        pch = ch.get("pillars") or {}
-        pillars = [{"n": p["name"], "w": p["weight"], "s": p["score"], "c": round(pch.get(p["name"], 0) or 0, 1)}
-                   for p in score["pillars"]]
-        return {"o": score["overall"], "g": score["grade"], "v": score.get("verdict", ""), "why": score.get("why", ""),
-                "from": prev.get("overall"), "gfrom": ch.get("grade_from"), "since": (ch.get("since") or "")[:10],
-                "q": (prev.get("stamps") or {}).get("quarter"), "p": pillars}
-    except (KeyError, TypeError):
-        return None
 
 
 PAGE = r"""<!DOCTYPE html><html lang="en"><head><meta charset="utf-8">
@@ -380,7 +376,7 @@ button.ghost{background:none;color:var(--ink);border:1px solid var(--line2);font
 label.rem{display:flex;align-items:center;gap:8px;min-height:44px;font-size:14px;color:var(--muted2);flex-basis:100%}
 .err{color:var(--bad);margin:10px 0 0;min-height:1.5em}
 .up{color:var(--good)}.dn{color:var(--bad)}.muted{color:var(--muted)}
-.note{font-size:13px;color:var(--muted);margin:12px 0 0}
+.note{font-size:13px;color:var(--muted);margin:12px 0 0}.foot{margin:18px 4px 0}
 /* context line */
 .ctx{margin:18px 0 0;font-size:14px;color:var(--muted2);display:flex;gap:10px;align-items:center}
 .ctx i{width:7px;height:7px;border-radius:50%;background:var(--blue);flex:none}
@@ -398,15 +394,9 @@ label.rem{display:flex;align-items:center;gap:8px;min-height:44px;font-size:14px
 .h-pl b{font-size:26px;font-weight:600;letter-spacing:-.025em}
 .pill{font-weight:600;font-size:14px;padding:2px 9px;border-radius:999px;background:var(--soft)}
 .pill.up{background:var(--good-bg)}.pill.dn{background:var(--bad-bg)}
-.split{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:10px;margin-top:20px}
-.split>div{background:var(--soft);border-radius:14px;padding:12px 14px;min-width:0}
+.h-day{margin:14px 0 0;display:flex;flex-wrap:wrap;align-items:center;gap:4px 10px;font-size:14.5px;padding:10px 14px;background:var(--soft);border-radius:12px;width:fit-content;max-width:100%}
+.h-day b{font-size:17px;font-weight:600}
 .sl{display:flex;align-items:center;gap:6px;font-size:12.5px;color:var(--muted)}
-.split b{display:block;font-size:20px;font-weight:600;letter-spacing:-.02em;margin-top:2px}
-.split small{display:block;font-size:12.5px;color:var(--muted)}
-.fxbar{display:flex;height:6px;border-radius:3px;overflow:hidden;background:var(--track);margin-top:14px}
-.fxbar i{display:block;height:100%}.fxbar .s{background:var(--blue)}.fxbar .f{background:var(--muted)}
-.fxk{display:flex;flex-wrap:wrap;gap:4px 16px;margin:6px 0 0;font-size:12.5px;color:var(--muted)}
-.fxk span::before{content:"";display:inline-block;width:8px;height:8px;border-radius:2px;margin-right:6px;background:var(--blue)}.fxk span.f::before{background:var(--muted)}
 .h-t{margin:14px 0 0;font-size:12.5px;color:var(--muted)}
 /* metrics */
 .mx{display:grid;grid-template-columns:repeat(5,minmax(0,1fr));padding:4px 6px}
@@ -441,15 +431,10 @@ table.days{width:100%;border-collapse:separate;border-spacing:0;font-size:14px;m
 .days tr.cur td:first-child{border-radius:12px 0 0 12px}.days tr.cur td:last-child{border-radius:0 12px 12px 0}
 .tag{font-size:10.5px;font-weight:600;color:var(--blue);margin-left:8px;text-transform:uppercase;letter-spacing:.05em}
 .est{color:var(--muted);text-decoration:none;cursor:help;margin-left:2px}
-tbody[hidden]{display:none!important}.more-days{margin-top:12px}
-/* scorecard box */
-.sc-top{display:flex;align-items:baseline;gap:12px;flex-wrap:wrap}.sc-o{font-size:30px;font-weight:600;letter-spacing:-.03em}
-.sc-g{font-size:14px;font-weight:600;border:1px solid var(--line2);border-radius:999px;padding:2px 10px}
-.sc-p{list-style:none;margin:14px 0 0;padding:0;display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:8px}
-.sc-p li{background:var(--soft);border-radius:12px;padding:10px 12px;font-size:13px;color:var(--muted)}.sc-p b{display:block;font-size:17px;color:var(--ink);font-weight:600}.sc-p b.up{color:var(--good)}.sc-p b.dn{color:var(--bad)}
+tbody[hidden],.addf [hidden]{display:none!important}.more-days{margin-top:12px}
 input:focus{outline:2px solid var(--blue);outline-offset:1px}
 /* add shares */
-.addf{display:grid;grid-template-columns:.9fr 1.1fr 1fr 1fr 1fr;gap:12px;margin-top:14px;align-items:end}
+.addf{display:grid;grid-template-columns:repeat(auto-fit,minmax(150px,1fr));gap:12px;margin-top:14px;align-items:end}
 .addf label,.addf .fld{display:flex;flex-direction:column;gap:6px;font-size:12.5px;color:var(--muted);min-width:0}
 .addf input[aria-invalid=true]{border-color:var(--bad)}.addf input{min-height:44px;width:100%;font:inherit;font-size:16px;padding:0 12px;border:1px solid var(--line2);border-radius:12px;background:var(--card);color:var(--ink)}
 .addf .seg{align-self:stretch}.addf .seg button{flex:1;min-height:38px}
@@ -465,10 +450,8 @@ textarea:focus{outline:2px solid var(--blue);outline-offset:1px}
 .a-row button{min-height:40px;font-size:14px;padding:0 16px}
 .trd{width:100%;border-collapse:collapse;font-size:13.5px;margin-top:6px}.trd td,.trd th{padding:6px 8px;border-bottom:1px solid var(--line);text-align:right}
 .trd th{font-weight:500;color:var(--muted);font-size:12px}.trd td:first-child,.trd th:first-child{text-align:left}
-@media (max-width:900px){.addf{grid-template-columns:1fr 1fr}.addf>:first-child{grid-column:1/-1}}
+@media (max-width:640px){.addf{grid-template-columns:1fr 1fr}.addf>:first-child{grid-column:1/-1}.trd th:nth-child(5),.trd td:nth-child(5){display:none}.trd td,.trd th{padding:6px 4px}}
 @media (max-width:640px){.a-out{grid-template-columns:1fr 1fr}}
-/* how it's worked out */
-.how ul{margin:10px 0 0;padding-left:18px;font-size:13.5px;color:var(--muted2)}.how li{margin:4px 0}
 /* tooltips */
 .tip{display:inline-grid;place-items:center;width:17px;height:17px;min-height:0;padding:0;border-radius:50%;border:1px solid var(--line2);background:none;color:var(--muted);font-size:10.5px;font-weight:600;cursor:help;position:relative;flex:none;line-height:1}
 .tip::before{content:"";position:absolute;inset:-13px}
@@ -481,8 +464,8 @@ textarea:focus{outline:2px solid var(--blue);outline-offset:1px}
 @media (max-width:760px){.mx{grid-template-columns:repeat(2,minmax(0,1fr));padding:4px 0}.mx>div{border-left:0;border-top:1px solid var(--line)}
 .mx>div:nth-child(-n+2){border-top:0}.mx>div:last-child{grid-column:1/-1}}
 @media (max-width:640px){.wrap{padding:20px 12px 64px}.card{padding:18px 16px;border-radius:18px}.hero{padding:20px 18px 18px}
-.h-v{font-size:44px}.h-pl b{font-size:22px}.split{grid-template-columns:1fr 1fr}.split>div:last-child{grid-column:1/-1}.split b{font-size:18px}
-.sc-p{grid-template-columns:1fr 1fr}.hl{padding:12px 14px 2px}
+.h-v{font-size:44px}.h-pl b{font-size:22px}
+.hl{padding:12px 14px 2px}
 .days thead{display:none}.days,.days tbody{display:block}
 .days tr{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:6px 8px;padding:12px 6px;border-bottom:1px solid var(--line)}
 .days tr.cur{background:var(--blue-bg);border-radius:12px;border-bottom-color:transparent;padding:12px 10px}.days tr.cur td{background:none}
@@ -540,10 +523,10 @@ function enrich(E, D) {
     var p = X[i - 1] || null, flow = 0, real = 0;
     if (T) {
       while (ti < T.length && T[ti][0] <= e.d) {
-        var n = +T[ti][1], pr = +T[ti][2]; ti++;
-        if (n > 0) { var c = n * pr / e.fx; cg += c; inAll += c; flow += c; sh += n; }
+        var n = +T[ti][1], pr = +T[ti][2], g = T[ti].length > 3 && T[ti][3] > 0 ? +T[ti][3] : null; ti++;
+        if (n > 0) { var c = g !== null ? g : n * pr / e.fx; cg += c; inAll += c; flow += c; sh += n; }
         else if (sh > 0) {                      // a sale: the pounds put in leave in proportion; the rest is realised
-          var k = Math.min(-n, sh), rm = cg * k / sh, got = k * pr / e.fx;
+          var k = Math.min(-n, sh), rm = cg * k / sh, got = g !== null ? g * k / -n : k * pr / e.fx;
           real += got - rm; cg -= rm; flow -= got; sh -= k;
         }
       }
@@ -591,14 +574,9 @@ function render(D, key) {
       '<p class="h-l" id="h-l">Value now, <span id="h-vt"></span></p>' +
       '<p class="h-v" id="h-val" aria-live="polite"></p>' +
       '<div class="h-pl"><b id="h-pl"></b><span id="h-plp"></span><span class="muted" id="h-plt"></span>' +
-        tip("Value now in pounds minus the pounds you put in, each amount at the pound/dollar rate on the day it went in, plus any gain or loss already taken by selling.") + '</div>' +
-      '<div class="split">' +
-        '<div><span class="sl">Share price ' + tip("What the share price did: your dollar gain or loss, converted at today's rate.") + '</span><b id="h-stk"></b><small id="h-stks"></small></div>' +
-        '<div><span class="sl">Pound vs dollar ' + tip("What the exchange rate did: the dollars you put in are worth this much more (or less) in pounds now than on the days you bought. The two parts add up to the total.") + '</span><b id="h-fx"></b><small id="h-fxs"></small></div>' +
-        '<div><span class="sl"><span id="h-dl">Today</span> ' + tip("Change in total P&L since the reference close, including any move in the exchange rate. Money you add never counts.") + '</span><b id="h-day"></b><small id="h-days"></small></div>' +
-      '</div>' +
-      '<div class="fxbar" aria-hidden="true"><i class="s" id="h-bs"></i><i class="f" id="h-bf"></i></div>' +
-      '<p class="fxk"><span id="h-ks"></span><span class="f" id="h-kf"></span></p>' +
+        tip("Value now in pounds minus the pounds you put in, plus any gain or loss already taken by selling. Where a trade has no pound amount, it is converted at that day\'s rate.") + '</div>' +
+      '<p class="h-day"><span id="h-dl">Today</span> <b id="h-day"></b><span class="muted" id="h-days"></span>' +
+        tip("Change in your gain or loss since the reference close, in pounds. Money you add never counts.") + '</p>' +
       '<p class="h-t" id="h-t"></p>' +
     '</section>' +
     // 2. compact facts
@@ -622,18 +600,9 @@ function render(D, key) {
         ['1m:1M', '3m:3M', 'all:All'].map(function (r) { var p = r.split(":"); return '<button type="button" data-r="' + p[0] + '" aria-pressed="' + (p[0] === "all") + '">' + p[1] + '</button>'; }).join("") +
       '</div></div><div class="chw" id="chw"></div>' +
       '<p class="lg"><span><i></i>Value</span><span><i class="c"></i>Money put in</span><span><i class="e"></i>Results day</span><span><i class="m"></i>Move of 10% or more</span></p></section>' +
-    daysHTML(X) + scCard(D.sc, L, avg) +
+    daysHTML(X) +
     addHTML(D) +
-    // how
-    '<section class="card how" aria-labelledby="w-t"><h2 id="w-t">How the figures are worked out</h2><ul>' +
-      '<li>Your cost is in dollars. <b>Money put in</b> counts each dollar amount in pounds at the rate on the day it went in.</li>' +
-      '<li><b>Total P&amp;L</b> is the value in pounds minus the pounds put in. It splits into the <b>share price</b> part (your dollar gain at today\'s rate) and the <b>pound vs dollar</b> part (the rest), which always add up to the total.</li>' +
-      '<li><b>Day P&amp;L</b> is the change in total P&amp;L from one close to the next, so money you add never counts as a gain.</li>' +
-      '<li>A <b>sale</b> takes out the pounds put in for those shares in proportion (average cost); the difference from what you received, at that day\'s rate, stays in the total as realised gain or loss.</li>' +
-      '<li>Rates are the dollars per pound for each day, or the latest before it, from ' + esc(L.src || "the Federal Reserve (FRED DEXUSUK)") + '. Live figures use a live pound/dollar rate from Finnhub when one arrives, otherwise the latest daily rate.</li>' +
-      '<li>Live prices, pre-market and after-hours included, come from CNBC and Nasdaq through a small relay on thisisfed.xyz, and from Finnhub trades in the regular session.</li>' +
-      (X.some(function (x) { return x.est; }) ? '<li><span class="est">*</span> Days before the daily log began are worked out from that day\'s close and rate, assuming your current holding throughout.</li>' : '') +
-    '</ul><p class="note">Log updated ' + (D.updated ? dlab(D.updated) + " " + D.updated.slice(11, 16) : "") + ' UK. Not advice.</p></section>';
+    '<p class="note foot">Log updated ' + (D.updated ? dlab(D.updated) + " " + D.updated.slice(11, 16) : "") + ' UK. Not advice.</p>';
   $("out").innerHTML = h; $("out").hidden = false;
   paint(null);
   drawChart();
@@ -663,16 +632,10 @@ function paint(q) {
   set("h-pl", gbp(pl, true), cls(pl)); set("h-plp", pct(pl / (sold ? L.inAll : L.cg)), "pill " + clsr(pl));
   set("h-plt", sold ? "in all, vs " + gbp(L.inAll) + " put in: " + gbp(un, true) + " on shares you hold, " + gbp(L.R, true) + " realised from sales"
                     : "unrealised, vs " + gbp(L.cg) + " put in");
-  set("h-stk", gbp(stk, true), cls(stk)); set("h-stks", pct(g$ / L.cost_usd) + " in dollars");
-  set("h-fx", gbp(fxp, true), cls(fxp)); set("h-fxs", "$" + (L.cost_usd / L.cg).toFixed(4) + " per £ when bought, $" + fx.toFixed(4) + " now");
   var ref, d, dp, dl;
   if (q) { ref = q.ref; d = pl - (sh * ref / L.fx - L.cg + L.R); dp = px / ref - 1; dl = q.sess === "regular" ? "Today" : "Since the last close"; }
   else { ref = P ? P.px : null; d = L.dpl; dp = L.ret; dl = "Day, " + dlab(L.d); }
   set("h-dl", dl); set("h-day", gbp(d, true), cls(d)); set("h-days", dp == null ? "first day" : pct(dp) + " share price");
-  // where the P&L comes from, by size
-  var a = Math.abs(stk), b = Math.abs(fxp), t = a + b || 1;
-  $("h-bs").style.width = (a / t * 100) + "%"; $("h-bf").style.width = (b / t * 100) + "%";
-  set("h-ks", "Share price " + Math.round(a / t * 100) + "%"); set("h-kf", "Pound vs dollar " + Math.round(b / t * 100) + "%");
   // price line and badge
   set("h-pxv", px$(px));
   if (ref) { var c = px - ref; set("h-pxc", (c < 0 ? MINUS : "+") + "$" + Math.abs(c).toFixed(4) + " (" + pct(c / ref) + ")", clsr(c)); }
@@ -775,7 +738,7 @@ var REPO = "https://github.com/thisisfed/opendoor-scorecard";
 var ADD = null;
 var num = function (v, dp) { return (+v).toFixed(dp).replace(/\.?0+$/, ""); };
 var pr2 = function (v) { var s = num(v, 4); return s.indexOf(".") < 0 ? s + ".00" : s.split(".")[1].length < 2 ? s + "0" : s; };
-var tline = function (t) { return dlab(t[0]) + " " + num(t[1], 6) + " " + num(t[2], 4); };
+var tline = function (t) { return dlab(t[0]) + " " + num(t[1], 6) + " " + num(t[2], 4) + (t.length > 3 && t[3] > 0 ? " " + (+t[3]).toFixed(2) : ""); };
 function addHTML(D) {
   var T = D.trades || [];
   return '<section class="card" aria-labelledby="a-t"><div class="ch-h"><h2 id="a-t">Buy or sell shares</h2>' +
@@ -788,29 +751,33 @@ function addHTML(D) {
         '<button type="button" data-m="sh" aria-pressed="true">Shares</button><button type="button" data-m="gbp" aria-pressed="false">Pounds</button></div></div>' +
       '<label><span id="a-ql">Shares to buy</span><input type="number" id="a-q" min="0" step="any" inputmode="decimal" placeholder="e.g. 250"></label>' +
       '<label>Price per share, $<input type="number" id="a-p" min="0" step="any" inputmode="decimal"></label>' +
+      '<label id="a-gw"><span id="a-gl">Pounds paid, optional</span><input type="number" id="a-g" min="0" step="any" inputmode="decimal" placeholder="from your broker"></label>' +
     '</form>' +
     '<div class="a-out" id="a-out" aria-live="polite"></div>' +
     '<details class="a-rec" id="a-rec"><summary>Record it</summary>' +
-      '<p>Your trade list, one trade per line: date, shares, price per share in dollars. A sale is a negative number of shares. Edit it if the fill was different, copy it, ' +
+      '<p>Your trade list, one trade per line: date, shares, price per share in dollars, then the pounds that left (or reached) your account if you know them. A sale is a negative number of shares. Without the pounds, that day\'s exchange rate is used. Edit it if the fill was different, copy it, ' +
       'then replace the <b>POSITION_TRADES</b> secret with it. The page updates on the next run (weekdays at 22:30 UK), or straight away if you run the update.</p>' +
       '<textarea id="a-list" spellcheck="false" aria-label="Trade list to save"></textarea>' +
       '<div class="a-row"><button type="button" id="a-copy">Copy list</button><a href="' + REPO + '/settings/secrets/actions" target="_blank" rel="noopener">Open the secrets</a>' +
         '<a href="' + REPO + '/actions/workflows/update.yml" target="_blank" rel="noopener">Run the update</a><span class="muted" id="a-cs" role="status"></span></div>' +
       (D.trades_set ? '' : '<p class="note">No trade list is saved yet, so this starts from one line built from your current total. If you bought on more than one day, put in the real trades before saving. Once POSITION_TRADES is set, the shares, cost and opened secrets are no longer used.</p>') +
-      '<table class="trd"><thead><tr><th scope="col">Date</th><th scope="col">Trade</th><th scope="col">Shares</th><th scope="col">Price</th><th scope="col">Amount</th></tr></thead><tbody>' +
-        T.map(function (t) { return '<tr><td>' + dlab(t[0]) + '</td><td>' + (t[1] < 0 ? "Sell" : "Buy") + '</td><td>' + Math.abs(t[1]).toLocaleString("en-GB", {maximumFractionDigits: 6}) +
-          '</td><td>$' + pr2(t[2]) + '</td><td>' + usd(Math.abs(t[1] * t[2])) + '</td></tr>'; }).join("") +
+      '<table class="trd"><thead><tr><th scope="col">Date</th><th scope="col">Trade</th><th scope="col">Shares</th><th scope="col">Price</th><th scope="col">Dollars</th><th scope="col">Pounds</th></tr></thead><tbody>' +
+        T.map(function (t) {
+          var x = STATE.X.filter(function (e) { return e.d >= t[0]; })[0] || STATE.L, gp = t.length > 3 && t[3] > 0; return '<tr><td>' + dlab(t[0]) + '</td><td>' + (t[1] < 0 ? "Sell" : "Buy") + '</td><td>' + Math.abs(t[1]).toLocaleString("en-GB", {maximumFractionDigits: 6}) +
+          '</td><td>$' + pr2(t[2]) + '</td><td>' + usd(Math.abs(t[1] * t[2])) + '</td><td' + (gp ? '' : ' class="muted" title="Not given: worked out at that day\'s rate"') + '>' +
+          (gp ? gbp(+t[3]) : "\u2248" + gbp(Math.abs(t[1] * t[2]) / x.fx)) + '</td></tr>'; }).join("") +
       '</tbody></table></details></section>';
 }
 function addInit(D) {
   var L = STATE.L, side = "buy", mode = "sh", touched = false, px = L.px, fx = L.fx, T = D.trades || [], edited = false;
-  var d = $("a-d"), q = $("a-q"), p = $("a-p"), out = $("a-out"), list = $("a-list");
+  var d = $("a-d"), q = $("a-q"), p = $("a-p"), gI = $("a-g"), out = $("a-out"), list = $("a-list");
   var shf = function (v) { return (+v).toLocaleString("en-GB", {maximumFractionDigits: 4}); };
   var tile = function (l, v, sub, c) { return '<div><span>' + l + '</span><b' + (c ? ' class="' + c + '"' : '') + '>' + v + '</b><small>' + sub + '</small></div>'; };
   d.value = dlab(ymd(Date.now())); p.value = num(px, 4);
   function label() {
     set("a-ql", mode === "gbp" ? (side === "buy" ? "Pounds to invest, £" : "Pounds to raise, £") : (side === "buy" ? "Shares to buy" : "Shares to sell"));
     q.placeholder = mode === "gbp" ? "e.g. 500" : "e.g. 250";
+    $("a-gw").hidden = mode === "gbp"; set("a-gl", side === "buy" ? "Pounds paid, optional" : "Pounds received, optional");
   }
   function calc() {
     var dm = /^(\d{1,2})\/(\d{1,2})\/(\d{4})$/.exec(d.value.trim()), iso = dm ? dm[3] + "-" + ("0" + dm[2]).slice(-2) + "-" + ("0" + dm[1]).slice(-2) : "";
@@ -818,25 +785,25 @@ function addInit(D) {
     d.setAttribute("aria-invalid", iso || !d.value ? "false" : "true");
     var n0 = +q.value, pr = +p.value, ok = n0 > 0 && pr > 0 && iso;
     var n = !ok ? 0 : mode === "gbp" ? Math.floor(n0 * fx / pr * 1e6) / 1e6 : n0;
-    var avg = L.cost_usd / L.sh, line = null, h;
+    var avg = L.cost_usd / L.sh, line = null, h, g = !ok ? null : mode === "gbp" ? n0 : +gI.value > 0 ? +gI.value : null;
     if (!ok) {
       h = '<div style="grid-column:1/-1"><span>Enter a date as DD/MM/YYYY, ' + (mode === "gbp" ? "an amount in pounds" : "a number of shares") + ' and a price to see the effect.</span></div>';
     } else if (side === "buy") {
-      var sh = L.sh + n, cost = L.cost_usd + n * pr, nav = cost / sh, inG = L.cg + n * pr / fx, valAt = sh * pr / fx, plAt = valAt - inG + L.R;
+      var paid = g !== null ? g : n * pr / fx, sh = L.sh + n, cost = L.cost_usd + n * pr, nav = cost / sh, inG = L.cg + paid, valAt = sh * pr / fx, plAt = valAt - inG + L.R;
       h = tile("Holding", shf(sh), "from " + shf(L.sh) + (mode === "gbp" ? ", +" + shf(n) + " shares" : "")) +
         tile("Average cost, breakeven", "$" + nav.toFixed(3), "from $" + avg.toFixed(3) + ", " + pct(nav / avg - 1)) +
-        tile("Money put in", gbp(inG), "+" + gbp(n * pr / fx) + " (" + usd(n * pr) + ") at $" + fx.toFixed(4) + " per £") +
+        tile("Money put in", gbp(inG), "+" + gbp(paid) + " (" + usd(n * pr) + ")" + (g !== null ? "" : " at $" + fx.toFixed(4) + " per £")) +
         tile("At $" + num(pr, 4) + " a share", gbp(plAt, true), "value " + gbp(valAt) + ", in all", cls(plAt));
-      line = [iso, n, pr];
+      line = [iso, n, pr].concat(g !== null ? [g] : []);
     } else if (n > L.sh + 1e-9) {
       h = '<div style="grid-column:1/-1"><span class="dn">You hold ' + shf(L.sh) + ' shares, so you can sell at most that' + (mode === "gbp" ? " (about " + gbp(L.sh * pr / fx) + " at this price)" : "") + '.</span></div>';
     } else {
-      var f = n / L.sh, got = n * pr / fx, rm = L.cg * f, real = got - rm, left = L.sh - n;
+      var f = n / L.sh, got = g !== null ? g : n * pr / fx, rm = L.cg * f, real = got - rm, left = L.sh - n;
       h = tile("Holding", shf(left), "from " + shf(L.sh) + ", " + MINUS + shf(n) + " shares" + (left < 1e-9 ? ", all sold" : "")) +
-        tile("You'd receive", gbp(got), usd(n * pr) + " at $" + fx.toFixed(4) + " per £") +
+        tile("You'd receive", gbp(got), usd(n * pr) + (g !== null ? "" : " at $" + fx.toFixed(4) + " per £")) +
         tile("Realised on these shares", gbp(real, true), usd(n * (pr - avg), true) + " in dollars, vs " + gbp(rm) + " put in", cls(real)) +
         tile("Average cost, breakeven", left < 1e-9 ? "n/a" : "$" + avg.toFixed(3), left < 1e-9 ? "nothing left" : "unchanged by a sale; " + gbp(L.cg - rm) + " still in");
-      line = [iso, -n, pr];
+      line = [iso, -n, pr].concat(g !== null ? [g] : []);
     }
     out.innerHTML = h;
     if (!edited) list.value = T.concat(line ? [line] : []).sort(function (a, b) { return a[0] < b[0] ? -1 : a[0] > b[0] ? 1 : 0; }).map(tline).join("\n");
@@ -845,7 +812,7 @@ function addInit(D) {
     document.querySelectorAll("#" + id + " button").forEach(function (x) { x.setAttribute("aria-pressed", x === b ? "true" : "false"); });
     fn(b.dataset[attr]); edited = false; label(); calc(); }); }); }
   seg("a-side", "s", function (v) { side = v; }); seg("a-mode", "m", function (v) { mode = v; });
-  [d, q].forEach(function (e) { e.addEventListener("input", function () { edited = false; calc(); }); });
+  [d, q, gI].forEach(function (e) { e.addEventListener("input", function () { edited = false; calc(); }); });
   p.addEventListener("input", function () { touched = true; edited = false; calc(); });
   list.addEventListener("input", function () { edited = true; });
   $("a-f").addEventListener("submit", function (e) { e.preventDefault(); });
@@ -873,24 +840,6 @@ function tips() {
   document.addEventListener("click", function (e) { var t = e.target.closest && e.target.closest(".tip"); if (t) show(t); else hide(); });
   document.addEventListener("keydown", function (e) { if (e.key === "Escape") hide(); });
   addEventListener("scroll", function () { if (cur && !cur.matches(":focus")) hide(); }, {passive: true});
-}
-
-// The public scorecard's numbers next to the position. It lines up the facts; add, trim or hold stays your call.
-function scCard(S, L, avg) {
-  if (!S) return "";
-  var mv = S.p.filter(function (p) { return Math.abs(p.c) >= 0.05; }).sort(function (a, b) { return Math.abs(b.c) - Math.abs(a.c); }).slice(0, 3);
-  var lo = S.p.slice().sort(function (a, b) { return a.s - b.s; })[0], hi = S.p.slice().sort(function (a, b) { return b.s - a.s; })[0];
-  var d = S.from == null ? null : S.o - S.from, be = L.px / avg - 1;
-  var sgn = function (v) { return (v > 0 ? "+" : v < 0 ? "\u2212" : "") + Math.abs(v).toFixed(1); };
-  var li = mv.map(function (p) { return '<li><b class="' + (p.c > 0 ? "up" : "dn") + '">' + sgn(p.c) + '</b>' + esc(p.n) + ', now ' + p.s.toFixed(1) + '</li>'; });
-  if (!li.length) li = ['<li><b>' + hi.s.toFixed(1) + '</b>Strongest: ' + esc(hi.n) + '</li>', '<li><b>' + lo.s.toFixed(1) + '</b>Weakest: ' + esc(lo.n) + '</li>'];
-  return '<div class="card"><p style="margin:0 0 8px;font-weight:600">What the scorecard says</p>' +
-    '<div class="sc-top"><span class="sc-o">' + S.o.toFixed(2) + '</span><span class="sc-g">' + esc(S.g) + '</span>' +
-    (d === null || Math.abs(d) < 0.005 ? '' : '<span class="' + (d > 0 ? "up" : "dn") + '">' + (d > 0 ? "+" : "\u2212") + Math.abs(d).toFixed(2) +
-      ' from ' + S.from.toFixed(2) + (S.gfrom && S.gfrom !== S.g ? ' (' + esc(S.gfrom) + ')' : '') + (S.since ? ' on ' + dlab(S.since) : '') + '</span>') + '</div>' +
-    '<p class="note" style="margin-top:6px">' + esc(S.v) + ' ' + esc(S.why) + '</p>' +
-    '<ul class="sc-p">' + li.join("") + '<li><b class="' + cls(be) + '">' + pct(be) + '</b>last close vs your $' + avg.toFixed(3) + ' breakeven</li></ul>' +
-    '</div>';
 }
 
 // ---- live prices. Two feeds, the fresher wins:

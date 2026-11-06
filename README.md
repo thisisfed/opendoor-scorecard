@@ -146,7 +146,8 @@ Set three repository secrets (Settings > Secrets and variables > Actions > New r
   filled in once from daily closes and rates, assuming today's holding throughout, and marked on the page.
 
 - `POSITION_TRADES` (optional, recommended): every buy, one per line: day first, shares, price paid per share in
-  dollars, e.g. `14/10/2026 1000 1.60`. A negative number of shares records a sale (at the average cost). When it is
+  dollars, then optionally the pounds that left (or reached) your account, e.g. `14/10/2026 1000 1.60 1221.37`.
+  Without the pounds, that day's exchange rate is used. A negative number of shares records a sale (at the average cost). When it is
   set, the holding on each day comes from this list and the whole history is worked out again on every run, so
   `POSITION_SHARES`, `POSITION_COST_USD` and `POSITION_OPENED` are no longer used. The page's "Add shares" tool
   previews a buy and gives you the updated list to paste in.
