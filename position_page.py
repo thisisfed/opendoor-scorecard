@@ -361,9 +361,7 @@ tbody[hidden]{display:none!important}.more-days{margin-top:12px}
 .sc-g{font-size:14px;font-weight:600;border:1px solid var(--line2);border-radius:999px;padding:2px 10px}
 .sc-p{list-style:none;margin:14px 0 0;padding:0;display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:8px}
 .sc-p li{background:var(--soft);border-radius:12px;padding:10px 12px;font-size:13px;color:var(--muted)}.sc-p b{display:block;font-size:17px;color:var(--ink);font-weight:600}.sc-p b.up{color:var(--good)}.sc-p b.dn{color:var(--bad)}
-/* notes */
-textarea{display:block;width:100%;min-height:96px;margin-top:10px;font:inherit;font-size:15px;line-height:1.5;padding:12px 14px;border:1px solid var(--line2);border-radius:12px;background:var(--card);color:var(--ink);resize:vertical}
-textarea:focus,input:focus{outline:2px solid var(--blue);outline-offset:1px}
+input:focus{outline:2px solid var(--blue);outline-offset:1px}
 /* how it's worked out */
 .how ul{margin:10px 0 0;padding-left:18px;font-size:13.5px;color:var(--muted2)}.how li{margin:4px 0}
 /* tooltips */
@@ -506,10 +504,6 @@ function render(D, key) {
       '</div></div><div class="chw" id="chw"></div>' +
       '<p class="lg"><span><i></i>Value</span><span><i class="c"></i>Money put in</span><span><i class="e"></i>Results day</span><span><i class="m"></i>Move of 10% or more</span></p></section>' +
     daysHTML(X) + scCard(D.sc, L, avg) +
-    // notes
-    '<section class="card" aria-labelledby="n-t"><h2 id="n-t">Notes</h2>' +
-      '<textarea id="notes" aria-labelledby="n-t" placeholder="Why you hold it, what would change your mind, dates to watch…"></textarea>' +
-      '<p class="note" id="notes-st">Saved on this device only, encrypted with your passphrase.</p></section>' +
     // how
     '<section class="card how" aria-labelledby="w-t"><h2 id="w-t">How the figures are worked out</h2><ul>' +
       '<li>Your cost is in dollars. <b>Money put in</b> counts each dollar amount in pounds at the rate on the day it went in.</li>' +
@@ -531,7 +525,7 @@ function render(D, key) {
     md.textContent = open ? "Hide earlier days" : "Show " + n + " earlier day" + (n === 1 ? "" : "s");
   });
   var rt = null; addEventListener("resize", function () { clearTimeout(rt); rt = setTimeout(drawChart, 150); });
-  tips(); notes(key); live(D, L);
+  tips(); live(D, L);
   $("gate").hidden = true; $("lock").hidden = false;
 }
 
@@ -666,24 +660,6 @@ function tips() {
   document.addEventListener("click", function (e) { var t = e.target.closest && e.target.closest(".tip"); if (t) show(t); else hide(); });
   document.addEventListener("keydown", function (e) { if (e.key === "Escape") hide(); });
   addEventListener("scroll", function () { if (cur && !cur.matches(":focus")) hide(); }, {passive: true});
-}
-
-// ---- notes: kept on this device, encrypted with the same key as the page
-async function notes(key) {
-  var ta = $("notes"), st = $("notes-st"), K = "pos-notes", t = null;
-  if (!ta || !key) { if (st) st.textContent = "Notes need the passphrase on this device."; return; }
-  try { var s = JSON.parse(localStorage.getItem(K) || "null");
-    if (s && s.salt === BLOB.salt) ta.value = new TextDecoder().decode(await crypto.subtle.decrypt({name: "AES-GCM", iv: b64(s.iv)}, key, b64(s.ct))); } catch (e) {}
-  ta.addEventListener("input", function () {
-    st.textContent = "Saving…"; clearTimeout(t);
-    t = setTimeout(async function () {
-      try { var iv = crypto.getRandomValues(new Uint8Array(12));
-        var ct = await crypto.subtle.encrypt({name: "AES-GCM", iv: iv}, key, new TextEncoder().encode(ta.value));
-        localStorage.setItem(K, JSON.stringify({salt: BLOB.salt, iv: u8(iv), ct: u8(ct)}));
-        st.textContent = "Saved on this device only, encrypted with your passphrase.";
-      } catch (e) { st.textContent = "Could not save on this device."; }
-    }, 500);
-  });
 }
 
 // The public scorecard's numbers next to the position. It lines up the facts; add, trim or hold stays your call.
