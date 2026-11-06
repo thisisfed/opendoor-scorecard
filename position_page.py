@@ -5,8 +5,9 @@ Runs after the scorecard. It reads three repository secrets:
   POSITION_PASSPHRASE  the passphrase that unlocks the page (use a long one: it is the only thing protecting the page)
   POSITION_SHARES      how many shares you hold now, e.g. 1250.5
   POSITION_COST_USD    everything you have paid for them, in dollars, fees included, e.g. 6200
-  POSITION_FINNHUB_KEY optional: a free finnhub.io API key. The page then streams live trades, pre-market and
-                       after-hours included, while it is open. The key travels inside the encrypted blob only.
+  POSITION_FINNHUB_KEY optional: a free finnhub.io API key, for live trades in the regular session and a live
+                       pound/dollar rate. Pre-market and after-hours prices come from a relay on thisisfed.xyz
+                       (opendoor-quote.php, in relay/ here) that asks CNBC and Nasdaq. The key stays in the blob.
   POSITION_OPENED      optional: the day you opened the position, e.g. 2026-10-14. The days before the log began are
                        then filled in from daily closes, assuming today's holding throughout (marked on the page).
 
@@ -279,8 +280,9 @@ svg text{font-size:12px;fill:var(--muted)}
 .lv-dot{width:9px;height:9px;border-radius:50%;background:#2fb67c;box-shadow:0 0 0 0 rgba(47,182,124,.5);animation:pulse 2s ease-out infinite}
 .live.off .lv-dot{background:var(--muted);animation:none}
 @keyframes pulse{0%{box-shadow:0 0 0 0 rgba(47,182,124,.5)}70%{box-shadow:0 0 0 9px rgba(47,182,124,0)}100%{box-shadow:0 0 0 0 rgba(47,182,124,0)}}
-@keyframes tick{0%{background:var(--soft)}100%{background:var(--card)}}.live.tick{animation:tick .6s ease-out}
-@media (prefers-reduced-motion:reduce){.lv-dot,.live.tick{animation:none}}
+@keyframes ping{0%{box-shadow:0 0 0 0 rgba(47,182,124,.9),0 0 10px 2px rgba(47,182,124,.9)}100%{box-shadow:0 0 0 12px rgba(47,182,124,0),0 0 0 0 rgba(47,182,124,0)}}
+.lv-dot.ping{animation:ping .9s ease-out}
+@media (prefers-reduced-motion:reduce){.lv-dot,.lv-dot.ping{animation:none}}
 @media (max-width:640px){.big{grid-template-columns:1fr}.facts{grid-template-columns:1fr 1fr}.k .v{font-size:28px}.card{padding:18px 16px}
 table.days thead{display:none}table.days,table.days tbody{display:block}table.days tr{display:grid;grid-template-columns:repeat(3,1fr);gap:4px 8px;padding:10px 0;border-bottom:1px solid var(--line)}
 table.days td{border:0;padding:0;text-align:left}table.days td:first-child{grid-column:1/-1;font-weight:600}table.days td::before{content:attr(data-l);display:block;font-size:11px;color:var(--muted)}}
@@ -329,7 +331,7 @@ function render(D) {
   var usd = function (v) { return "$" + Math.abs(v).toLocaleString("en-US", {minimumFractionDigits: 2, maximumFractionDigits: 2}); };
   var avg = L.cost_usd / L.sh;
   var day = L.day === null ? null : L.day, dayp = day === null || !P ? null : day / P.val;
-  var h = (D.live ? '<div class="card live" id="live"><div class="lv-top"><p class="lv-h"><span class="lv-dot"></span>Live <span id="lv-sess">connecting</span></p>' +
+  var h = (true ? '<div class="card live" id="live"><div class="lv-top"><p class="lv-h"><span class="lv-dot"></span>Live <span id="lv-sess">connecting</span></p>' +
       '<p class="lv-t" id="lv-t"></p></div><div class="big">' +
       '<div class="k"><p class="l">Price now</p><p class="v" id="lv-px">\u2013</p><p class="s" id="lv-pxs"></p></div>' +
       '<div class="k" id="lv-k1"><p class="l">Since the reference close</p><p class="v" id="lv-day">\u2013</p><p class="s" id="lv-days"></p></div>' +
@@ -354,11 +356,15 @@ function render(D) {
     'The day\'s figure is the change in the pound total, so money you add never counts as a gain. ' + (E.some(function (e) { return e.seed || e.bf; }) ? "* Days before the daily log began are worked out from that day\'s close and rate, assuming today\'s holding throughout; the first is the gain since buying. " : "") +
     'Updated ' + (D.updated ? dlab(D.updated) + " " + D.updated.slice(11, 16) : "") + ' UK. Not advice.</p></div>';
   document.getElementById("out").innerHTML = h; document.getElementById("out").hidden = false;
-  if (D.live && D.live.key) live(D, L);
+  live(D, L);
   document.getElementById("gate").hidden = true; document.getElementById("lock").hidden = false;
 }
-// ---- live prices: Finnhub trades over a websocket (pre-market and after-hours included), the quote endpoint for the
-// reference close. Pound figures use the logged rate unless a live pound/dollar tick arrives.
+// ---- live prices. Two feeds, the fresher wins:
+//  1. a small relay on thisisfed.xyz that asks CNBC and Nasdaq server-side every 2 seconds (pre-market and after-hours
+//     included; those sites refuse requests made straight from a web page);
+//  2. Finnhub trades over a websocket during the regular session, plus a live pound/dollar rate when it sends one.
+// Pound figures use the logged rate unless a live rate arrives.
+var RELAY = "https://thisisfed.xyz/opendoor-quote.php";
 var LIVE = null;
 function session(ms) {
   var f = new Intl.DateTimeFormat("en-GB", {timeZone: "America/New_York", weekday: "short", hour: "2-digit", minute: "2-digit", hour12: false});
@@ -369,53 +375,76 @@ function session(ms) {
 }
 var SESS = {pre: "pre-market", regular: "market open", after: "after-hours", closed: "market closed"};
 function live(D, L) {
-  if (LIVE) return; LIVE = {px: null, t: null, fx: L.fx, fxLive: false, q: null, ws: null, tries: 0};
-  var key = D.live.key, sym = D.ticker || "OPEN";
-  function q() { return fetch("https://finnhub.io/api/v1/quote?symbol=" + sym + "&token=" + encodeURIComponent(key))
-    .then(function (r) { return r.json(); }).then(function (j) { if (j && j.c) { LIVE.q = j; if (LIVE.px === null) { LIVE.px = j.c; LIVE.t = j.t * 1000; } draw(); } })
-    .catch(function () {}); }
+  if (LIVE) return;
+  LIVE = {px: null, t: null, src: "", fx: L.fx, fxLive: false, close: null, prev: null, checked: null, ws: null, tries: 0};
+  var key = D.live && D.live.key, sym = D.ticker || "OPEN";
+  function take(px, t, src) {
+    if (!(px > 0)) return false;
+    if (LIVE.t === null || t >= LIVE.t) { var moved = px !== LIVE.px; LIVE.px = px; LIVE.t = t; LIVE.src = src; return moved; }
+    return false;
+  }
+  function ping() { var d = document.querySelector("#live .lv-dot"); if (d) { d.classList.remove("ping"); void d.offsetWidth; d.classList.add("ping"); } }
+  function relay() {
+    if (document.hidden) return;
+    fetch(RELAY, {cache: "no-store"}).then(function (r) { return r.ok ? r.json() : null; }).then(function (j) {
+      if (!j || !j.px) return;
+      LIVE.checked = Date.now(); LIVE.close = j.close || LIVE.close; LIVE.prev = j.prev || LIVE.prev;
+      if (take(j.px, j.t, j.src)) ping();
+      draw(); ago();
+    }).catch(function () {});
+  }
+  function quote() {
+    if (!key) return;
+    fetch("https://finnhub.io/api/v1/quote?symbol=" + sym + "&token=" + encodeURIComponent(key)).then(function (r) { return r.json(); })
+      .then(function (j) { if (j && j.c) { if (!LIVE.close) { LIVE.close = j.c; LIVE.prev = j.pc; } if (LIVE.px === null) take(j.c, j.t * 1000, "Finnhub"); draw(); } })
+      .catch(function () {});
+  }
   function draw() {
     if (LIVE.px === null) return;
     var s = session(Date.now()), fx = LIVE.fx, sh = L.sh;
     // reference: in the regular session the previous close; outside it the latest regular close
-    var ref = LIVE.q ? (s === "regular" ? LIVE.q.pc : LIVE.q.c) : L.px, refLab = LIVE.q ? (s === "regular" ? "previous close" : "last regular close") : "close " + dlab(L.d);
+    var ref = s === "regular" ? (LIVE.prev || L.px) : (LIVE.close || L.px);
+    var refLab = s === "regular" ? "previous close" : "last regular close";
     var chg = LIVE.px - ref, dayG = sh * chg / fx, totG = (sh * LIVE.px - L.cost_usd) / fx;
     document.getElementById("lv-sess").textContent = SESS[s];
     document.getElementById("live").classList.toggle("off", s === "closed");
     document.getElementById("lv-px").textContent = "$" + LIVE.px.toFixed(LIVE.px < 10 ? 4 : 2);
-    document.getElementById("lv-pxs").textContent = (chg >= 0 ? "+" : "\u2212") + "$" + Math.abs(chg).toFixed(4) + " (" + pct(chg / ref) + ") vs the " + refLab + " $" + ref.toFixed(2);
+    document.getElementById("lv-pxs").textContent = (chg >= 0 ? "+" : "−") + "$" + Math.abs(chg).toFixed(4) + " (" + pct(chg / ref) + ") vs the " + refLab + " $" + ref.toFixed(2);
     var k1 = document.getElementById("lv-k1"), k2 = document.getElementById("lv-k2");
     k1.querySelector(".l").textContent = "Since the " + refLab;
     document.getElementById("lv-day").textContent = gbp(dayG, true); k1.className = "k " + cls(dayG);
     document.getElementById("lv-days").textContent = pct(chg / ref) + " on " + sh.toLocaleString("en-GB", {maximumFractionDigits: 4}) + " shares";
     document.getElementById("lv-tot").textContent = gbp(totG, true); k2.className = "k " + cls(totG);
-    document.getElementById("lv-tots").textContent = "value " + gbp(sh * LIVE.px / fx) + ", $" + fx.toFixed(4) + " per \u00a31" + (LIVE.fxLive ? " live" : " (" + dlab(L.fxd) + ")");
+    document.getElementById("lv-tots").textContent = "value " + gbp(sh * LIVE.px / fx) + ", $" + fx.toFixed(4) + " per £1" + (LIVE.fxLive ? " live" : " (" + dlab(L.fxd) + ")");
   }
   function ago() {
     var el = document.getElementById("lv-t"); if (!el || !LIVE.t) return;
-    var sec = Math.max(0, Math.round((Date.now() - LIVE.t) / 1000));
-    var hm = new Date(LIVE.t).toLocaleTimeString("en-GB", {hour: "2-digit", minute: "2-digit", second: "2-digit"});
-    el.textContent = "last trade " + hm + " UK, " + (sec < 60 ? sec + " s ago" : sec < 3600 ? Math.round(sec / 60) + " min ago" : Math.round(sec / 3600) + " h ago");
-    var sEl = document.getElementById("lv-sess"); if (sEl && LIVE.px !== null) sEl.textContent = SESS[session(Date.now())];
+    var hm = function (ms) { return new Date(ms).toLocaleTimeString("en-GB", {hour: "2-digit", minute: "2-digit", second: "2-digit"}); };
+    var c = LIVE.checked ? Math.max(0, Math.round((Date.now() - LIVE.checked) / 1000)) : null;
+    el.textContent = "price at " + hm(LIVE.t) + " UK from " + LIVE.src + (c === null ? "" : ", checked " + (c < 1 ? "just now" : c + " s ago"));
+    var sEl = document.getElementById("lv-sess"); if (sEl) sEl.textContent = SESS[session(Date.now())];
   }
   function connect() {
+    if (!key) return;
     var ws = new WebSocket("wss://ws.finnhub.io?token=" + encodeURIComponent(key)); LIVE.ws = ws;
     ws.onopen = function () { LIVE.tries = 0; ws.send(JSON.stringify({type: "subscribe", symbol: sym})); ws.send(JSON.stringify({type: "subscribe", symbol: "OANDA:GBP_USD"})); };
     ws.onmessage = function (ev) {
       var m; try { m = JSON.parse(ev.data); } catch (e) { return; }
       if (m.type !== "trade" || !m.data) return;
+      var moved = false;
       m.data.forEach(function (t) {
-        if (t.s === sym && (!LIVE.t || t.t >= LIVE.t)) { LIVE.px = t.p; LIVE.t = t.t; }
+        if (t.s === sym) moved = take(t.p, t.t, "Finnhub") || moved;
         else if (t.s === "OANDA:GBP_USD" && t.p > 0.5 && t.p < 3) { LIVE.fx = t.p; LIVE.fxLive = true; }
       });
+      if (moved) ping();
       draw(); ago();
-      var c = document.getElementById("live"); if (c) { c.classList.remove("tick"); void c.offsetWidth; c.classList.add("tick"); }
     };
     ws.onclose = function () { var w = Math.min(30000, 1000 * Math.pow(2, LIVE.tries++)); setTimeout(connect, w); };
     ws.onerror = function () { try { ws.close(); } catch (e) {} };
   }
-  q(); connect(); setInterval(ago, 1000); setInterval(q, 60000);
-  document.addEventListener("visibilitychange", function () { if (!document.hidden) q(); });
+  relay(); quote(); connect();
+  setInterval(relay, 2000); setInterval(ago, 1000); setInterval(quote, 60000);
+  document.addEventListener("visibilitychange", function () { if (!document.hidden) relay(); });
 }
 document.getElementById("f").addEventListener("submit", async function (ev) {
   ev.preventDefault(); var err = document.getElementById("err"); err.textContent = "Unlocking…";
