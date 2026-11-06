@@ -7,7 +7,7 @@ Runs after the scorecard. It reads three repository secrets:
   POSITION_COST_USD    everything you have paid for them, in dollars, fees included, e.g. 6200
 
 Each run adds a line for the latest close: price in dollars, the pound/dollar rate (FRED series DEXUSUK, dollars per
-pound), the value in pounds, and the gain or loss in pounds: the dollar gain or loss (value less cost) at that day's
+pound; the ECB rate via Frankfurter if FRED does not answer), the value in pounds, and the gain or loss in pounds: the dollar gain or loss (value less cost) at that day's
 rate. The day's figure is the change in that total, so money you add (a top-up raises POSITION_COST_USD) never shows
 as a gain, and the days add up to the total.
 
@@ -53,18 +53,36 @@ def decrypt(blob, passphrase):
     return json.loads(pt)
 
 
+def _fetch(url, timeout):
+    req = urllib.request.Request(url, headers={"User-Agent": "Mozilla/5.0 (opendoor-scorecard)"})
+    with urllib.request.urlopen(req, timeout=timeout) as r:
+        return r.read().decode()
+
+
 def fx_series(start):
-    """Dollars per pound by day from FRED, oldest first: [(date, rate)]."""
-    url = f"https://fred.stlouisfed.org/graph/fredgraph.csv?id=DEXUSUK&cosd={start}"
-    req = urllib.request.Request(url, headers={"User-Agent": "opendoor-scorecard"})
-    with urllib.request.urlopen(req, timeout=40) as r:
-        txt = r.read().decode()
-    out = []
-    for line in txt.strip().splitlines()[1:]:
-        d, v = (line.split(",") + [""])[:2]
-        if v not in ("", "."):
-            out.append((d[:10], float(v)))
-    return out
+    """Dollars per pound by day, oldest first: ([(date, rate)], source). FRED's DEXUSUK (Federal Reserve noon rate) first,
+    then the ECB reference rate via Frankfurter if FRED does not answer."""
+    for attempt in (1, 2):
+        try:
+            txt = _fetch(f"https://fred.stlouisfed.org/graph/fredgraph.csv?id=DEXUSUK&cosd={start}", 60)
+            out = []
+            for line in txt.strip().splitlines()[1:]:
+                d, v = (line.split(",") + [""])[:2]
+                if v not in ("", "."):
+                    out.append((d[:10], float(v)))
+            if out:
+                return out, "Federal Reserve (FRED DEXUSUK)"
+        except Exception as ex:
+            print(f"Position page: FRED attempt {attempt} failed ({ex}).")
+    for host in ("https://api.frankfurter.dev/v1", "https://api.frankfurter.app"):
+        try:
+            data = json.loads(_fetch(f"{host}/{start}..?from=GBP&to=USD", 40))
+            out = sorted((d, float(v["USD"])) for d, v in data.get("rates", {}).items() if v.get("USD"))
+            if out:
+                return out, "ECB reference rate (Frankfurter)"
+        except Exception as ex:
+            print(f"Position page: {host} failed ({ex}).")
+    raise RuntimeError("no exchange-rate source answered")
 
 
 def fx_on(series, day):
@@ -123,10 +141,11 @@ def main():
 
     start = (dt.date.fromisoformat(pday) - dt.timedelta(days=40)).isoformat()
     try:
-        series = fx_series(start)
-    except Exception as ex:  # keep going on yesterday's rate rather than fail the run
+        series, src = fx_series(start)
+    except Exception as ex:  # keep going on the last known rate rather than fail the run
         print(f"Position page: FX fetch failed ({ex}); using the last known rate.")
         series = [(entries[-1]["fxd"], entries[-1]["fx"])] if entries else []
+        src = entries[-1].get("src", "") if entries else ""
     hit = fx_on(series, pday)
     if not hit:
         print("Position page: no pound/dollar rate available; skipped.")
@@ -147,6 +166,7 @@ def main():
         except FileNotFoundError:
             pass
     entries.append(entry(pday, price, hit[1], hit[0], shares, cost, prev))
+    entries[-1]["src"] = src
     data = {"entries": entries[-400:], "updated": sc.get("generated"), "ticker": "OPEN"}
     blob = encrypt(data, pw, salt)
     with open(LOG, "w") as fh:
@@ -258,7 +278,7 @@ function render(D) {
       '<td data-l="Value">' + gbp(e.val) + '</td><td data-l="Day" class="' + (e.day === null ? "" : cls(e.day)) + '">' + (e.day === null ? "–" : gbp(e.day, true)) + '</td>' +
       '<td data-l="Total" class="' + cls(e.tot) + '">' + gbp(e.tot, true) + '</td></tr>'; }).join("");
   h += '<div class="card"><p style="margin:0 0 8px;font-weight:600">Day by day</p><div class="scroll"><table class="days"><thead><tr><th>Close</th><th>Price</th><th>$ per £</th><th>Value</th><th>Day</th><th>Total</th></tr></thead><tbody>' + rows + '</tbody></table></div>' +
-    '<p class="note">Values use each close and the Federal Reserve noon rate for the pound (FRED series DEXUSUK) for that day or the latest before it. ' +
+    '<p class="note">Values use each close and the dollars-per-pound rate for that day or the latest before it, from ' + (L.src || 'the Federal Reserve (FRED DEXUSUK)') + '. ' +
     'Your cost is in dollars; the pound figures convert the dollar value and gain at each day\'s rate, so the total moves with the pound as well as the share price. ' +
     'The day\'s figure is the change in the pound total, so money you add never counts as a gain. ' + (E.some(function (e) { return e.seed; }) ? "* The first day is worked out from the scorecard's previous close, assuming the same holding. " : "") +
     'Updated ' + (D.updated || "").replace("T", " ") + ' UK. Not advice.</p></div>';
