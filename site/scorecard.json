@@ -1,5 +1,5 @@
 {
-  "generated": "2026-11-06T09:51",
+  "generated": "2026-11-06T09:55",
   "ticker": "OPEN",
   "price": {
     "date": "2026-11-05",
@@ -410,7 +410,7 @@
         {
           "label": "Warrants (Series K, A, Z)",
           "n": 99.587,
-          "needs": "$9 / $13 / $17, expire Nov 20, 2026",
+          "needs": "$9 / $13 / $17, expire 20/11/2026",
           "live": 0.0
         },
         {
@@ -1187,7 +1187,7 @@
       "home_debt_ltv": "Cushion 7.9% if home prices fall",
       "contrib_trend": "Q2 2026 5.8%, Q3 2026 3.3%",
       "days_inventory": "About 1.8 turns a year; inventory grew 39% in the quarter, which lengthens this",
-      "coe_q4_yoy": "Q4 to Oct 28, 2026: 858 homes vs 596 a year earlier",
+      "coe_q4_yoy": "Q4 to 28/10/2026: 858 homes vs 596 a year earlier",
       "fallout": "2,713 of 9,358 contracts (2,310 open at the start + 7,048 signed); Q2 2026 25%"
     },
     "latest_quarter": "2026-09-30",
@@ -1273,62 +1273,62 @@
         "old": false
       },
       "coe_q4_yoy": {
-        "text": "Tracker Oct 31, 2026",
+        "text": "Tracker 31/10/2026",
         "date": "2026-10-31",
         "old": false
       },
       "contracts_qoq": {
-        "text": "Tracker Oct 31, 2026",
+        "text": "Tracker 31/10/2026",
         "date": "2026-10-31",
         "old": false
       },
       "coe_vs_guide": {
-        "text": "Tracker Oct 31, 2026",
+        "text": "Tracker 31/10/2026",
         "date": "2026-10-31",
         "old": false
       },
       "contracts_vs_proj": {
-        "text": "Tracker Oct 31, 2026",
+        "text": "Tracker 31/10/2026",
         "date": "2026-10-31",
         "old": false
       },
       "clearance": {
-        "text": "Tracker Oct 31, 2026",
+        "text": "Tracker 31/10/2026",
         "date": "2026-10-31",
         "old": false
       },
       "ret_1y": {
-        "text": "Close Nov 5, 2026",
+        "text": "Close 05/11/2026",
         "date": "2026-11-05",
         "old": false
       },
       "range_pos": {
-        "text": "Close Nov 5, 2026",
+        "text": "Close 05/11/2026",
         "date": "2026-11-05",
         "old": false
       },
       "vs_ma200": {
-        "text": "Close Nov 5, 2026",
+        "text": "Close 05/11/2026",
         "date": "2026-11-05",
         "old": false
       },
       "ps": {
-        "text": "Price Nov 5, 2026, sales to Q3 2026",
+        "text": "Price 05/11/2026, sales to Q3 2026",
         "date": "2026-09-30",
         "old": false
       },
       "pb": {
-        "text": "Price Nov 5, 2026, book at Q3 2026",
+        "text": "Price 05/11/2026, book at Q3 2026",
         "date": "2026-09-30",
         "old": false
       },
       "mortgage_rate": {
-        "text": "Week of Nov 5, 2026",
+        "text": "Week of 05/11/2026",
         "date": "2026-11-05",
         "old": false
       },
       "mortgage_13w": {
-        "text": "Week of Nov 5, 2026",
+        "text": "Week of 05/11/2026",
         "date": "2026-11-05",
         "old": false
       },
@@ -1362,7 +1362,7 @@
         "key": "adj_net_income_musd",
         "label": "Adj. net income",
         "by": "2026-12-31",
-        "said": "Q4 2025 release (Feb 19, 2026); repeated in the Q2 2026 release (Aug 4, 2026)",
+        "said": "Q4 2025 release (19/02/2026); repeated in the Q2 2026 release (04/08/2026)",
         "history": [
           [
             "2025-12-31",
@@ -1391,7 +1391,7 @@
         "key": "adj_ebitda_musd",
         "label": "Adj. EBITDA",
         "by": "2026-06-30",
-        "said": "Q1 2026 release (May 7, 2026); repeated in the Q2 2026 release (Aug 4, 2026)",
+        "said": "Q1 2026 release (07/05/2026); repeated in the Q2 2026 release (04/08/2026)",
         "history": [
           [
             "2025-12-31",
@@ -1419,7 +1419,7 @@
     "guidance": [
       {
         "quarter": "2025-09-30",
-        "said": "Q2 2025 release (Aug 5, 2025)",
+        "said": "Q2 2025 release (05/08/2025)",
         "items": [
           {
             "what": "Revenue of $800M to $875M",
@@ -1461,7 +1461,7 @@
       },
       {
         "quarter": "2025-12-31",
-        "said": "Q3 2025 release (Nov 6, 2025)",
+        "said": "Q3 2025 release (06/11/2025)",
         "items": [
           {
             "what": "Homes purchased up at least 35% on the quarter",
@@ -1509,7 +1509,7 @@
       },
       {
         "quarter": "2026-03-31",
-        "said": "Q4 2025 release (Feb 19, 2026)",
+        "said": "Q4 2025 release (19/02/2026)",
         "items": [
           {
             "what": "Revenue down about 10% on the quarter",
@@ -1539,7 +1539,7 @@
       },
       {
         "quarter": "2026-06-30",
-        "said": "Q1 2026 release (May 7, 2026)",
+        "said": "Q1 2026 release (07/05/2026)",
         "items": [
           {
             "what": "Revenue up about 25% on the quarter before",
@@ -1578,7 +1578,7 @@
       },
       {
         "quarter": "2026-09-30",
-        "said": "Q2 2026 release (Aug 4, 2026)",
+        "said": "Q2 2026 release (04/08/2026)",
         "items": [
           {
             "what": "Revenue up at least 20% year on year",
@@ -1704,9 +1704,9 @@
             "good": 0.5,
             "asof": null,
             "lag": 0,
-            "note": "Q4 to Oct 28, 2026: 858 homes vs 596 a year earlier",
+            "note": "Q4 to 28/10/2026: 858 homes vs 596 a year earlier",
             "fresh": {
-              "text": "Tracker Oct 31, 2026",
+              "text": "Tracker 31/10/2026",
               "date": "2026-10-31",
               "old": false
             }
@@ -1723,7 +1723,7 @@
             "lag": 0,
             "note": null,
             "fresh": {
-              "text": "Tracker Oct 31, 2026",
+              "text": "Tracker 31/10/2026",
               "date": "2026-10-31",
               "old": false
             }
@@ -1903,7 +1903,7 @@
             "lag": 0,
             "note": null,
             "fresh": {
-              "text": "Tracker Oct 31, 2026",
+              "text": "Tracker 31/10/2026",
               "date": "2026-10-31",
               "old": false
             }
@@ -1920,7 +1920,7 @@
             "lag": 0,
             "note": null,
             "fresh": {
-              "text": "Tracker Oct 31, 2026",
+              "text": "Tracker 31/10/2026",
               "date": "2026-10-31",
               "old": false
             }
@@ -1937,7 +1937,7 @@
             "lag": 0,
             "note": null,
             "fresh": {
-              "text": "Tracker Oct 31, 2026",
+              "text": "Tracker 31/10/2026",
               "date": "2026-10-31",
               "old": false
             }
@@ -2100,7 +2100,7 @@
             "lag": 0,
             "note": null,
             "fresh": {
-              "text": "Price Nov 5, 2026, sales to Q3 2026",
+              "text": "Price 05/11/2026, sales to Q3 2026",
               "date": "2026-09-30",
               "old": false
             }
@@ -2117,7 +2117,7 @@
             "lag": 0,
             "note": null,
             "fresh": {
-              "text": "Price Nov 5, 2026, book at Q3 2026",
+              "text": "Price 05/11/2026, book at Q3 2026",
               "date": "2026-09-30",
               "old": false
             }
@@ -2143,7 +2143,7 @@
             "lag": 0,
             "note": null,
             "fresh": {
-              "text": "Close Nov 5, 2026",
+              "text": "Close 05/11/2026",
               "date": "2026-11-05",
               "old": false
             }
@@ -2160,7 +2160,7 @@
             "lag": 0,
             "note": null,
             "fresh": {
-              "text": "Close Nov 5, 2026",
+              "text": "Close 05/11/2026",
               "date": "2026-11-05",
               "old": false
             }
@@ -2177,7 +2177,7 @@
             "lag": 0,
             "note": null,
             "fresh": {
-              "text": "Close Nov 5, 2026",
+              "text": "Close 05/11/2026",
               "date": "2026-11-05",
               "old": false
             }
@@ -2203,7 +2203,7 @@
             "lag": 0,
             "note": null,
             "fresh": {
-              "text": "Week of Nov 5, 2026",
+              "text": "Week of 05/11/2026",
               "date": "2026-11-05",
               "old": false
             }
@@ -2220,7 +2220,7 @@
             "lag": 0,
             "note": null,
             "fresh": {
-              "text": "Week of Nov 5, 2026",
+              "text": "Week of 05/11/2026",
               "date": "2026-11-05",
               "old": false
             }
@@ -4674,7 +4674,7 @@
       "method": "2"
     },
     {
-      "run_at": "2026-11-06T09:51",
+      "run_at": "2026-11-06T09:55",
       "price_date": "2026-11-05",
       "price": "1.79",
       "tracker_as_of": "2026-10-31",
