@@ -1,13 +1,13 @@
 {
- "settlement": "2026-10-15",
- "shares_short": 226050399.0,
- "avg_volume": 36015405.0,
- "days_to_cover": 6.276492,
+ "settlement": "2026-10-30",
+ "shares_short": 228093454.0,
+ "avg_volume": 32715850.0,
+ "days_to_cover": 6.971956,
  "previous": {
-  "settlement": "2026-09-30",
-  "shares_short": 230482512.0,
-  "avg_volume": 30715863.0,
-  "days_to_cover": 7.503696
+  "settlement": "2026-10-15",
+  "shares_short": 226050399.0,
+  "avg_volume": 36015405.0,
+  "days_to_cover": 6.276492
  },
  "source": "Nasdaq (FINRA short interest)"
 }
