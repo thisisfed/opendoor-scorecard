@@ -1,13 +1,13 @@
 {
-  "generated": "2026-11-25T04:58",
+  "generated": "2026-11-26T04:15",
   "ticker": "OPEN",
   "price": {
-    "date": "2026-11-24",
-    "price": 1.18,
+    "date": "2026-11-25",
+    "price": 1.26,
     "high_52w": 7.78,
     "low_52w": 1.13,
-    "return_1y": -0.8251851851851852,
-    "ma200": 3.8480000000000003,
+    "return_1y": -0.8361508452535761,
+    "ma200": 3.83085,
     "source": "Nasdaq"
   },
   "method": "2",
@@ -58,7 +58,7 @@
       "per_share": {
         "shares_m": 929.213532,
         "diluted_m": 986.580844,
-        "price": 1.18,
+        "price": 1.26,
         "as_of": "2026-09-30",
         "rows": [
           {
@@ -102,10 +102,10 @@
         "2024": 5153.0,
         "2025": 4371.0
       },
-      "market_cap_musd": 1096.4719677599999,
+      "market_cap_musd": 1170.80905032,
       "ttm_revenue_musd": 3361.0,
-      "price": 1.18,
-      "price_date": "2026-11-24"
+      "price": 1.26,
+      "price_date": "2026-11-25"
     },
     "next_results": {
       "date": "2026-11-05",
@@ -312,7 +312,7 @@
           ],
           [
             "pb",
-            2.3651250383088867
+            2.5254724985332184
           ]
         ],
         "note": "Homes are marked 5% lower against the debt on them and against book value, and asking prices fall 5 points. Margins are left as reported: how much reaches them depends on how fast Opendoor reprices, which this page can't know."
@@ -345,7 +345,7 @@
       ],
       "items": 13
     },
-    "market_cap_musd": 1096.4719677599999,
+    "market_cap_musd": 1170.80905032,
     "ttm_revenue_musd": 3361.0,
     "shares_m": 929.213532,
     "pro_forma": {
@@ -378,7 +378,7 @@
     "dilution": {
       "quarter": "2026-09-30",
       "source": "10-Q",
-      "price": 1.18,
+      "price": 1.26,
       "shares_m": 929.213532,
       "potential_m": 398.249,
       "live_m": 57.367312,
@@ -432,11 +432,11 @@
           0.06173749092582091
         ],
         [
-          1.18,
+          1.25,
           0.06173749092582091
         ],
         [
-          1.25,
+          1.26,
           0.06173749092582091
         ],
         [
@@ -1299,27 +1299,27 @@
         "old": false
       },
       "ret_1y": {
-        "text": "Close 24/11/2026",
-        "date": "2026-11-24",
+        "text": "Close 25/11/2026",
+        "date": "2026-11-25",
         "old": false
       },
       "range_pos": {
-        "text": "Close 24/11/2026",
-        "date": "2026-11-24",
+        "text": "Close 25/11/2026",
+        "date": "2026-11-25",
         "old": false
       },
       "vs_ma200": {
-        "text": "Close 24/11/2026",
-        "date": "2026-11-24",
+        "text": "Close 25/11/2026",
+        "date": "2026-11-25",
         "old": false
       },
       "ps": {
-        "text": "Price 24/11/2026, sales to Q3 2026",
+        "text": "Price 25/11/2026, sales to Q3 2026",
         "date": "2026-09-30",
         "old": false
       },
       "pb": {
-        "text": "Price 24/11/2026, book at Q3 2026",
+        "text": "Price 25/11/2026, book at Q3 2026",
         "date": "2026-09-30",
         "old": false
       },
@@ -1655,11 +1655,11 @@
     "share_yoy": -0.02928397718316955,
     "sbc_pct": 0.10567514677103718,
     "dilution_live": 0.06173749092582091,
-    "ps": 0.32623384937816124,
-    "pb": 1.8521485941891889,
-    "ret_1y": -0.8251851851851852,
-    "range_pos": 0.0075187969924812095,
-    "vs_ma200": -0.6933471933471934,
+    "ps": 0.3483513984885451,
+    "pb": 1.9777179904054056,
+    "ret_1y": -0.8361508452535761,
+    "range_pos": 0.019548872180451145,
+    "vs_ma200": -0.6710912721719723,
     "mortgage_rate": 0.0728,
     "mortgage_13w": 0.0063,
     "dom_yoy": 0.008650000000000001,
@@ -1668,7 +1668,7 @@
     "fallout": 0.2899123744389827
   },
   "score": {
-    "overall": 4.33,
+    "overall": 4.32,
     "grade": "D",
     "verdict": "Weak: speculative; size the position accordingly.",
     "pillars": [
@@ -2087,13 +2087,13 @@
         "name": "Valuation",
         "weight": 5,
         "question": "Are you overpaying for what exists today?",
-        "score": 9.1,
+        "score": 8.9,
         "metrics": [
           {
             "key": "ps",
             "label": "Price / sales (TTM)",
-            "value": 0.32623384937816124,
-            "score": 9.9,
+            "value": 0.3483513984885451,
+            "score": 9.8,
             "fmt": "x",
             "bad": 3.0,
             "good": 0.3,
@@ -2101,7 +2101,7 @@
             "lag": 0,
             "note": null,
             "fresh": {
-              "text": "Price 24/11/2026, sales to Q3 2026",
+              "text": "Price 25/11/2026, sales to Q3 2026",
               "date": "2026-09-30",
               "old": false
             }
@@ -2109,8 +2109,8 @@
           {
             "key": "pb",
             "label": "Price / book (pro forma)",
-            "value": 1.8521485941891889,
-            "score": 8.3,
+            "value": 1.9777179904054056,
+            "score": 8.0,
             "fmt": "x",
             "bad": 6.0,
             "good": 1.0,
@@ -2118,24 +2118,24 @@
             "lag": 0,
             "note": null,
             "fresh": {
-              "text": "Price 24/11/2026, book at Q3 2026",
+              "text": "Price 25/11/2026, book at Q3 2026",
               "date": "2026-09-30",
               "old": false
             }
           }
         ],
-        "contribution": 0.46
+        "contribution": 0.45
       },
       {
         "name": "Momentum",
         "weight": 5,
         "question": "What is the market saying?",
-        "score": 0.0,
+        "score": 0.1,
         "metrics": [
           {
             "key": "ret_1y",
             "label": "Share price, 1 year",
-            "value": -0.8251851851851852,
+            "value": -0.8361508452535761,
             "score": 0.0,
             "fmt": "pct",
             "bad": -0.7,
@@ -2144,16 +2144,16 @@
             "lag": 0,
             "note": null,
             "fresh": {
-              "text": "Close 24/11/2026",
-              "date": "2026-11-24",
+              "text": "Close 25/11/2026",
+              "date": "2026-11-25",
               "old": false
             }
           },
           {
             "key": "range_pos",
             "label": "Position in 52-week range",
-            "value": 0.0075187969924812095,
-            "score": 0.1,
+            "value": 0.019548872180451145,
+            "score": 0.2,
             "fmt": "share",
             "bad": 0.0,
             "good": 1.0,
@@ -2161,15 +2161,15 @@
             "lag": 0,
             "note": null,
             "fresh": {
-              "text": "Close 24/11/2026",
-              "date": "2026-11-24",
+              "text": "Close 25/11/2026",
+              "date": "2026-11-25",
               "old": false
             }
           },
           {
             "key": "vs_ma200",
             "label": "Price vs 200-day average",
-            "value": -0.6933471933471934,
+            "value": -0.6710912721719723,
             "score": 0.0,
             "fmt": "pct",
             "bad": -0.4,
@@ -2178,8 +2178,8 @@
             "lag": 0,
             "note": null,
             "fresh": {
-              "text": "Close 24/11/2026",
-              "date": "2026-11-24",
+              "text": "Close 25/11/2026",
+              "date": "2026-11-25",
               "old": false
             }
           }
@@ -2291,7 +2291,7 @@
       "pillar_from": 3.2,
       "pillar_to": 5.2,
       "overall_to": 4.62,
-      "overall_change": 0.29
+      "overall_change": 0.3
     },
     "leverage": {
       "rows": [
@@ -2348,7 +2348,7 @@
           "good": 0.07,
           "per_point": 0.03,
           "contribution": 0.141,
-          "to_full": 0.16,
+          "to_full": 0.17,
           "step": 0.007000000000000001
         },
         {
@@ -2362,7 +2362,7 @@
           "good": 0.015,
           "per_point": 0.03,
           "contribution": 0.0,
-          "to_full": 0.29,
+          "to_full": 0.3,
           "step": 0.003
         },
         {
@@ -2376,7 +2376,7 @@
           "good": 0.12,
           "per_point": 0.03,
           "contribution": 0.0,
-          "to_full": 0.29,
+          "to_full": 0.3,
           "step": 0.006999999999999999
         },
         {
@@ -2404,7 +2404,7 @@
           "good": 90.0,
           "per_point": 0.03,
           "contribution": 0.0,
-          "to_full": 0.29,
+          "to_full": 0.3,
           "step": -11.0
         },
         {
@@ -2418,7 +2418,7 @@
           "good": 0.02,
           "per_point": 0.05,
           "contribution": 0.0,
-          "to_full": 0.49,
+          "to_full": 0.5,
           "step": 0.022
         },
         {
@@ -2432,7 +2432,7 @@
           "good": 0.03,
           "per_point": 0.05,
           "contribution": 0.125,
-          "to_full": 0.37,
+          "to_full": 0.38,
           "step": 0.008
         },
         {
@@ -2446,7 +2446,7 @@
           "good": 0.01,
           "per_point": 0.05,
           "contribution": 0.16000000000000003,
-          "to_full": 0.34,
+          "to_full": 0.35,
           "step": 0.011
         },
         {
@@ -2474,7 +2474,7 @@
           "good": 0.1,
           "per_point": 0.0375,
           "contribution": 0.0,
-          "to_full": 0.37,
+          "to_full": 0.38,
           "step": 0.05
         },
         {
@@ -2488,7 +2488,7 @@
           "good": 1.3,
           "per_point": 0.0375,
           "contribution": 0.23625,
-          "to_full": 0.13,
+          "to_full": 0.14,
           "step": 0.04
         },
         {
@@ -2502,7 +2502,7 @@
           "good": 0.1,
           "per_point": 0.0375,
           "contribution": 0.09,
-          "to_full": 0.28,
+          "to_full": 0.29,
           "step": -0.024999999999999998
         },
         {
@@ -2530,7 +2530,7 @@
           "good": 0.8,
           "per_point": 0.05,
           "contribution": 0.2,
-          "to_full": 0.29,
+          "to_full": 0.3,
           "step": -0.019999999999999997
         },
         {
@@ -2586,42 +2586,42 @@
           "good": 0.02,
           "per_point": 0.03333333333333333,
           "contribution": 0.2733333333333333,
-          "to_full": 0.05,
+          "to_full": 0.06,
           "step": -0.023
         },
         {
           "key": "ps",
           "label": "Price / sales (TTM)",
           "pillar": "Valuation",
-          "value": 0.32623384937816124,
+          "value": 0.3483513984885451,
           "fmt": "x",
-          "points": 9.9,
+          "points": 9.8,
           "bad": 3.0,
           "good": 0.3,
           "per_point": 0.025,
-          "contribution": 0.24750000000000003,
-          "to_full": 0.0,
+          "contribution": 0.24500000000000002,
+          "to_full": 0.01,
           "step": -0.27
         },
         {
           "key": "pb",
           "label": "Price / book (pro forma)",
           "pillar": "Valuation",
-          "value": 1.8521485941891889,
+          "value": 1.9777179904054056,
           "fmt": "x",
-          "points": 8.3,
+          "points": 8.0,
           "bad": 6.0,
           "good": 1.0,
           "per_point": 0.025,
-          "contribution": 0.20750000000000002,
-          "to_full": 0.04,
+          "contribution": 0.2,
+          "to_full": 0.05,
           "step": -0.5
         },
         {
           "key": "ret_1y",
           "label": "Share price, 1 year",
           "pillar": "Momentum",
-          "value": -0.8251851851851852,
+          "value": -0.8361508452535761,
           "fmt": "pct",
           "points": 0.0,
           "bad": -0.7,
@@ -2635,13 +2635,13 @@
           "key": "range_pos",
           "label": "Position in 52-week range",
           "pillar": "Momentum",
-          "value": 0.0075187969924812095,
+          "value": 0.019548872180451145,
           "fmt": "share",
-          "points": 0.1,
+          "points": 0.2,
           "bad": 0.0,
           "good": 1.0,
           "per_point": 0.016666666666666666,
-          "contribution": 0.0016666666666666668,
+          "contribution": 0.0033333333333333335,
           "to_full": 0.16,
           "step": 0.1
         },
@@ -2649,7 +2649,7 @@
           "key": "vs_ma200",
           "label": "Price vs 200-day average",
           "pillar": "Momentum",
-          "value": -0.6933471933471934,
+          "value": -0.6710912721719723,
           "fmt": "pct",
           "points": 0.0,
           "bad": -0.4,
@@ -2684,7 +2684,7 @@
           "good": -0.0075,
           "per_point": 0.01,
           "contribution": 0.008,
-          "to_full": 0.09,
+          "to_full": 0.1,
           "step": -0.0015
         },
         {
@@ -2737,28 +2737,28 @@
         "ani_margin",
         "sbc_pct"
       ],
-      "top_together": 6.25,
+      "top_together": 6.24,
       "grades": [
         {
           "grade": "C",
           "at": 5.0,
-          "gap": 0.67
+          "gap": 0.68
         },
         {
           "grade": "B",
           "at": 6.5,
-          "gap": 2.17
+          "gap": 2.18
         },
         {
           "grade": "A",
           "at": 8.0,
-          "gap": 3.67
+          "gap": 3.68
         }
       ]
     },
     "stress": {
       "r": {
-        "overall": 4.3,
+        "overall": 4.29,
         "change": -0.03,
         "pillars": [
           [
@@ -2769,7 +2769,7 @@
         ]
       },
       "h": {
-        "overall": 4.14,
+        "overall": 4.13,
         "change": -0.19,
         "pillars": [
           [
@@ -2779,8 +2779,8 @@
           ],
           [
             "Valuation",
-            9.1,
-            8.6
+            8.9,
+            8.4
           ],
           [
             "Housing market",
@@ -2790,7 +2790,7 @@
         ]
       },
       "rh": {
-        "overall": 4.12,
+        "overall": 4.11,
         "change": -0.21,
         "pillars": [
           [
@@ -2800,8 +2800,8 @@
           ],
           [
             "Valuation",
-            9.1,
-            8.6
+            8.9,
+            8.4
           ],
           [
             "Housing market",
@@ -2812,7 +2812,7 @@
       },
       "c": {
         "overall": 4.07,
-        "change": -0.26,
+        "change": -0.25,
         "pillars": [
           [
             "Growth",
@@ -2823,7 +2823,7 @@
       },
       "rc": {
         "overall": 4.04,
-        "change": -0.29,
+        "change": -0.28,
         "pillars": [
           [
             "Growth",
@@ -2839,7 +2839,7 @@
       },
       "hc": {
         "overall": 3.88,
-        "change": -0.45,
+        "change": -0.44,
         "pillars": [
           [
             "Growth",
@@ -2853,8 +2853,8 @@
           ],
           [
             "Valuation",
-            9.1,
-            8.6
+            8.9,
+            8.4
           ],
           [
             "Housing market",
@@ -2864,7 +2864,7 @@
         ]
       },
       "rhc": {
-        "overall": 3.86,
+        "overall": 3.85,
         "change": -0.47,
         "pillars": [
           [
@@ -2879,8 +2879,8 @@
           ],
           [
             "Valuation",
-            9.1,
-            8.6
+            8.9,
+            8.4
           ],
           [
             "Housing market",
@@ -4013,7 +4013,7 @@
     "Earnings releases (sec.gov 8-K exhibit 99.1):",
     "Potential shares by type (10-Q / 10-K anti-dilutive table):",
     "housing (Realtor.com): 12 of 12 markets, 2026-10; median days on market 64 (+0.9% YoY)",
-    "mortgage rate 7.28% (week of 2026-11-19)",
+    "mortgage rates unavailable (fred: The read operation timed out; freddie: invalid literal for int() with base 10: '\"11'); using cached copy",
     "float unavailable (HTTP Error 429: Too Many Requests); short interest shown against shares outstanding",
     "short interest 228.3M shares, 5.828008 days to cover (settlement 2026-11-13)",
     "accountable.opendoor.com: data as of 2026-11-21",
@@ -5056,6 +5056,41 @@
       "cuts_yoy": "-0.031234",
       "list_price_yoy": "-0.0259",
       "fallout": "0.289912"
+    },
+    {
+      "run_date": "2026-11-26",
+      "overall": "4.32",
+      "rev_nowcast_yoy": "0.11694",
+      "coe_q4_yoy": "0.387488",
+      "contracts_qoq": "0.004847",
+      "contrib_margin": "0.033",
+      "contrib_trend": "-0.025",
+      "days_inventory": "206.29878",
+      "gross_margin": "0.037182",
+      "aged_inventory": "0.18",
+      "net_margin_2q": "-0.199475",
+      "adj_ebitda_m": "-0.030333",
+      "ani_margin": "-0.064579",
+      "coe_vs_guide": "-0.070211",
+      "contracts_vs_proj": "-0.43973",
+      "clearance": "1.15",
+      "cash_vs_notes": "1.303725",
+      "home_debt_ltv": "0.920561",
+      "runway_q": "13.787879",
+      "share_yoy": "-0.029284",
+      "sbc_pct": "0.105675",
+      "dilution_live": "0.061737",
+      "ps": "0.348351",
+      "pb": "1.977718",
+      "ret_1y": "-0.836151",
+      "range_pos": "0.019549",
+      "vs_ma200": "-0.671091",
+      "mortgage_rate": "0.0728",
+      "mortgage_13w": "0.0063",
+      "dom_yoy": "0.00865",
+      "cuts_yoy": "-0.031234",
+      "list_price_yoy": "-0.0259",
+      "fallout": "0.289912"
     }
   ],
   "estimates_log": {
@@ -5088,19 +5123,19 @@
     }
   },
   "change": {
-    "overall": 0.04999999999999982,
+    "overall": -0.009999999999999787,
     "grade_from": "D",
-    "since": "2026-11-24T06:11",
+    "since": "2026-11-25T04:58",
     "method_changed": false,
     "pillars": {
       "Growth": 0.0,
       "Unit economics": 0.0,
       "Profitability": 0.0,
-      "Execution": 0.30000000000000027,
+      "Execution": 0.0,
       "Balance sheet": 0.0,
       "Dilution": 0.0,
-      "Valuation": 0.1999999999999993,
-      "Momentum": -0.1,
+      "Valuation": -0.1999999999999993,
+      "Momentum": 0.1,
       "Housing market": 0.0
     }
   },
@@ -5408,11 +5443,30 @@
       "Momentum": "0.0",
       "Housing market": "4.6",
       "method": "2"
+    },
+    {
+      "run_at": "2026-11-26T04:15",
+      "price_date": "2026-11-25",
+      "price": "1.26",
+      "tracker_as_of": "2026-11-21",
+      "latest_quarter": "2026-09-30",
+      "overall": "4.32",
+      "grade": "D",
+      "Growth": "7.0",
+      "Unit economics": "2.2",
+      "Profitability": "1.9",
+      "Execution": "3.2",
+      "Balance sheet": "5.9",
+      "Dilution": "6.1",
+      "Valuation": "8.9",
+      "Momentum": "0.1",
+      "Housing market": "4.6",
+      "method": "2"
     }
   ],
   "previous": {
-    "generated": "2026-11-24T06:11",
-    "overall": 4.28,
+    "generated": "2026-11-25T04:58",
+    "overall": 4.33,
     "method": "2",
     "points": {
       "rev_nowcast_yoy": 7.4,
@@ -5427,8 +5481,8 @@
       "adj_ebitda_m": 2.5,
       "ani_margin": 3.2,
       "coe_vs_guide": 4.0,
-      "contracts_vs_proj": 0.2,
-      "clearance": 4.9,
+      "contracts_vs_proj": 0.0,
+      "clearance": 6.3,
       "fallout": 2.4,
       "cash_vs_notes": 5.4,
       "home_debt_ltv": 4.0,
@@ -5436,10 +5490,10 @@
       "share_yoy": 10.0,
       "sbc_pct": 0.0,
       "dilution_live": 8.2,
-      "ps": 9.8,
-      "pb": 8.0,
+      "ps": 9.9,
+      "pb": 8.3,
       "ret_1y": 0.0,
-      "range_pos": 0.2,
+      "range_pos": 0.1,
       "vs_ma200": 0.0,
       "mortgage_rate": 2.4,
       "mortgage_13w": 0.8,
@@ -5449,7 +5503,7 @@
     },
     "values": {
       "rev_nowcast_yoy": 0.11693989071038247,
-      "coe_q4_yoy": 0.38529088913282106,
+      "coe_q4_yoy": 0.3874883286647992,
       "contracts_qoq": 0.004847447961220386,
       "contrib_margin": 0.033,
       "contrib_trend": -0.025,
@@ -5460,8 +5514,8 @@
       "adj_ebitda_m": -0.030332681017612523,
       "ani_margin": -0.06457925636007827,
       "coe_vs_guide": -0.07021131561008864,
-      "contracts_vs_proj": -0.3908918406072106,
-      "clearance": 1.0975000000000001,
+      "contracts_vs_proj": -0.43972962823882844,
+      "clearance": 1.1500000000000001,
       "fallout": 0.2899123744389827,
       "cash_vs_notes": 1.3037249283667622,
       "home_debt_ltv": 0.9205607476635514,
@@ -5469,11 +5523,11 @@
       "share_yoy": -0.02928397718316955,
       "sbc_pct": 0.10567514677103718,
       "dilution_live": 0.06173749092582091,
-      "ps": 0.35111609212734307,
-      "pb": 1.9934141649324324,
-      "ret_1y": -0.7938311688311688,
-      "range_pos": 0.021052631578947385,
-      "vs_ma200": -0.6715630495500156,
+      "ps": 0.32623384937816124,
+      "pb": 1.8521485941891889,
+      "ret_1y": -0.8251851851851852,
+      "range_pos": 0.0075187969924812095,
+      "vs_ma200": -0.6933471933471934,
       "mortgage_rate": 0.0728,
       "mortgage_13w": 0.0063,
       "dom_yoy": 0.008650000000000001,
@@ -5484,18 +5538,18 @@
       "Growth": 7.0,
       "Unit economics": 2.2,
       "Profitability": 1.9,
-      "Execution": 2.9,
+      "Execution": 3.2,
       "Balance sheet": 5.9,
       "Dilution": 6.1,
-      "Valuation": 8.9,
-      "Momentum": 0.1,
+      "Valuation": 9.1,
+      "Momentum": 0.0,
       "Housing market": 4.6
     },
     "stamps": {
       "quarter": "2026-09-30",
-      "price_date": "2026-11-23",
-      "price": 1.27,
-      "tracker": "2026-11-14",
+      "price_date": "2026-11-24",
+      "price": 1.18,
+      "tracker": "2026-11-21",
       "mortgage": "2026-11-19",
       "housing": "2026-10-01",
       "balance_sheet": "2026-09-30"
